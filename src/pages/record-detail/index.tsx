@@ -3,6 +3,7 @@ import { View, Text, Input } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 import { navigateBack, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
+import { getFeelOption } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
 import { getExerciseById } from '@/store/useExerciseStore';
 import MuscleTag from '@/components/MuscleTag';
@@ -10,6 +11,8 @@ import EmptyState from '@/components/EmptyState';
 import {
   cardioExercises,
   exerciseVolume,
+  feelMessage,
+  isBodyweight,
   sessionCardioMin,
   sessionDurationSec,
   strengthExercises,
@@ -181,6 +184,16 @@ const RecordDetailPage: React.FC = () => {
         )}
       </View>
 
+      {session.feelScore !== undefined ? (
+        <View className={styles.feelCard}>
+          <View className={styles.feelScoreRow}>
+            <Text className={styles.feelScore}>{session.feelScore}</Text>
+            <Text className={styles.feelScoreUnit}>/ 10 分 · 训练心得</Text>
+          </View>
+          <Text className={styles.feelMessage}>{feelMessage(session.feelScore)}</Text>
+        </View>
+      ) : null}
+
       <View className={styles.sectionHeader}>
         <Text className={styles.sectionTitle}>训练明细</Text>
         <Text className={styles.sectionExtra}>绿底为已完成组</Text>
@@ -189,6 +202,7 @@ const RecordDetailPage: React.FC = () => {
       {session.exercises.map((exercise, index) => {
         const info = getExerciseById(exercise.exerciseId);
         const doneCount = exercise.sets.filter((set) => set.done).length;
+        const feel = getFeelOption(exercise.feel);
         return (
           <View key={exercise.key} className={styles.exerciseCard}>
             <View className={styles.exerciseHeader}>
@@ -207,6 +221,11 @@ const RecordDetailPage: React.FC = () => {
                         )} 分钟`
                       : `${doneCount} 组 · ${formatVolume(exerciseVolume(exercise))} kg`}
                   </Text>
+                  {feel ? (
+                    <Text className={styles.exerciseFeel}>
+                      {feel.emoji} {feel.label}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -221,8 +240,12 @@ const RecordDetailPage: React.FC = () => {
                     className={classnames(styles.setChipText, set.done && styles.setChipTextDone)}
                   >
                     {set.durationMin !== undefined
-                      ? `${set.durationMin} 分钟${set.intensity ? ` · ${set.intensity}` : ''}`
-                      : `${setIndex + 1}. ${formatWeight(set.weight)}kg × ${set.reps}`}
+                        ? `${set.durationMin} 分钟${set.intensity ? ` · ${set.intensity}` : ''}`
+                        : `${setIndex + 1}. ${
+                            isBodyweight(exercise.exerciseId)
+                              ? '自重'
+                              : `${formatWeight(set.weight)}kg`
+                          } × ${set.reps}`}
                   </Text>
                 </View>
               ))}

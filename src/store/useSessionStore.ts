@@ -3,7 +3,7 @@ import type { Plan, Session, SessionExercise, WorkoutSet } from '@/types';
 import { DEFAULT_CARDIO_MIN, DEFAULT_REPS, DEFAULT_REST, DEFAULT_SETS } from '@/constants';
 import { loadJSON, removeKey, saveJSON, STORAGE_KEYS } from '@/utils/storage';
 import { uid } from '@/utils/id';
-import { findLastPerformance } from '@/utils/workout';
+import { findLastPerformance, isBodyweight } from '@/utils/workout';
 import { getExerciseById } from '@/store/useExerciseStore';
 
 interface StartOptions {
@@ -28,8 +28,8 @@ interface SessionState {
   resumeActive: () => void;
   /** 修改训练名称 */
   renameActive: (name: string) => void;
-  /** 更新当前训练的手填统计（有氧：消耗热量 / 平均心率） */
-  patchActiveMeta: (patch: { calories?: number; avgHeartRate?: number }) => void;
+  /** 更新当前训练的手填统计（有氧：消耗热量 / 平均心率）与训练心得评分 */
+  patchActiveMeta: (patch: { calories?: number; avgHeartRate?: number; feelScore?: number }) => void;
   /** 添加动作 */
   addExerciseToActive: (exerciseId: string, targetSets?: number, restSeconds?: number) => void;
   /** 移除动作 */
@@ -153,6 +153,16 @@ export const useSessionStore = create<SessionState>((set, get) => {
           };
         }
         const last = findLastPerformance(sessions, planExercise.exerciseId);
+        // 自重动作不带重量：负荷就是自身体重
+        if (isBodyweight(planExercise.exerciseId)) {
+          return {
+            key: uid('se'),
+            exerciseId: planExercise.exerciseId,
+            targetSets: Math.max(1, planExercise.targetSets),
+            restSeconds: planExercise.restSeconds || DEFAULT_REST,
+            sets: createSets(planExercise.targetSets, 0, planExercise.targetReps || DEFAULT_REPS)
+          };
+        }
         // 计划里设了做组重量就按计划预填，否则沿用该动作上一次的训练重量
         const weight = planExercise.targetWeight > 0 ? planExercise.targetWeight : last ? last.weight : 0;
         return {
@@ -244,7 +254,11 @@ export const useSessionStore = create<SessionState>((set, get) => {
         exerciseId,
         targetSets,
         restSeconds,
-        sets: createSets(targetSets, last ? last.weight : 0, last ? last.reps : DEFAULT_REPS)
+        sets: createSets(
+          targetSets,
+          isBodyweight(exerciseId) ? 0 : last ? last.weight : 0,
+          last ? last.reps : DEFAULT_REPS
+        )
       };
       persistActive({ ...active, exercises: [...active.exercises, exercise] });
     },

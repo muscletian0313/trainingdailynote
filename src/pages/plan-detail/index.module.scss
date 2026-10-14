@@ -298,7 +298,7 @@
   color: $color-primary;
 }
 
-/* 训练心得：先留出框体，功能后续再做 */
+/* 训练心得：训练中按动作选感受，结束后汇总评分 */
 .noteBox {
   min-height: 180rpx;
   padding: $spacing-md;
@@ -311,6 +311,67 @@
   font-size: $font-size-sm;
   color: $color-text-tertiary;
   line-height: $line-height-normal;
+}
+
+.noteBoxActive {
+  padding: $spacing-lg;
+  border: 2rpx solid rgba(255, 107, 44, 0.35);
+  border-radius: $radius-lg;
+  background: rgba(255, 107, 44, 0.06);
+}
+
+.noteScoreRow {
+  display: flex;
+  align-items: baseline;
+}
+
+.noteScore {
+  font-size: 72rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  color: $color-primary;
+}
+
+.noteScoreUnit {
+  margin-left: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.noteMessage {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $color-text-secondary;
+}
+
+.noteFeelList {
+  margin-top: $spacing-md;
+  padding-top: $spacing-sm;
+  border-top: 2rpx solid rgba(255, 255, 255, 0.06);
+}
+
+.noteFeelItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.noteFeelName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  @include text-ellipsis;
+}
+
+.noteFeelValue {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
 }
 
 .emptyWrap {

@@ -46,6 +46,8 @@ export interface SessionExercise {
   targetSets: number;
   /** 组间休息秒数 */
   restSeconds: number;
+  /** 做完该动作后的主观感受（1-5，5 = 状态爆棚） */
+  feel?: number;
 }
 
 /** 一次训练会话 / 训练记录 */
@@ -65,6 +67,8 @@ export interface Session {
   calories?: number;
   /** 有氧训练：平均心率 bpm（玩家手填） */
   avgHeartRate?: number;
+  /** 训练心得评分（1-10，结束训练时由各动作感受换算而来） */
+  feelScore?: number;
 }
 
 /** 计划中的一个动作（模板） */

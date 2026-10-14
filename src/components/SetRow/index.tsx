@@ -8,6 +8,8 @@ interface SetRowProps {
   index: number;
   set: WorkoutSet;
   canRemove: boolean;
+  /** 自重动作：重量栏固定显示「自重」，不可填写 */
+  bodyweight?: boolean;
   onPatch: (patch: Partial<WorkoutSet>) => void;
   onToggle: () => void;
   onRemove: () => void;
@@ -17,6 +19,7 @@ const SetRow: React.FC<SetRowProps> = ({
   index,
   set,
   canRemove,
+  bodyweight = false,
   onPatch,
   onToggle,
   onRemove
@@ -45,17 +48,23 @@ const SetRow: React.FC<SetRowProps> = ({
     <View className={classnames(styles.row, set.done && styles.rowDone)}>
       <Text className={styles.index}>{index}</Text>
 
-      <View className={styles.weightField}>
-        <Input
-          className={styles.input}
-          type="digit"
-          value={weightText}
-          placeholder="0"
-          placeholderStyle="color:#4a4a55"
-          onInput={(event) => handleWeight(event.detail.value)}
-        />
-        <Text className={styles.unit}>kg</Text>
-      </View>
+      {bodyweight ? (
+        <View className={styles.weightField}>
+          <Text className={styles.bodyweight}>自重</Text>
+        </View>
+      ) : (
+        <View className={styles.weightField}>
+          <Input
+            className={styles.input}
+            type="digit"
+            value={weightText}
+            placeholder="0"
+            placeholderStyle="color:#4a4a55"
+            onInput={(event) => handleWeight(event.detail.value)}
+          />
+          <Text className={styles.unit}>kg</Text>
+        </View>
+      )}
 
       <Text className={styles.times}>×</Text>
 

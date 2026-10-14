@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Input, Picker, Image } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 import dayjs from 'dayjs';
-import { DEFAULT_CARDIO_MIN } from '@/constants';
+import { DEFAULT_CARDIO_MIN, getFeelOption } from '@/constants';
 import { formatWeight } from '@/utils/format';
 import { navigateBack, navigateTo, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
@@ -12,7 +12,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { getExerciseById } from '@/store/useExerciseStore';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
-import { isPlanFinished, planMuscleTags, planPrimaryMuscle } from '@/utils/workout';
+import { feelMessage, isBodyweight, isPlanFinished, planMuscleTags } from '@/utils/workout';
 import { MUSCLE_ART } from '@/assets/muscles/art';
 import styles from './index.module.scss';
 
@@ -106,6 +106,10 @@ const PlanDetailPage: React.FC = () => {
 
   /** 该计划是否已完成过：一个计划只允许完成一次，完成后仅可查看 */
   const planFinished = isPlanFinished(sessions, plan.id);
+
+  /** 该计划最新的那条训练记录：用于展示训练心得评分 */
+  const planRecord = sessions.find((item) => item.planId === plan.id);
+  const planFeelScore = planRecord?.feelScore ?? null;
 
   /** 展示用部位：主训在最前，其后是次训 */
   const muscleTags = planMuscleTags(plan, 99);
@@ -226,9 +230,13 @@ const PlanDetailPage: React.FC = () => {
                     <Text className={styles.itemMetaText}>
                       {info?.muscle === 'cardio'
                         ? `时长 ${item.targetDurationMin ?? DEFAULT_CARDIO_MIN} 分钟`
-                        : `${formatWeight(item.targetWeight)}kg · ${item.targetSets} 组 × ${
-                            item.targetReps
-                          } 次 · 组间歇 ${item.restSeconds}s`}
+                        : `${
+                            isBodyweight(item.exerciseId)
+                              ? '自重'
+                              : `${formatWeight(item.targetWeight)}kg`
+                          } · ${item.targetSets} 组 × ${item.targetReps} 次 · 组间歇 ${
+                            item.restSeconds
+                          }s`}
                     </Text>
                   </View>
                 </View>
@@ -249,15 +257,46 @@ const PlanDetailPage: React.FC = () => {
         </View>
       )}
 
-      {/* 训练心得：先留出 UI 框体，功能后续再做；可在「我的 → 训练偏好」关闭 */}
+      {/* 训练心得：训练中按动作选择感受，结束后汇总评分；可在「我的 → 训练偏好」关闭 */}
       {profile.noteEnabled ? (
         <>
           <View className={styles.sectionHeader}>
             <Text className={styles.sectionTitle}>训练心得</Text>
           </View>
-          <View className={styles.noteBox}>
-            <Text className={styles.notePlaceholder}>训练结束后，在这里记录一下感受吧</Text>
-          </View>
+          {planFeelScore !== null ? (
+            <View className={styles.noteBoxActive}>
+              <View className={styles.noteScoreRow}>
+                <Text className={styles.noteScore}>{planFeelScore}</Text>
+                <Text className={styles.noteScoreUnit}>/ 10 分</Text>
+              </View>
+              <Text className={styles.noteMessage}>{feelMessage(planFeelScore)}</Text>
+              {planRecord ? (
+                <View className={styles.noteFeelList}>
+                  {planRecord.exercises.map((item) => {
+                    const feel = getFeelOption(item.feel);
+                    if (!feel) return null;
+                    const info = getExerciseById(item.exerciseId);
+                    return (
+                      <View key={item.key} className={styles.noteFeelItem}>
+                        <Text className={styles.noteFeelName}>
+                          {info ? info.name : '未知动作'}
+                        </Text>
+                        <Text className={styles.noteFeelValue}>
+                          {feel.emoji} {feel.label}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <View className={styles.noteBox}>
+              <Text className={styles.notePlaceholder}>
+                训练时每做完一个动作选一下感受，结束后这里会显示本次训练心得评分
+              </Text>
+            </View>
+          )}
         </>
       ) : null}
 

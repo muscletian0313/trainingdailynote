@@ -191,6 +191,50 @@
   color: $color-text-tertiary;
 }
 
+.exerciseFeel {
+  margin-left: $spacing-sm;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.14);
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+/* 训练心得评分 */
+.feelCard {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border: 2rpx solid rgba(255, 107, 44, 0.35);
+  border-radius: $radius-lg;
+  background: rgba(255, 107, 44, 0.06);
+}
+
+.feelScoreRow {
+  display: flex;
+  align-items: baseline;
+}
+
+.feelScore {
+  font-size: 72rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  color: $color-primary;
+}
+
+.feelScoreUnit {
+  margin-left: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.feelMessage {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $color-text-secondary;
+}
+
 .setWrap {
   display: flex;
   flex-wrap: wrap;

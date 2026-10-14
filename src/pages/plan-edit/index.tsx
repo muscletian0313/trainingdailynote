@@ -25,7 +25,7 @@ import { getPlanById, usePlanStore } from '@/store/usePlanStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { getExerciseById } from '@/store/useExerciseStore';
-import { isPlanFinished, planPrimaryMuscle } from '@/utils/workout';
+import { isBodyweight, isPlanFinished, planPrimaryMuscle } from '@/utils/workout';
 import { withAlpha } from '@/utils/format';
 import { uid } from '@/utils/id';
 import { MUSCLE_ART } from '@/assets/muscles/art';
@@ -115,10 +115,12 @@ const PlanEditPage: React.FC = () => {
     const list: PlanExercise[] = exerciseIds.map((exerciseId) => {
       // 有氧动作只配时长，不涉及重量 / 组数 / 次数
       const cardio = getExerciseById(exerciseId)?.muscle === 'cardio';
+      // 自重动作不带重量
+      const bodyweight = isBodyweight(exerciseId);
       return {
         key: uid('pe'),
         exerciseId,
-        targetWeight: cardio ? 0 : DEFAULT_WEIGHT,
+        targetWeight: cardio || bodyweight ? 0 : DEFAULT_WEIGHT,
         targetSets: cardio ? 1 : DEFAULT_SETS,
         targetReps: cardio ? 0 : DEFAULT_REPS,
         restSeconds: defaultRest,
@@ -296,6 +298,7 @@ const PlanEditPage: React.FC = () => {
         const info = getExerciseById(item.exerciseId);
         const exerciseName = info ? info.name : '未知动作';
         const isCardio = info?.muscle === 'cardio';
+        const bodyweight = isBodyweight(item.exerciseId);
         return (
           <View key={item.key} id={`ex-${item.key}`} className={styles.exerciseCard}>
             <View className={styles.exerciseHeader}>
@@ -348,18 +351,20 @@ const PlanEditPage: React.FC = () => {
               </View>
             ) : (
               <>
-                <View className={styles.configRow}>
-                  <Text className={styles.configLabel}>重量</Text>
-                  <Stepper
-                    value={item.targetWeight}
-                    min={0}
-                    max={500}
-                    step={2.5}
-                    suffix="kg"
-                    editable
-                    onChange={(value) => updateItem(item.key, { targetWeight: value })}
-                  />
-                </View>
+                {bodyweight ? null : (
+                  <View className={styles.configRow}>
+                    <Text className={styles.configLabel}>重量</Text>
+                    <Stepper
+                      value={item.targetWeight}
+                      min={0}
+                      max={500}
+                      step={2.5}
+                      suffix="kg"
+                      editable
+                      onChange={(value) => updateItem(item.key, { targetWeight: value })}
+                    />
+                  </View>
+                )}
 
                 <View className={styles.configRow}>
                   <Text className={styles.configLabel}>目标组数</Text>

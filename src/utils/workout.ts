@@ -91,6 +91,44 @@ export function sessionCardioMin(session: Session): number {
   );
 }
 
+/** 该动作是否已经做完：力量动作看是否全部勾完；有氧动作看是否填了时长 */
+export function isExerciseFinished(exercise: SessionExercise): boolean {
+  const isCardio = getExerciseById(exercise.exerciseId)?.muscle === 'cardio';
+  if (isCardio) {
+    return exercise.sets.some((set) => (set.durationMin ?? 0) > 0);
+  }
+  return exercise.sets.length > 0 && exercise.sets.every((set) => set.done);
+}
+
+/** 自重类动作（负荷就是自身体重）：训练中重量栏显示「自重」，不填 kg */
+export function isBodyweight(exerciseId: string): boolean {
+  const equipment = getExerciseById(exerciseId)?.equipment;
+  return equipment === '自重' || equipment === '吊环';
+}
+
+/**
+ * 训练心得评分（1-10）：把各动作的主观感受（1-5）取平均后换算。
+ * 全部动作都没选感受时返回 null。
+ */
+export function sessionFeelScore(session: Session): number | null {
+  const feels = session.exercises
+    .map((item) => item.feel)
+    .filter((value): value is number => typeof value === 'number');
+  if (!feels.length) return null;
+  const avg = feels.reduce((sum, value) => sum + value, 0) / feels.length;
+  return Math.max(1, Math.min(10, Math.round(((avg - 1) / 4) * 9 + 1)));
+}
+
+/** 根据心得评分给出鼓励文案：差的时候给鼓励，好的时候给肯定，目的是保持训练热情 */
+export function feelMessage(score: number): string {
+  if (score >= 9) return '进步明显！今天状态拉满、掌控全场，就照这个势头练下去 🏆';
+  if (score === 8) return '表现非常稳！力量和控制都在线，离突破只差一点点，下次可以试着加点重量 🚀';
+  if (score >= 6) return '状态火热！动作和节奏都在线，保持这个感觉，你正在稳步变强 🔥';
+  if (score === 5) return '平稳发挥，稳稳积累。健身是场长跑，坚持住，进步自然来 👏';
+  if (score >= 3) return '状态有起伏很正常，能坚持练完就是胜利。下次热身再充分点，感觉会更好 🙂';
+  return '今天状态不在线还坚持完成了，已经很棒！好好休息、吃好睡好，下一场一定能找回感觉 💪';
+}
+
 /** 该计划是否已完成过：一个计划只允许完成一次，完成后仅可查看 */
 export function isPlanFinished(sessions: Session[], planId: string): boolean {
   return sessions.some((session) => session.planId === planId);

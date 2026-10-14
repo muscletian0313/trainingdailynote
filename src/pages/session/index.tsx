@@ -8,7 +8,7 @@ import {
   showToast
 } from '@/utils/taro';
 import classnames from 'classnames';
-import { REST_OPTIONS } from '@/constants';
+import { FEEL_OPTIONS, REST_OPTIONS, getFeelOption } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { getExerciseById } from '@/store/useExerciseStore';
@@ -18,12 +18,16 @@ import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import LastRecordFloat from '@/components/LastRecordFloat';
 import {
+  feelMessage,
   findLastPerformance,
   hasCardio,
+  isBodyweight,
+  isExerciseFinished,
   isSessionPaused,
   sessionCardioMin,
   sessionDoneSets,
   sessionDurationSec,
+  sessionFeelScore,
   sessionTotalSets,
   sessionVolume
 } from '@/utils/workout';
@@ -57,6 +61,12 @@ const SessionPage: React.FC = () => {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [rest, setRest] = useState<RestState | null>(null);
   const [now, setNow] = useState(Date.now());
+  /** 手动点开某个折叠动作时临时聚焦；为空则跟随自动推进 */
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  /** 结束训练时弹出的训练心得评分结果 */
+  const [feelResult, setFeelResult] = useState<{ score: number | null; message: string } | null>(
+    null
+  );
 
   // 秒级刷新，用于训练计时与休息倒计时
   useEffect(() => {
@@ -85,6 +95,15 @@ const SessionPage: React.FC = () => {
     return map;
   }, [active, sessions]);
 
+  /** 当前正在做的动作：第一个还没做完（或做完了但还没选感受）的动作；全部完成则取最后一个 */
+  const currentKey = useMemo(() => {
+    const list = active?.exercises ?? [];
+    if (!list.length) return '';
+    if (focusKey && list.some((item) => item.key === focusKey)) return focusKey;
+    const index = list.findIndex((item) => !(isExerciseFinished(item) && item.feel !== undefined));
+    return index === -1 ? list[list.length - 1].key : list[index].key;
+  }, [active, focusKey]);
+
   const startRest = (seconds: number) => {
     if (!profile.restEnabled || !seconds) return;
     setRest({ endAt: Date.now() + seconds * 1000 });
@@ -98,6 +117,8 @@ const SessionPage: React.FC = () => {
   ) => {
     const exercise = active?.exercises.find((item) => item.key === exerciseKey);
     toggleSetDone(exerciseKey, setId);
+    // 打勾后回到「自动推进」状态：完成当前动作会自动展开下一个
+    setFocusKey(null);
     if (wasDone) return;
     // 组间歇只作用于「单个动作内部」：该动作还有没做完的组才计时；
     // 最后一组做完就结束，换下一个动作的间隙不计时
@@ -149,6 +170,12 @@ const SessionPage: React.FC = () => {
     });
   };
 
+  /** 选完某个动作的感受：自动推进到下一个动作 */
+  const handleFeel = (key: string, value: number) => {
+    patchExerciseInActive(key, { feel: value });
+    setFocusKey(null);
+  };
+
   const handleFinish = () => {
     if (!active) return;
     showModal({
@@ -157,11 +184,22 @@ const SessionPage: React.FC = () => {
       confirmText: '确定结束',
       success: (res) => {
         if (!res.confirm) return;
-        const finished = finishActive();
-        if (!finished) return;
-        redirectTo({ url: `/pages/record-detail/index?id=${finished.id}` });
+        // 先根据各动作的感受算出心得评分并展示，用户确认后再真正保存
+        const score = sessionFeelScore(active);
+        if (score !== null) patchActiveMeta({ feelScore: score });
+        setFeelResult({
+          score,
+          message: score !== null ? feelMessage(score) : '训练完成，干得漂亮！保持这个节奏，继续加油 💪'
+        });
       }
     });
+  };
+
+  /** 看完心得评分后，保存并跳到训练记录 */
+  const handleSaveAndView = () => {
+    const finished = finishActive();
+    if (!finished) return;
+    redirectTo({ url: `/pages/record-detail/index?id=${finished.id}` });
   };
 
   const handleDiscard = () => {
@@ -305,9 +343,27 @@ const SessionPage: React.FC = () => {
           const info = getExerciseById(exercise.exerciseId);
           const last = lastPerformanceMap[exercise.key];
           const isCardio = info?.muscle === 'cardio';
+          // 当前正在进行的动作：展开 + 橙色边框；其余折叠成只显示动作名
+          const isCurrent = exercise.key === currentKey;
+          const doneCount = exercise.sets.filter((set) => set.done).length;
+          const finished = isExerciseFinished(exercise);
+          const feelOption = getFeelOption(exercise.feel);
+          // 自重动作：重量栏显示「自重」，不用填 kg
+          const bodyweight = isBodyweight(exercise.exerciseId);
           return (
-            <View key={exercise.key} className={styles.exerciseCard}>
-              <View className={styles.exerciseHeader}>
+            <View
+              key={exercise.key}
+              className={classnames(
+                styles.exerciseCard,
+                isCurrent ? styles.exerciseCardActive : styles.exerciseCardCollapsed
+              )}
+            >
+              <View
+                className={styles.exerciseHeader}
+                onClick={() => {
+                  if (!isCurrent) setFocusKey(exercise.key);
+                }}
+              >
                 <View className={styles.orderBadge}>
                   <Text className={styles.orderBadgeText}>{index + 1}</Text>
                 </View>
@@ -317,48 +373,65 @@ const SessionPage: React.FC = () => {
                     {info ? <MuscleTag muscle={info.muscle} /> : null}
                     <Text className={styles.exerciseMetaText}>
                       {isCardio
-                        ? '记录时长与强度'
-                        : last
-                          ? `上次 ${last.weight}kg × ${last.reps}`
-                          : `目标 ${exercise.targetSets} 组 · 休息 ${exercise.restSeconds}s`}
+                        ? feelOption
+                          ? `${feelOption.emoji} ${feelOption.desc}`
+                          : '记录时长与强度'
+                        : isCurrent
+                          ? last
+                            ? `上次 ${bodyweight ? '自重' : `${last.weight}kg`} × ${last.reps}`
+                            : `目标 ${exercise.targetSets} 组 · 休息 ${exercise.restSeconds}s`
+                          : feelOption
+                            ? `已完成 ${doneCount}/${exercise.sets.length} 组 · ${feelOption.emoji} ${feelOption.label}`
+                            : `待进行 · ${doneCount}/${exercise.sets.length} 组`}
                     </Text>
                   </View>
                 </View>
-                <View className={styles.exerciseActions}>
-                  <View
-                    className={classnames(styles.iconBtn, index === 0 && styles.iconBtnDisabled)}
-                    onClick={() => index > 0 && moveExerciseInActive(exercise.key, -1)}
-                  >
-                    <Text className={styles.iconBtnText}>↑</Text>
+                {isCurrent ? (
+                  <View className={styles.exerciseActions}>
+                    <View
+                      className={classnames(styles.iconBtn, index === 0 && styles.iconBtnDisabled)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (index > 0) moveExerciseInActive(exercise.key, -1);
+                      }}
+                    >
+                      <Text className={styles.iconBtnText}>↑</Text>
+                    </View>
+                    <View
+                      className={classnames(
+                        styles.iconBtn,
+                        index === active.exercises.length - 1 && styles.iconBtnDisabled
+                      )}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (index < active.exercises.length - 1) {
+                          moveExerciseInActive(exercise.key, 1);
+                        }
+                      }}
+                    >
+                      <Text className={styles.iconBtnText}>↓</Text>
+                    </View>
+                    <View
+                      className={styles.iconBtn}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleExerciseMore(
+                          exercise.key,
+                          info ? info.name : '该动作',
+                          exercise.restSeconds,
+                          isCardio
+                        );
+                      }}
+                    >
+                      <Text className={styles.iconBtnText}>···</Text>
+                    </View>
                   </View>
-                  <View
-                    className={classnames(
-                      styles.iconBtn,
-                      index === active.exercises.length - 1 && styles.iconBtnDisabled
-                    )}
-                    onClick={() =>
-                      index < active.exercises.length - 1 && moveExerciseInActive(exercise.key, 1)
-                    }
-                  >
-                    <Text className={styles.iconBtnText}>↓</Text>
-                  </View>
-                  <View
-                    className={styles.iconBtn}
-                    onClick={() =>
-                      handleExerciseMore(
-                        exercise.key,
-                        info ? info.name : '该动作',
-                        exercise.restSeconds,
-                        isCardio
-                      )
-                    }
-                  >
-                    <Text className={styles.iconBtnText}>···</Text>
-                  </View>
-                </View>
+                ) : null}
               </View>
 
-              {isCardio ? (
+              {!isCurrent ? null : (
+                <>
+                  {isCardio ? (
                 exercise.sets.map((set) => (
                   <View key={set.id} className={styles.cardioBox}>
                     <View className={styles.cardioLine}>
@@ -398,7 +471,7 @@ const SessionPage: React.FC = () => {
                 <>
                   <View className={styles.setHead}>
                     <Text className={styles.headIndex}>组</Text>
-                    <Text className={styles.headWeight}>重量(kg)</Text>
+                    <Text className={styles.headWeight}>{bodyweight ? '自重' : '重量(kg)'}</Text>
                     <Text className={styles.headTimes} />
                     <Text className={styles.headReps}>次数</Text>
                     <Text className={styles.headDone}>完成</Text>
@@ -410,6 +483,7 @@ const SessionPage: React.FC = () => {
                       key={set.id}
                       index={setIndex + 1}
                       set={set}
+                      bodyweight={bodyweight}
                       canRemove={exercise.sets.length > 1}
                       onPatch={(patch) => updateSetInActive(exercise.key, set.id, patch)}
                       onToggle={() =>
@@ -422,6 +496,35 @@ const SessionPage: React.FC = () => {
                   <View className={styles.addSet} onClick={() => addSetToActive(exercise.key)}>
                     <Text className={styles.addSetText}>+ 添加一组</Text>
                   </View>
+                </>
+              )}
+
+              {/* 动作做完后：选择本次感受，选完自动进入下一个动作 */}
+              {finished ? (
+                <View className={styles.feelBox}>
+                  <Text className={styles.feelTitle}>
+                    {exercise.feel ? '这次感觉怎么样？（可修改）' : '这个动作练完了，感觉如何？'}
+                  </Text>
+                  <View className={styles.feelRow}>
+                    {FEEL_OPTIONS.map((option) => (
+                      <View
+                        key={option.value}
+                        className={classnames(
+                          styles.feelChip,
+                          exercise.feel === option.value && styles.feelChipActive
+                        )}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleFeel(exercise.key, option.value);
+                        }}
+                      >
+                        <Text className={styles.feelEmoji}>{option.emoji}</Text>
+                        <Text className={styles.feelLabel}>{option.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
                 </>
               )}
             </View>
@@ -477,6 +580,29 @@ const SessionPage: React.FC = () => {
         onClose={() => setPickerVisible(false)}
         onConfirm={handleAddExercises}
       />
+
+      {/* 结束训练后的训练心得评分 */}
+      {feelResult ? (
+        <View className={styles.resultMask}>
+          <View className={styles.resultCard}>
+            <Text className={styles.resultTitle}>训练心得</Text>
+            {feelResult.score !== null ? (
+              <>
+                <View className={styles.resultScoreRow}>
+                  <Text className={styles.resultScore}>{feelResult.score}</Text>
+                  <Text className={styles.resultScoreUnit}>/ 10 分</Text>
+                </View>
+                <Text className={styles.resultMessage}>{feelResult.message}</Text>
+              </>
+            ) : (
+              <Text className={styles.resultMessage}>{feelResult.message}</Text>
+            )}
+            <View className={styles.resultBtn} onClick={handleSaveAndView}>
+              <Text className={styles.resultBtnText}>保存并查看记录</Text>
+            </View>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 };

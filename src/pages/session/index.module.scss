@@ -220,6 +220,37 @@
   box-shadow: $shadow-card;
 }
 
+/* 当前正在进行的动作：橙色边框 + 正常展开 */
+.exerciseCardActive {
+  border: 2rpx solid $color-primary;
+  box-shadow: 0 0 0 4rpx rgba(255, 107, 44, 0.12);
+}
+
+/* 非当前动作：折叠成一行，保持原色 */
+.exerciseCardCollapsed {
+  padding: $spacing-md $spacing-lg;
+  background: $color-bg-card;
+  box-shadow: none;
+  border: 2rpx solid $color-border;
+
+  .exerciseMeta {
+    margin-top: 4rpx;
+  }
+
+  .orderBadge {
+    background: $color-bg-hover;
+  }
+
+  .orderBadgeText {
+    color: $color-text-tertiary;
+  }
+
+  .exerciseName {
+    font-size: $font-size-md;
+    color: $color-text-secondary;
+  }
+}
+
 .exerciseHeader {
   display: flex;
   align-items: center;
@@ -498,4 +529,147 @@
 /* 空状态容器 */
 .emptyWrap {
   margin-top: 120rpx;
+}
+
+/* 训练心得：每个动作做完后选感受 */
+.feelBox {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: rgba(255, 107, 44, 0.08);
+  border: 2rpx solid rgba(255, 107, 44, 0.32);
+}
+
+.feelTitle {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.feelRow {
+  display: flex;
+  align-items: stretch;
+  margin-top: $spacing-sm;
+}
+
+.feelChip {
+  flex: 1;
+  min-width: 0;
+  padding: 12rpx 2rpx;
+  margin-left: 8rpx;
+  border-radius: $radius-sm;
+  border: 2rpx solid transparent;
+  background: $color-bg-hover;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.feelChipActive {
+  border-color: $color-primary;
+  background: rgba(255, 107, 44, 0.2);
+
+  .feelLabel {
+    color: $color-primary;
+  }
+}
+
+.feelEmoji {
+  font-size: 34rpx;
+  line-height: 1.1;
+}
+
+.feelLabel {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  white-space: nowrap;
+}
+
+/* 结束训练：训练心得评分弹窗 */
+.resultMask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.62);
+  @include flex-center;
+}
+
+.resultCard {
+  width: 600rpx;
+  padding: $spacing-xl $spacing-lg $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  border: 2rpx solid rgba(255, 107, 44, 0.4);
+  box-shadow: $shadow-popup;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.resultTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+  letter-spacing: 4rpx;
+}
+
+.resultScoreRow {
+  display: flex;
+  align-items: baseline;
+  margin-top: $spacing-md;
+}
+
+.resultScore {
+  font-size: 120rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  color: $color-primary;
+}
+
+.resultScoreUnit {
+  margin-left: 8rpx;
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.resultMessage {
+  margin-top: $spacing-md;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $color-text-secondary;
+  text-align: center;
+}
+
+.resultBtn {
+  margin-top: $spacing-lg;
+  width: 100%;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.resultBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
 }

@@ -62,6 +62,14 @@
   flex-shrink: 0;
 }
 
+/* 自重动作：重量栏固定文案 */
+.bodyweight {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+  text-align: center;
+}
+
 .times {
   width: 36rpx;
   flex-shrink: 0;
