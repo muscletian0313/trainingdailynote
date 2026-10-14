@@ -71,14 +71,21 @@ export interface Session {
   feelScore?: number;
 }
 
+/** 计划里的一组（支持每组不同重量/次数，例如递减组） */
+export interface PlanSet {
+  id: string;
+  /** 目标重量 kg（自重动作为 0） */
+  weight: number;
+  /** 目标次数 */
+  reps: number;
+}
+
 /** 计划中的一个动作（模板） */
 export interface PlanExercise {
   key: string;
   exerciseId: string;
-  /** 做组重量 kg */
-  targetWeight: number;
-  targetSets: number;
-  targetReps: number;
+  /** 逐组的目标重量 / 次数；有氧动作为空数组 */
+  sets: PlanSet[];
   restSeconds: number;
   /** 有氧动作：目标时长（分钟） */
   targetDurationMin?: number;
@@ -107,6 +114,10 @@ export interface UserProfile {
   defaultRest: number;
   /** 是否开启休息倒计时 */
   restEnabled: boolean;
+  /** 组间歇提示音 id（见 REST_SOUNDS；'off' 表示不响） */
+  restSoundId: string;
+  /** 组间歇到点是否震动 */
+  restVibrate: boolean;
   /** 是否在计划详情页展示「训练心得」区域 */
   noteEnabled: boolean;
 }

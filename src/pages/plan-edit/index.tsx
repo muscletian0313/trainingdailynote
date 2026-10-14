@@ -10,11 +10,10 @@ import {
   showToast
 } from '@/utils/taro';
 import classnames from 'classnames';
-import type { MuscleGroup, PlanExercise } from '@/types';
+import type { MuscleGroup, PlanExercise, PlanSet } from '@/types';
 import {
   DEFAULT_CARDIO_MIN,
   DEFAULT_REPS,
-  DEFAULT_SETS,
   DEFAULT_WEIGHT,
   MUSCLE_COLORS,
   MUSCLE_GROUPS,
@@ -25,7 +24,7 @@ import { getPlanById, usePlanStore } from '@/store/usePlanStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { getExerciseById } from '@/store/useExerciseStore';
-import { isBodyweight, isPlanFinished, planPrimaryMuscle } from '@/utils/workout';
+import { isBodyweight, isPlanFinished, planPrimaryMuscle, recentPerformances } from '@/utils/workout';
 import { withAlpha } from '@/utils/format';
 import { uid } from '@/utils/id';
 import { MUSCLE_ART } from '@/assets/muscles/art';
@@ -56,6 +55,80 @@ const MuscleChip: React.FC<MuscleChipProps> = ({ muscle, active, solid = false, 
       <Text className={styles.muscleChipText} style={textStyle}>
         {MUSCLE_LABELS[muscle]}
       </Text>
+    </View>
+  );
+};
+
+interface PlanSetRowProps {
+  index: number;
+  set: PlanSet;
+  bodyweight: boolean;
+  onPatch: (patch: Partial<PlanSet>) => void;
+  onRemove: () => void;
+}
+
+/** 计划里的一行组：逐组填重量 / 次数，方便做递减组 */
+const PlanSetRow: React.FC<PlanSetRowProps> = ({
+  index,
+  set,
+  bodyweight,
+  onPatch,
+  onRemove
+}) => {
+  const [weightText, setWeightText] = useState(set.weight ? String(set.weight) : '');
+  const [repsText, setRepsText] = useState(set.reps ? String(set.reps) : '');
+
+  useEffect(() => {
+    setWeightText(set.weight ? String(set.weight) : '');
+    setRepsText(set.reps ? String(set.reps) : '');
+    // 只在切换不同组时重置输入内容
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [set.id]);
+
+  return (
+    <View className={styles.setRow}>
+      <Text className={styles.setIndex}>{index}</Text>
+
+      {bodyweight ? (
+        <View className={styles.setWeightField}>
+          <Text className={styles.setBodyweight}>自重</Text>
+        </View>
+      ) : (
+        <View className={styles.setWeightField}>
+          <Input
+            className={styles.setInput}
+            type="digit"
+            value={weightText}
+            placeholder="0"
+            placeholderStyle="color:#4a4a55"
+            onInput={(event) => {
+              setWeightText(event.detail.value);
+              onPatch({ weight: parseFloat(event.detail.value) || 0 });
+            }}
+          />
+          <Text className={styles.setUnit}>kg</Text>
+        </View>
+      )}
+
+      <Text className={styles.setTimes}>×</Text>
+
+      <View className={styles.setRepsField}>
+        <Input
+          className={styles.setInput}
+          type="number"
+          value={repsText}
+          placeholder="0"
+          placeholderStyle="color:#4a4a55"
+          onInput={(event) => {
+            setRepsText(event.detail.value);
+            onPatch({ reps: parseInt(event.detail.value, 10) || 0 });
+          }}
+        />
+      </View>
+
+      <View className={styles.setRemove} onClick={onRemove}>
+        <Text className={styles.setRemoveText}>✕</Text>
+      </View>
     </View>
   );
 };
@@ -112,17 +185,27 @@ const PlanEditPage: React.FC = () => {
   };
 
   const addExercises = (exerciseIds: string[]) => {
+    const sessions = useSessionStore.getState().sessions;
     const list: PlanExercise[] = exerciseIds.map((exerciseId) => {
       // 有氧动作只配时长，不涉及重量 / 组数 / 次数
       const cardio = getExerciseById(exerciseId)?.muscle === 'cardio';
       // 自重动作不带重量
       const bodyweight = isBodyweight(exerciseId);
+      // 有历史记录：按最近一次训练逐组预填，用户微调即可；没有：默认 1 组自己加
+      const lastRecord = recentPerformances(sessions, exerciseId, 1)[0];
+      const sets: PlanSet[] = cardio
+        ? []
+        : lastRecord?.sets.length
+          ? lastRecord.sets.map((item) => ({
+              id: uid('ps'),
+              weight: bodyweight ? 0 : item.weight,
+              reps: item.reps || DEFAULT_REPS
+            }))
+          : [{ id: uid('ps'), weight: bodyweight ? 0 : DEFAULT_WEIGHT, reps: DEFAULT_REPS }];
       return {
         key: uid('pe'),
         exerciseId,
-        targetWeight: cardio || bodyweight ? 0 : DEFAULT_WEIGHT,
-        targetSets: cardio ? 1 : DEFAULT_SETS,
-        targetReps: cardio ? 0 : DEFAULT_REPS,
+        sets,
         restSeconds: defaultRest,
         targetDurationMin: cardio ? DEFAULT_CARDIO_MIN : undefined
       };
@@ -132,6 +215,62 @@ const PlanEditPage: React.FC = () => {
 
   const updateItem = (key: string, patch: Partial<PlanExercise>) => {
     setExercises((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  };
+
+  /** 计划内某组的增删改（逐组配置，支持递减组） */
+  const updatePlanSet = (key: string, setId: string, patch: Partial<PlanSet>) => {
+    setExercises((prev) =>
+      prev.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              sets: item.sets.map((set) => (set.id === setId ? { ...set, ...patch } : set))
+            }
+          : item
+      )
+    );
+  };
+
+  const addPlanSet = (key: string) => {
+    setExercises((prev) =>
+      prev.map((item) => {
+        if (item.key !== key) return item;
+        const last = item.sets[item.sets.length - 1];
+        return {
+          ...item,
+          sets: [
+            ...item.sets,
+            {
+              id: uid('ps'),
+              // 沿用上一组的重量/次数，递减组时改一下重量即可
+              weight: last ? last.weight : 0,
+              reps: last ? last.reps : DEFAULT_REPS
+            }
+          ]
+        };
+      })
+    );
+  };
+
+  const removePlanSet = (key: string, setId: string) => {
+    setExercises((prev) =>
+      prev.map((item) =>
+        item.key === key && item.sets.length > 1
+          ? { ...item, sets: item.sets.filter((set) => set.id !== setId) }
+          : item
+      )
+    );
+  };
+
+  /** 点某一组的 ✕：还有别的组就删这一组，只剩这一组时等同于删除整个动作 */
+  const handleSetRemove = (key: string, setId: string, exerciseName: string) => {
+    const item = exercises.find((exercise) => exercise.key === key);
+    if (!item) return;
+    if (item.sets.length > 1) {
+      removePlanSet(key, setId);
+      return;
+    }
+    removeItem(key, exerciseName);
   };
 
   const removeItem = (key: string, exerciseName: string) => {
@@ -290,7 +429,7 @@ const PlanEditPage: React.FC = () => {
       <View className={styles.sectionHeader}>
         <Text className={styles.sectionTitle}>动作</Text>
         <Text className={styles.sectionExtra}>
-          {exercises.length} 个 · {exercises.reduce((sum, item) => sum + item.targetSets, 0)} 组
+          {exercises.length} 个 · {exercises.reduce((sum, item) => sum + item.sets.length, 0)} 组
         </Text>
       </View>
 
@@ -351,39 +490,27 @@ const PlanEditPage: React.FC = () => {
               </View>
             ) : (
               <>
-                {bodyweight ? null : (
-                  <View className={styles.configRow}>
-                    <Text className={styles.configLabel}>重量</Text>
-                    <Stepper
-                      value={item.targetWeight}
-                      min={0}
-                      max={500}
-                      step={2.5}
-                      suffix="kg"
-                      editable
-                      onChange={(value) => updateItem(item.key, { targetWeight: value })}
-                    />
-                  </View>
-                )}
-
-                <View className={styles.configRow}>
-                  <Text className={styles.configLabel}>目标组数</Text>
-                  <Stepper
-                    value={item.targetSets}
-                    min={1}
-                    max={20}
-                    onChange={(value) => updateItem(item.key, { targetSets: value })}
-                  />
+                <View className={styles.setHead}>
+                  <Text className={styles.headIndex}>组</Text>
+                  <Text className={styles.headWeight}>{bodyweight ? '自重' : '重量(kg)'}</Text>
+                  <Text className={styles.headTimes} />
+                  <Text className={styles.headReps}>次数</Text>
+                  <Text className={styles.headRemove} />
                 </View>
 
-                <View className={styles.configRow}>
-                  <Text className={styles.configLabel}>次数</Text>
-                  <Stepper
-                    value={item.targetReps}
-                    min={1}
-                    max={100}
-                    onChange={(value) => updateItem(item.key, { targetReps: value })}
+                {item.sets.map((set, setIndex) => (
+                  <PlanSetRow
+                    key={set.id}
+                    index={setIndex + 1}
+                    set={set}
+                    bodyweight={bodyweight}
+                    onPatch={(patch) => updatePlanSet(item.key, set.id, patch)}
+                    onRemove={() => handleSetRemove(item.key, set.id, exerciseName)}
                   />
+                ))}
+
+                <View className={styles.addSet} onClick={() => addPlanSet(item.key)}>
+                  <Text className={styles.addSetText}>+ 添加一组</Text>
                 </View>
 
                 <View

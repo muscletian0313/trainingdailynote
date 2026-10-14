@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, Input, Switch } from '@tarojs/components';
-import { showActionSheet, showModal, showToast } from '@/utils/taro';
+import React, { useState } from 'react';
+import { View, Text, Input, Switch, ScrollView } from '@tarojs/components';
+import { playSound, showActionSheet, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
-import { REST_OPTIONS } from '@/constants';
+import { REST_OPTIONS, REST_SOUNDS, REST_SOUND_OFF, restSoundSrc } from '@/constants';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { usePlanStore } from '@/store/usePlanStore';
@@ -40,6 +40,21 @@ const MinePage: React.FC = () => {
       }
     });
   };
+
+  /** 组间歇提示音选择弹层 */
+  const [soundSheet, setSoundSheet] = useState(false);
+
+  /** 选中并试听：点一下即生效 */
+  const pickRestSound = (id: string) => {
+    updateProfile({ restSoundId: id });
+    const src = restSoundSrc(id);
+    if (src) playSound(src);
+  };
+
+  const restSoundLabel =
+    profile.restSoundId === REST_SOUND_OFF
+      ? '关闭提醒'
+      : REST_SOUNDS.find((item) => item.id === profile.restSoundId)?.name ?? '清脆铃声';
 
   const handleClearSessions = () => {
     showModal({
@@ -127,6 +142,32 @@ const MinePage: React.FC = () => {
             />
           </View>
         </View>
+        <View
+          className={classnames(styles.row, styles.rowBorder)}
+          onClick={() => setSoundSheet(true)}
+        >
+          <View>
+            <Text className={styles.rowLabel}>组间歇提示音</Text>
+            <Text className={styles.rowSub}>计时到点时的提醒音效</Text>
+          </View>
+          <View className={styles.rowValue}>
+            <Text className={styles.rowValueText}>{restSoundLabel}</Text>
+            <Text className={styles.rowArrow}>›</Text>
+          </View>
+        </View>
+        <View className={classnames(styles.row, styles.rowBorder)}>
+          <View>
+            <Text className={styles.rowLabel}>到点震动</Text>
+            <Text className={styles.rowSub}>计时结束时短震一下</Text>
+          </View>
+          <View className={styles.rowValue}>
+            <Switch
+              checked={profile.restVibrate}
+              color="#ff6b2c"
+              onChange={(event) => updateProfile({ restVibrate: event.detail.value })}
+            />
+          </View>
+        </View>
         <View className={styles.row}>
           <View>
             <Text className={styles.rowLabel}>训练心得</Text>
@@ -164,6 +205,48 @@ const MinePage: React.FC = () => {
         <Text className={styles.aboutText}>练记 FitLog · v1.0.0</Text>
         <Text className={styles.aboutText}>所有数据仅保存在本机，不会上传</Text>
       </View>
+
+      {/* 组间歇提示音选择：点一下即选中并试听 */}
+      {soundSheet ? (
+        <View className={styles.sheetMask} onClick={() => setSoundSheet(false)}>
+          <View className={styles.sheet} onClick={(event) => event.stopPropagation()}>
+            <View className={styles.sheetHead}>
+              <Text className={styles.sheetTitle}>组间歇提示音</Text>
+              <View className={styles.sheetClose} onClick={() => setSoundSheet(false)}>
+                <Text className={styles.sheetCloseText}>完成</Text>
+              </View>
+            </View>
+            <ScrollView scrollY className={styles.sheetList}>
+              <View
+                className={classnames(
+                  styles.soundRow,
+                  profile.restSoundId === REST_SOUND_OFF && styles.soundRowActive
+                )}
+                onClick={() => pickRestSound(REST_SOUND_OFF)}
+              >
+                <Text className={styles.soundName}>关闭提醒</Text>
+                {profile.restSoundId === REST_SOUND_OFF ? (
+                  <Text className={styles.soundCheck}>✓</Text>
+                ) : null}
+              </View>
+              {REST_SOUNDS.map((item) => {
+                const active = profile.restSoundId === item.id;
+                return (
+                  <View
+                    key={item.id}
+                    className={classnames(styles.soundRow, active && styles.soundRowActive)}
+                    onClick={() => pickRestSound(item.id)}
+                  >
+                    <Text className={styles.soundName}>{item.name}</Text>
+                    {active ? <Text className={styles.soundCheck}>✓</Text> : null}
+                  </View>
+                );
+              })}
+            </ScrollView>
+            <Text className={styles.sheetTip}>点一下即可选中并试听</Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 };

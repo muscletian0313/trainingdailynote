@@ -54,6 +54,35 @@ export const DEFAULT_REPS = 10;
 /** 组间休息可选项（秒），微信 showActionSheet 最多 6 项 */
 export const REST_OPTIONS = [30, 60, 90, 120, 150, 180];
 
+/** 组间歇提示音选项：关闭 + 10 个内置音效（'off' 表示不响） */
+export interface RestSoundItem {
+  id: string;
+  name: string;
+  /** 包内绝对路径，off 为空 */
+  src: string;
+}
+
+export const REST_SOUNDS: RestSoundItem[] = [
+  { id: 'bell', name: '清脆铃声', src: '/assets/audio/rest-bell.wav' },
+  { id: 'dingdong', name: '叮咚（下行）', src: '/assets/audio/rest-dingdong.wav' },
+  { id: 'rise', name: '叮咚（上行）', src: '/assets/audio/rest-rise.wav' },
+  { id: 'beep', name: '单音哔', src: '/assets/audio/rest-beep.wav' },
+  { id: 'double-beep', name: '双音哔', src: '/assets/audio/rest-double-beep.wav' },
+  { id: 'triple-beep', name: '三连哔', src: '/assets/audio/rest-triple-beep.wav' },
+  { id: 'drop', name: '水滴声', src: '/assets/audio/rest-drop.wav' },
+  { id: 'doorbell', name: '门铃', src: '/assets/audio/rest-doorbell.wav' },
+  { id: 'digital', name: '电子音', src: '/assets/audio/rest-digital.wav' },
+  { id: 'gong', name: '低锣', src: '/assets/audio/rest-gong.wav' }
+];
+
+export const REST_SOUND_OFF = 'off';
+
+/** 取提示音的音频路径；关闭或找不到时返回空字符串 */
+export function restSoundSrc(id: string): string {
+  if (!id || id === REST_SOUND_OFF) return '';
+  return REST_SOUNDS.find((item) => item.id === id)?.src ?? '';
+}
+
 /** 训练心得：单个动作做后的主观感受档位（1-5，5 最好） */
 export interface FeelOption {
   /** 分值：1-5，5 最好 */

@@ -17,7 +17,6 @@ import {
 } from '@/utils/workout';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
-import LastRecordFloat from '@/components/LastRecordFloat';
 import {
   dayLabel,
   formatClock,
@@ -229,7 +228,7 @@ const HomePage: React.FC = () => {
                   </View>
                   <Text className={styles.planCardCount}>
                     {plan.exercises.length} 个动作 ·{' '}
-                    {plan.exercises.reduce((sum, item) => sum + item.targetSets, 0)} 组
+                    {plan.exercises.reduce((sum, item) => sum + item.sets.length, 0)} 组
                   </Text>
                   <View className={styles.planCardTags}>
                     {planMuscleTags(plan).map((muscle, index) => (
@@ -324,8 +323,6 @@ const HomePage: React.FC = () => {
           />
         </View>
       )}
-
-      <LastRecordFloat session={sessions.length ? sessions[0] : null} bottomOffset={200} />
     </View>
   );
 };

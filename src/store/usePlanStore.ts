@@ -1,17 +1,46 @@
 import { create } from 'zustand';
-import type { Plan } from '@/types';
-import { DEFAULT_WEIGHT } from '@/constants';
+import type { Plan, PlanExercise, PlanSet } from '@/types';
+import { DEFAULT_REPS, DEFAULT_SETS, DEFAULT_WEIGHT } from '@/constants';
 import { loadJSON, removeKey, saveJSON, STORAGE_KEYS } from '@/utils/storage';
+import { uid } from '@/utils/id';
 
-/** 旧数据没有做组重量字段，读取时直接按默认值补齐，后续代码不再做兼容判断 */
-function normalizePlans(plans: Plan[]): Plan[] {
-  return plans.map((plan) => ({
-    ...plan,
-    exercises: plan.exercises.map((item) => ({
-      ...item,
-      targetWeight: typeof item.targetWeight === 'number' ? item.targetWeight : DEFAULT_WEIGHT
-    }))
-  }));
+/** 旧版本的计划动作：单组重量/次数 + 组数 */
+type StoredExercise = Omit<PlanExercise, 'sets'> & {
+  sets?: PlanSet[];
+  targetWeight?: number;
+  targetSets?: number;
+  targetReps?: number;
+};
+
+type StoredPlan = Omit<Plan, 'exercises'> & { exercises: StoredExercise[] };
+
+/**
+ * 旧数据只有「单组重量 + 组数 + 次数」，读取时统一展开成逐组数据，
+ * 后续代码只认 PlanExercise.sets，不再做兼容判断。
+ */
+function normalizeExercises(exercises: StoredExercise[]): PlanExercise[] {
+  return exercises.map((item) => {
+    const base = {
+      key: item.key,
+      exerciseId: item.exerciseId,
+      restSeconds: item.restSeconds,
+      targetDurationMin: item.targetDurationMin
+    };
+    if (Array.isArray(item.sets) && item.sets.length) {
+      return { ...base, sets: item.sets };
+    }
+    const weight = typeof item.targetWeight === 'number' ? item.targetWeight : DEFAULT_WEIGHT;
+    const reps = typeof item.targetReps === 'number' ? item.targetReps : DEFAULT_REPS;
+    const count = Math.max(1, item.targetSets ?? DEFAULT_SETS);
+    return {
+      ...base,
+      sets: Array.from({ length: count }, () => ({ id: uid('ps'), weight, reps }))
+    };
+  });
+}
+
+function normalizePlans(plans: StoredPlan[]): Plan[] {
+  return plans.map((plan) => ({ ...plan, exercises: normalizeExercises(plan.exercises) }));
 }
 
 interface PlanState {
@@ -23,7 +52,7 @@ interface PlanState {
 }
 
 export const usePlanStore = create<PlanState>((set, get) => ({
-  plans: normalizePlans(loadJSON<Plan[]>(STORAGE_KEYS.plans, [])),
+  plans: normalizePlans(loadJSON<StoredPlan[]>(STORAGE_KEYS.plans, [])),
   addPlan: (plan) => {
     const plans = [plan, ...get().plans];
     saveJSON(STORAGE_KEYS.plans, plans);

@@ -3,7 +3,7 @@ import { View, Text, Input, ScrollView } from '@tarojs/components';
 import classnames from 'classnames';
 import type { MuscleGroup } from '@/types';
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from '@/constants';
-import { useAllExercises } from '@/store/useExerciseStore';
+import { sortBySimilarity, useAllExercises } from '@/store/useExerciseStore';
 import MuscleTag from '@/components/MuscleTag';
 import styles from './index.module.scss';
 
@@ -15,6 +15,10 @@ interface ExercisePickerProps {
   confirmText?: string;
   /** 打开时默认定位到的肌群（例如计划名称识别出的主训部位） */
   defaultMuscle?: MuscleGroup | null;
+  /** 单选模式：点一下即选中并直接确认（用于替换动作） */
+  single?: boolean;
+  /** 相似度参考的动作 id：把练法相近的动作排到最前面（替换动作时用） */
+  similarToId?: string;
   onClose: () => void;
   onConfirm: (exerciseIds: string[]) => void;
 }
@@ -24,6 +28,8 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   title = '选择动作',
   confirmText = '添加',
   defaultMuscle = null,
+  single = false,
+  similarToId,
   onClose,
   onConfirm
 }) => {
@@ -42,14 +48,23 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
 
   const list = useMemo(() => {
     const text = keyword.trim();
-    return exercises.filter((item) => {
+    const filtered = exercises.filter((item) => {
       const matchMuscle = muscle === 'all' || item.muscle === muscle;
       const matchText = !text || item.name.includes(text);
       return matchMuscle && matchText;
     });
-  }, [exercises, keyword, muscle]);
+    // 替换动作：把与原动作练法相近的排前面，方便快速找到平替
+    const target = similarToId ? exercises.find((item) => item.id === similarToId) : undefined;
+    return target ? sortBySimilarity(filtered, target) : filtered;
+  }, [exercises, keyword, muscle, similarToId]);
 
   const toggleSelect = (id: string) => {
+    // 单选模式：点一下直接确认（替换动作时少一步）
+    if (single) {
+      onConfirm([id]);
+      onClose();
+      return;
+    }
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -140,14 +155,18 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
         </ScrollView>
 
         <View className={styles.footer}>
-          <View
-            className={classnames(styles.confirm, !selectedIds.length && styles.confirmDisabled)}
-            onClick={handleConfirm}
-          >
-            <Text className={styles.confirmText}>
-              {selectedIds.length ? `${confirmText} (${selectedIds.length})` : '请选择动作'}
-            </Text>
-          </View>
+          {single ? (
+            <Text className={styles.singleTip}>点一下即可替换</Text>
+          ) : (
+            <View
+              className={classnames(styles.confirm, !selectedIds.length && styles.confirmDisabled)}
+              onClick={handleConfirm}
+            >
+              <Text className={styles.confirmText}>
+                {selectedIds.length ? `${confirmText} (${selectedIds.length})` : '请选择动作'}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </View>

@@ -200,6 +200,14 @@
   border-top: 2rpx solid $color-border;
 }
 
+/* 替换动作的单选模式提示 */
+.singleTip {
+  display: block;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
 .confirm {
   height: $button-height-lg;
   border-radius: $radius-button;

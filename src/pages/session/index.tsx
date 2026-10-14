@@ -1,14 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Input } from '@tarojs/components';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Input, ScrollView } from '@tarojs/components';
+import dayjs from 'dayjs';
 import {
   navigateBack,
+  playSound,
   redirectTo,
   showActionSheet,
   showModal,
-  showToast
+  showToast,
+  vibrate
 } from '@/utils/taro';
 import classnames from 'classnames';
-import { FEEL_OPTIONS, REST_OPTIONS, getFeelOption } from '@/constants';
+import {
+  FEEL_OPTIONS,
+  REST_OPTIONS,
+  getFeelOption,
+  restSoundSrc
+} from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { getExerciseById } from '@/store/useExerciseStore';
@@ -16,14 +24,13 @@ import SetRow from '@/components/SetRow';
 import ExercisePicker from '@/components/ExercisePicker';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
-import LastRecordFloat from '@/components/LastRecordFloat';
 import {
   feelMessage,
-  findLastPerformance,
   hasCardio,
   isBodyweight,
   isExerciseFinished,
   isSessionPaused,
+  recentPerformances,
   sessionCardioMin,
   sessionDoneSets,
   sessionDurationSec,
@@ -36,6 +43,20 @@ import styles from './index.module.scss';
 
 interface RestState {
   endAt: number;
+  /** 本次间歇的总秒数（用于圆环进度与 ±30s 调节） */
+  total: number;
+}
+
+/** 多久没操作页面就提醒一次（毫秒） */
+const IDLE_ALERT_MS = 10 * 60 * 1000;
+
+/** 历史日训的日期显示：今天 / 昨天 / M月D日 */
+function formatHistoryDate(timestamp: number): string {
+  const day = dayjs(timestamp);
+  const today = dayjs();
+  if (day.isSame(today, 'day')) return '今天';
+  if (day.isSame(today.subtract(1, 'day'), 'day')) return '昨天';
+  return day.format('M月D日');
 }
 
 const SessionPage: React.FC = () => {
@@ -51,6 +72,7 @@ const SessionPage: React.FC = () => {
   const addExerciseToActive = useSessionStore((state) => state.addExerciseToActive);
   const removeExerciseFromActive = useSessionStore((state) => state.removeExerciseFromActive);
   const moveExerciseInActive = useSessionStore((state) => state.moveExerciseInActive);
+  const replaceExerciseInActive = useSessionStore((state) => state.replaceExerciseInActive);
   const patchExerciseInActive = useSessionStore((state) => state.patchExerciseInActive);
   const addSetToActive = useSessionStore((state) => state.addSetToActive);
   const removeSetFromActive = useSessionStore((state) => state.removeSetFromActive);
@@ -60,6 +82,8 @@ const SessionPage: React.FC = () => {
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const [rest, setRest] = useState<RestState | null>(null);
+  /** 间歇计时器是否已最小化（收起为底部小条） */
+  const [restMinimized, setRestMinimized] = useState(false);
   const [now, setNow] = useState(Date.now());
   /** 手动点开某个折叠动作时临时聚焦；为空则跟随自动推进 */
   const [focusKey, setFocusKey] = useState<string | null>(null);
@@ -67,33 +91,57 @@ const SessionPage: React.FC = () => {
   const [feelResult, setFeelResult] = useState<{ score: number | null; message: string } | null>(
     null
   );
+  /** 长时间没操作时弹出的提醒 */
+  const [idleAlert, setIdleAlert] = useState(false);
+  /** 展开「历史日训」的动作 key；同一时间只展开一个 */
+  const [historyKey, setHistoryKey] = useState<string | null>(null);
+  /** 正在替换的动作 key（弹出动作选择器） */
+  const [replaceKey, setReplaceKey] = useState<string | null>(null);
+  /** 最近一次操作时间（触摸页面即刷新），用 ref 避免每秒重渲染 */
+  const lastActiveAt = useRef(Date.now());
+  /** 暂停中不计入「没操作」，用 ref 供定时器读取最新值 */
+  const pausedRef = useRef(false);
+  pausedRef.current = isSessionPaused(active);
 
-  // 秒级刷新，用于训练计时与休息倒计时
+  // 秒级刷新，用于训练计时与休息倒计时；顺带检测长时间无操作
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      if (pausedRef.current) {
+        // 已暂停：时间本来就不走，不需要提醒
+        lastActiveAt.current = Date.now();
+        return;
+      }
+      if (Date.now() - lastActiveAt.current >= IDLE_ALERT_MS) {
+        // 先重置，避免每秒重复弹窗
+        lastActiveAt.current = Date.now();
+        setIdleAlert(true);
+      }
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  /** 有任何触摸就视为「在操作」 */
+  const markActive = () => {
+    lastActiveAt.current = Date.now();
+  };
 
   useEffect(() => {
     if (rest && now >= rest.endAt) {
       setRest(null);
+      setRestMinimized(false);
       showToast({ title: '休息结束，继续加油！', icon: 'none' });
+      // 按「我的 → 训练偏好」里的设置提醒（提示音 + 震动可分别配置）
+      const sound = restSoundSrc(profile.restSoundId);
+      if (sound) playSound(sound);
+      if (profile.restVibrate) vibrate();
     }
-  }, [now, rest]);
+  }, [now, rest, profile.restSoundId, profile.restVibrate]);
 
   const doneSets = active ? sessionDoneSets(active) : 0;
   const totalSets = active ? sessionTotalSets(active) : 0;
   const volume = active ? sessionVolume(active) : 0;
   const progress = totalSets ? Math.round((doneSets / totalSets) * 100) : 0;
-
-  const lastPerformanceMap = useMemo(() => {
-    const map: Record<string, { weight: number; reps: number } | null> = {};
-    if (!active) return map;
-    active.exercises.forEach((item) => {
-      map[item.key] = findLastPerformance(sessions, item.exerciseId);
-    });
-    return map;
-  }, [active, sessions]);
 
   /** 当前正在做的动作：第一个还没做完（或做完了但还没选感受）的动作；全部完成则取最后一个 */
   const currentKey = useMemo(() => {
@@ -104,10 +152,44 @@ const SessionPage: React.FC = () => {
     return index === -1 ? list[list.length - 1].key : list[index].key;
   }, [active, focusKey]);
 
+  /** 历史日训弹窗：当前查看的动作 + 该动作最近 4 次记录（时间倒序） */
+  const historyExercise = active?.exercises.find((item) => item.key === historyKey) ?? null;
+  const historyInfo = historyExercise ? getExerciseById(historyExercise.exerciseId) : undefined;
+  const historyRecords = historyExercise
+    ? recentPerformances(sessions, historyExercise.exerciseId, 4)
+    : [];
+
+  /** 正在替换的动作：选择器默认定位到同部位，并把相近动作排前面 */
+  const replaceExercise = active?.exercises.find((item) => item.key === replaceKey) ?? null;
+  const replaceInfo = replaceExercise ? getExerciseById(replaceExercise.exerciseId) : undefined;
+
   const startRest = (seconds: number) => {
     if (!profile.restEnabled || !seconds) return;
-    setRest({ endAt: Date.now() + seconds * 1000 });
+    setRest({ endAt: Date.now() + seconds * 1000, total: seconds });
+    setRestMinimized(false);
   };
+
+  /** 结束间歇计时（手动完成 / 跳过时不再提醒） */
+  const finishRest = () => {
+    setRest(null);
+    setRestMinimized(false);
+  };
+
+  /** 调节间歇时长：±30 秒；减到 0 以内直接结束 */
+  const adjustRest = (delta: number) => {
+    if (!rest) return;
+    const endAt = rest.endAt + delta * 1000;
+    if (endAt <= Date.now()) {
+      finishRest();
+      return;
+    }
+    setRest({ endAt, total: Math.max(5, rest.total + delta) });
+  };
+
+  /** 间歇剩余秒数与圆环进度 */
+  const restRemaining = rest ? Math.max(0, Math.ceil((rest.endAt - now) / 1000)) : 0;
+  const restAngle =
+    rest && rest.total > 0 ? Math.min(1, restRemaining / rest.total) * 360 : 0;
 
   const handleToggleSet = (
     exerciseKey: string,
@@ -119,11 +201,30 @@ const SessionPage: React.FC = () => {
     toggleSetDone(exerciseKey, setId);
     // 打勾后回到「自动推进」状态：完成当前动作会自动展开下一个
     setFocusKey(null);
+    setHistoryKey(null);
     if (wasDone) return;
     // 组间歇只作用于「单个动作内部」：该动作还有没做完的组才计时；
     // 最后一组做完就结束，换下一个动作的间隙不计时
     const hasRemaining = !!exercise?.sets.some((set) => set.id !== setId && !set.done);
     if (hasRemaining) startRest(restSeconds);
+  };
+
+  /** 点某一组的 ✕：还有别的组就删这一组，只剩这一组时等同于把该动作移出本次训练 */
+  const handleSetRemove = (exerciseKey: string, setId: string, exerciseName: string) => {
+    const exercise = active?.exercises.find((item) => item.key === exerciseKey);
+    if (!exercise) return;
+    if (exercise.sets.length > 1) {
+      removeSetFromActive(exerciseKey, setId);
+      return;
+    }
+    showModal({
+      title: '删除动作',
+      content: `确定把「${exerciseName}」从本次训练中移除吗？`,
+      confirmColor: '#f8736a',
+      success: (res) => {
+        if (res.confirm) removeExerciseFromActive(exerciseKey);
+      }
+    });
   };
 
   const handleAddExercises = (exerciseIds: string[]) => {
@@ -149,11 +250,17 @@ const SessionPage: React.FC = () => {
     isCardio = false
   ) => {
     // 有氧动作不设组间休息
-    const itemList = isCardio ? ['删除动作'] : ['设置组间休息', '删除动作'];
+    const itemList = isCardio
+      ? ['替换动作', '删除动作']
+      : ['替换动作', '设置组间休息', '删除动作'];
     showActionSheet({
       itemList,
       success: (res) => {
         const action = itemList[res.tapIndex];
+        if (action === '替换动作') {
+          setReplaceKey(key);
+          return;
+        }
         if (action === '设置组间休息') {
           selectRestForExercise(key, restSeconds);
           return;
@@ -232,7 +339,7 @@ const SessionPage: React.FC = () => {
   }
 
   return (
-    <View className={styles.page}>
+    <View className={styles.page} onTouchStart={markActive}>
       <View className={styles.summary}>
         <View className={styles.summaryTop}>
           <Input
@@ -341,7 +448,6 @@ const SessionPage: React.FC = () => {
       {active.exercises.length ? (
         active.exercises.map((exercise, index) => {
           const info = getExerciseById(exercise.exerciseId);
-          const last = lastPerformanceMap[exercise.key];
           const isCardio = info?.muscle === 'cardio';
           // 当前正在进行的动作：展开 + 橙色边框；其余折叠成只显示动作名
           const isCurrent = exercise.key === currentKey;
@@ -350,6 +456,16 @@ const SessionPage: React.FC = () => {
           const feelOption = getFeelOption(exercise.feel);
           // 自重动作：重量栏显示「自重」，不用填 kg
           const bodyweight = isBodyweight(exercise.exerciseId);
+          // 当前动作不显示摘要文案（下面就是组表头，避免卡片太挤）；其余显示进度
+          const metaText = isCardio
+            ? feelOption
+              ? `${feelOption.emoji} ${feelOption.desc}`
+              : '记录时长与强度'
+            : isCurrent
+              ? ''
+              : feelOption
+                ? `已完成 ${doneCount}/${exercise.sets.length} 组 · ${feelOption.emoji} ${feelOption.label}`
+                : `待进行 · ${doneCount}/${exercise.sets.length} 组`;
           return (
             <View
               key={exercise.key}
@@ -371,23 +487,30 @@ const SessionPage: React.FC = () => {
                   <Text className={styles.exerciseName}>{info ? info.name : '未知动作'}</Text>
                   <View className={styles.exerciseMeta}>
                     {info ? <MuscleTag muscle={info.muscle} /> : null}
-                    <Text className={styles.exerciseMetaText}>
-                      {isCardio
-                        ? feelOption
-                          ? `${feelOption.emoji} ${feelOption.desc}`
-                          : '记录时长与强度'
-                        : isCurrent
-                          ? last
-                            ? `上次 ${bodyweight ? '自重' : `${last.weight}kg`} × ${last.reps}`
-                            : `目标 ${exercise.targetSets} 组 · 休息 ${exercise.restSeconds}s`
-                          : feelOption
-                            ? `已完成 ${doneCount}/${exercise.sets.length} 组 · ${feelOption.emoji} ${feelOption.label}`
-                            : `待进行 · ${doneCount}/${exercise.sets.length} 组`}
-                    </Text>
+                    {metaText ? <Text className={styles.exerciseMetaText}>{metaText}</Text> : null}
                   </View>
                 </View>
                 {isCurrent ? (
                   <View className={styles.exerciseActions}>
+                    <View
+                      className={classnames(
+                        styles.historyBtn,
+                        historyKey === exercise.key && styles.historyBtnActive
+                      )}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setHistoryKey((prev) => (prev === exercise.key ? null : exercise.key));
+                      }}
+                    >
+                      <Text
+                        className={classnames(
+                          styles.historyBtnText,
+                          historyKey === exercise.key && styles.historyBtnTextActive
+                        )}
+                      >
+                        历史日训
+                      </Text>
+                    </View>
                     <View
                       className={classnames(styles.iconBtn, index === 0 && styles.iconBtnDisabled)}
                       onClick={(event) => {
@@ -484,12 +607,13 @@ const SessionPage: React.FC = () => {
                       index={setIndex + 1}
                       set={set}
                       bodyweight={bodyweight}
-                      canRemove={exercise.sets.length > 1}
                       onPatch={(patch) => updateSetInActive(exercise.key, set.id, patch)}
                       onToggle={() =>
                         handleToggleSet(exercise.key, set.id, set.done, exercise.restSeconds)
                       }
-                      onRemove={() => removeSetFromActive(exercise.key, set.id)}
+                      onRemove={() =>
+                        handleSetRemove(exercise.key, set.id, info ? info.name : '该动作')
+                      }
                     />
                   ))}
 
@@ -548,20 +672,65 @@ const SessionPage: React.FC = () => {
         <Text className={styles.giveUpText}>放弃本次训练</Text>
       </View>
 
-      <LastRecordFloat session={sessions.length ? sessions[0] : null} />
-
       {rest ? (
-        <View className={styles.restBar}>
-          <View className={styles.restInfo}>
-            <Text className={styles.restLabel}>组间休息</Text>
-            <Text className={styles.restTime}>
-              {formatTimer(Math.max(0, Math.ceil((rest.endAt - now) / 1000)))}
-            </Text>
+        restMinimized ? (
+          <View className={styles.restBar}>
+            <View className={styles.restInfo}>
+              <Text className={styles.restLabel}>组间歇</Text>
+              <Text className={styles.restTime}>{formatTimer(restRemaining)}</Text>
+            </View>
+            <View className={styles.restSkip} onClick={() => setRestMinimized(false)}>
+              <Text className={styles.restSkipText}>展开</Text>
+            </View>
+            <View className={styles.restSkip} onClick={finishRest}>
+              <Text className={styles.restSkipText}>完成</Text>
+            </View>
           </View>
-          <View className={styles.restSkip} onClick={() => setRest(null)}>
-            <Text className={styles.restSkipText}>跳过</Text>
+        ) : (
+          <View className={styles.restMask}>
+            <View className={styles.restCard}>
+              <View className={styles.restTopRow}>
+                <View className={styles.restMinBtn} onClick={() => setRestMinimized(true)}>
+                  <Text className={styles.restMinBtnText}>最小化</Text>
+                </View>
+              </View>
+
+              <Text className={styles.restTitle}>组间歇</Text>
+
+              <View
+                className={styles.ring}
+                style={{
+                  background: `conic-gradient(#ff6b2c 0deg, #ff6b2c ${restAngle}deg, rgba(255,255,255,0.08) ${restAngle}deg 360deg)`
+                }}
+              >
+                <View className={styles.ringInner}>
+                  <Text className={styles.ringTime}>{formatTimer(restRemaining)}</Text>
+                </View>
+              </View>
+
+              <Text className={styles.ringTotal}>共 {rest.total} 秒</Text>
+
+              <View className={styles.restActions}>
+                <View className={styles.restAdjust} onClick={() => adjustRest(-30)}>
+                  <Text className={styles.restAdjustText}>-30s</Text>
+                </View>
+                <View className={styles.restAdjust} onClick={() => adjustRest(30)}>
+                  <Text className={styles.restAdjustText}>+30s</Text>
+                </View>
+                <View className={styles.restDone} onClick={finishRest}>
+                  <Text className={styles.restDoneText}>完成</Text>
+                </View>
+              </View>
+
+              <View className={styles.restTips}>
+                <Text className={styles.restTip}>1. 关闭计时器请到「我的 → 训练偏好」中设置</Text>
+                <Text className={styles.restTip}>
+                  2. 组间歇提醒声音请到「我的 → 训练偏好」中设置
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
+        )
       ) : null}
 
       <View className={styles.bottomBar}>
@@ -580,6 +749,110 @@ const SessionPage: React.FC = () => {
         onClose={() => setPickerVisible(false)}
         onConfirm={handleAddExercises}
       />
+
+      {/* 替换动作：没器械 / 身体不适时换一个（默认同部位 + 相近动作排前面，点一下即替换） */}
+      <ExercisePicker
+        visible={!!replaceKey}
+        single
+        title="替换动作"
+        defaultMuscle={replaceInfo?.muscle ?? null}
+        similarToId={replaceExercise?.exerciseId}
+        onClose={() => setReplaceKey(null)}
+        onConfirm={(ids) => {
+          if (replaceKey && ids[0]) replaceExerciseInActive(replaceKey, ids[0]);
+          setReplaceKey(null);
+        }}
+      />
+
+      {/* 10 分钟没有任何操作：确认是否还在训练，避免忘了结束一直计时 */}
+      {idleAlert ? (
+        <View className={styles.idleMask}>
+          <View className={styles.idleCard}>
+            <Text className={styles.idleTitle}>还在训练吗？</Text>
+            <Text className={styles.idleDesc}>
+              已经 10 分钟没有操作了，训练计时还在走。如果是接电话、临时离开，可以继续；如果已经练完，建议现在结束并保存记录。
+            </Text>
+            <View className={styles.idleActions}>
+              <View
+                className={styles.idleGhost}
+                onClick={() => {
+                  markActive();
+                  setIdleAlert(false);
+                }}
+              >
+                <Text className={styles.idleGhostText}>继续训练</Text>
+              </View>
+              <View
+                className={styles.idlePrimary}
+                onClick={() => {
+                  markActive();
+                  setIdleAlert(false);
+                  handleFinish();
+                }}
+              >
+                <Text className={styles.idlePrimaryText}>结束训练</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {/* 历史日训弹窗：该动作最近 4 次记录（时间倒序），带当次动作心得 */}
+      {historyExercise ? (
+        <View className={styles.historyMask} onClick={() => setHistoryKey(null)}>
+          <View className={styles.historyCard} onClick={(event) => event.stopPropagation()}>
+            <View className={styles.historyHead}>
+              <View className={styles.historyHeadMain}>
+                <Text className={styles.historyCardTitle}>历史日训</Text>
+                <Text className={styles.historyCardSub}>
+                  {historyInfo ? historyInfo.name : '未知动作'}
+                  {historyRecords.length ? ` · 近 ${historyRecords.length} 次` : ''}
+                </Text>
+              </View>
+              <View className={styles.historyClose} onClick={() => setHistoryKey(null)}>
+                <Text className={styles.historyCloseText}>✕</Text>
+              </View>
+            </View>
+
+            {historyRecords.length ? (
+              <ScrollView scrollY className={styles.historyList}>
+                {historyRecords.map((record) => {
+                  const feel = getFeelOption(record.feel);
+                  const bodyweight = isBodyweight(historyExercise.exerciseId);
+                  return (
+                    <View key={record.sessionId} className={styles.historyItem}>
+                      <View className={styles.historyItemTop}>
+                        <Text className={styles.historyItemDate}>
+                          {formatHistoryDate(record.startedAt)}
+                        </Text>
+                        {feel ? (
+                          <Text className={styles.historyItemFeel}>
+                            {feel.emoji} {feel.label}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text className={styles.historyItemSets}>
+                        {record.cardioMin
+                          ? `${record.cardioMin} 分钟`
+                          : record.sets
+                              .map(
+                                (set) =>
+                                  `${bodyweight ? '自重' : `${set.weight}kg`}×${set.reps}`
+                              )
+                              .join(' · ')}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text className={styles.historyEmpty}>
+                还没有「{historyInfo ? historyInfo.name : '该动作'}」的历史记录
+              </Text>
+            )}
+          </View>
+        </View>
+      ) : null}
 
       {/* 结束训练后的训练心得评分 */}
       {feelResult ? (

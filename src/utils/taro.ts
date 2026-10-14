@@ -57,3 +57,36 @@ export function navigateBack(options?: NavigateBackOption): void {
 export function setNavigationBarTitle(options: NavigationBarTitleOption): void {
   Taro.setNavigationBarTitle(options).catch(ignoreRejection);
 }
+
+/**
+ * 播放本地提示音（例如组间歇结束），只响一声。
+ * 每次都用独立实例并在播完后销毁，避免复用实例时被循环播放。
+ * @param src 包内绝对路径，例如 /assets/audio/rest-end.wav
+ */
+export function playSound(src: string): void {
+  try {
+    const context = Taro.createInnerAudioContext();
+    context.loop = false;
+    context.volume = 1;
+    context.src = src;
+    const release = () => {
+      context.offEnded(release);
+      context.offError(release);
+      context.destroy();
+    };
+    context.onEnded(release);
+    context.onError(release);
+    context.play();
+  } catch (error) {
+    console.warn('[Taro] 播放提示音失败:', error);
+  }
+}
+
+/** 短震动（部分机型 / 系统设置关闭时可能无效） */
+export function vibrate(): void {
+  try {
+    Taro.vibrateShort().catch(ignoreRejection);
+  } catch (error) {
+    console.warn('[Taro] 震动失败:', error);
+  }
+}

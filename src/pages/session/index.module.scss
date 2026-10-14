@@ -328,6 +328,158 @@
   line-height: 1;
 }
 
+/* 历史日训入口 */
+.historyBtn {
+  flex-shrink: 0;
+  height: 52rpx;
+  padding: 0 14rpx;
+  margin-left: 6rpx;
+  border-radius: $radius-sm;
+  border: 2rpx solid $color-border;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.historyBtnActive {
+  border-color: $color-primary;
+  background: rgba(255, 107, 44, 0.16);
+}
+
+.historyBtnText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.historyBtnTextActive {
+  color: $color-primary;
+}
+
+/* 历史日训弹窗 */
+.historyMask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 170;
+  background: rgba(0, 0, 0, 0.65);
+  @include flex-center;
+}
+
+.historyCard {
+  width: 620rpx;
+  max-height: 76vh;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  border: 2rpx solid rgba(255, 107, 44, 0.3);
+  box-shadow: $shadow-popup;
+  display: flex;
+  flex-direction: column;
+}
+
+.historyHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.historyHeadMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.historyCardTitle {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.historyCardSub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+}
+
+.historyClose {
+  width: 56rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.historyCloseText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.historyList {
+  max-height: 56vh;
+  margin-top: $spacing-md;
+}
+
+.historyItem {
+  padding: $spacing-sm 0;
+  border-bottom: 2rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.historyItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.historyItemDate {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.historyItemFeel {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.14);
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.historyItemSets {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  line-height: $line-height-normal;
+  color: $color-text-secondary;
+}
+
+.historyEmpty {
+  display: block;
+  margin-top: $spacing-md;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
 /* 组表头 */
 .setHead {
   display: flex;
@@ -526,9 +678,232 @@
   color: $color-text-inverse;
 }
 
+/* 组间歇：弹出式圆环计时器 */
+.restMask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.65);
+  @include flex-center;
+}
+
+.restCard {
+  width: 620rpx;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-popup;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.restTopRow {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.restTips {
+  width: 100%;
+  margin-top: $spacing-md;
+}
+
+.restTip {
+  display: block;
+  font-size: $font-size-xs;
+  line-height: $line-height-normal;
+  color: $color-text-tertiary;
+}
+
+.restMinBtn {
+  flex-shrink: 0;
+  height: 48rpx;
+  margin-left: $spacing-sm;
+  padding: 0 $spacing-md;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.restMinBtnText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.restTitle {
+  margin-top: $spacing-md;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+/* 圆环：外层用 conic-gradient 画进度，内层盖住中间形成环 */
+.ring {
+  position: relative;
+  width: 360rpx;
+  height: 360rpx;
+  margin-top: $spacing-md;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  @include flex-center;
+}
+
+.ringInner {
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  background: $color-bg-card;
+  @include flex-center;
+}
+
+.ringTime {
+  font-size: 76rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.ringTotal {
+  margin-top: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.restActions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-lg;
+}
+
+.restAdjust {
+  flex: 1;
+  height: $button-height-sm;
+  margin-right: $spacing-sm;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.restAdjustText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.restDone {
+  flex: 1.2;
+  height: $button-height-sm;
+  border-radius: $radius-sm;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.restDoneText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
 /* 空状态容器 */
 .emptyWrap {
   margin-top: 120rpx;
+}
+
+/* 10 分钟无操作提醒 */
+.idleMask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 180;
+  background: rgba(0, 0, 0, 0.65);
+  @include flex-center;
+}
+
+.idleCard {
+  width: 600rpx;
+  padding: $spacing-xl $spacing-lg $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  border: 2rpx solid rgba(255, 107, 44, 0.35);
+  box-shadow: $shadow-popup;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.idleTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.idleDesc {
+  margin-top: $spacing-md;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $color-text-secondary;
+  text-align: center;
+}
+
+.idleActions {
+  display: flex;
+  width: 100%;
+  margin-top: $spacing-lg;
+}
+
+.idleGhost {
+  flex: 1;
+  height: $button-height-md;
+  margin-right: $spacing-sm;
+  border-radius: $radius-button;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.idleGhostText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.idlePrimary {
+  flex: 1;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.idlePrimaryText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
 }
 
 /* 训练心得：每个动作做完后选感受 */

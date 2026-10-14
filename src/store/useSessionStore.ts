@@ -3,7 +3,7 @@ import type { Plan, Session, SessionExercise, WorkoutSet } from '@/types';
 import { DEFAULT_CARDIO_MIN, DEFAULT_REPS, DEFAULT_REST, DEFAULT_SETS } from '@/constants';
 import { loadJSON, removeKey, saveJSON, STORAGE_KEYS } from '@/utils/storage';
 import { uid } from '@/utils/id';
-import { findLastPerformance, isBodyweight } from '@/utils/workout';
+import { findLastPerformance, isBodyweight, recentPerformances } from '@/utils/workout';
 import { getExerciseById } from '@/store/useExerciseStore';
 
 interface StartOptions {
@@ -36,6 +36,8 @@ interface SessionState {
   removeExerciseFromActive: (key: string) => void;
   /** 调整动作顺序 */
   moveExerciseInActive: (key: string, direction: -1 | 1) => void;
+  /** 替换某个动作（换器械 / 身体不适临时换），保留位置与组间休息 */
+  replaceExerciseInActive: (key: string, exerciseId: string) => void;
   /** 更新动作配置（目标组数 / 休息时间） */
   patchExerciseInActive: (key: string, patch: Partial<SessionExercise>) => void;
   /** 添加一组 */
@@ -153,28 +155,24 @@ export const useSessionStore = create<SessionState>((set, get) => {
           };
         }
         const last = findLastPerformance(sessions, planExercise.exerciseId);
-        // 自重动作不带重量：负荷就是自身体重
-        if (isBodyweight(planExercise.exerciseId)) {
-          return {
-            key: uid('se'),
-            exerciseId: planExercise.exerciseId,
-            targetSets: Math.max(1, planExercise.targetSets),
-            restSeconds: planExercise.restSeconds || DEFAULT_REST,
-            sets: createSets(planExercise.targetSets, 0, planExercise.targetReps || DEFAULT_REPS)
-          };
-        }
-        // 计划里设了做组重量就按计划预填，否则沿用该动作上一次的训练重量
-        const weight = planExercise.targetWeight > 0 ? planExercise.targetWeight : last ? last.weight : 0;
+        const bodyweight = isBodyweight(planExercise.exerciseId);
+        // 计划里是逐组配置：按计划的每组重量/次数预填（递减组也能还原）；
+        // 某一组没设重量（0）就沿用该动作上一次的训练重量
+        const planSets = planExercise.sets?.length
+          ? planExercise.sets
+          : [{ id: '', weight: 0, reps: DEFAULT_REPS }];
+        const sets: WorkoutSet[] = planSets.map((planSet) => ({
+          id: uid('set'),
+          weight: bodyweight ? 0 : planSet.weight > 0 ? planSet.weight : last ? last.weight : 0,
+          reps: planSet.reps || (last ? last.reps : DEFAULT_REPS) || DEFAULT_REPS,
+          done: false
+        }));
         return {
           key: uid('se'),
           exerciseId: planExercise.exerciseId,
-          targetSets: Math.max(1, planExercise.targetSets),
+          targetSets: sets.length,
           restSeconds: planExercise.restSeconds || DEFAULT_REST,
-          sets: createSets(
-            planExercise.targetSets,
-            weight,
-            planExercise.targetReps || (last ? last.reps : DEFAULT_REPS) || DEFAULT_REPS
-          )
+          sets
         };
       });
       const session: Session = {
@@ -282,6 +280,49 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     patchExerciseInActive: (key, patch) => {
       patchActiveExercise(key, (exercise) => ({ ...exercise, ...patch }));
+    },
+
+    replaceExerciseInActive: (key, exerciseId) => {
+      const active = get().active;
+      if (!active) return;
+      const current = active.exercises.find((item) => item.key === key);
+      if (!current) return;
+      const restSeconds = current.restSeconds || DEFAULT_REST;
+      let next: SessionExercise;
+      // 换成有氧：一条时长 + 强度
+      if (isCardioExercise(exerciseId)) {
+        next = {
+          key,
+          exerciseId,
+          targetSets: 1,
+          restSeconds,
+          sets: createCardioSets()
+        };
+      } else {
+        // 有历史记录：直接按上次的每组重量/次数填好；第一次做：默认 1 组，自己再加
+        const lastRecord = recentPerformances(get().sessions, exerciseId, 1)[0];
+        const bodyweight = isBodyweight(exerciseId);
+        const sets: WorkoutSet[] = lastRecord?.sets.length
+          ? lastRecord.sets.map((item) => ({
+              id: uid('set'),
+              weight: bodyweight ? 0 : item.weight,
+              reps: item.reps || DEFAULT_REPS,
+              done: false
+            }))
+          : [{ id: uid('set'), weight: 0, reps: DEFAULT_REPS, done: false }];
+        next = {
+          key,
+          exerciseId,
+          targetSets: sets.length,
+          restSeconds,
+          sets
+        };
+      }
+      console.info('[Session] 替换动作', key, exerciseId);
+      persistActive({
+        ...active,
+        exercises: active.exercises.map((item) => (item.key === key ? next : item))
+      });
     },
 
     addSetToActive: (key) => {

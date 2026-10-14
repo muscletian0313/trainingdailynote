@@ -8,6 +8,8 @@ export const DEFAULT_PROFILE: UserProfile = {
   avatar: '💪',
   defaultRest: DEFAULT_REST,
   restEnabled: true,
+  restSoundId: 'bell',
+  restVibrate: false,
   noteEnabled: true
 };
 

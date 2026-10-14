@@ -20,7 +20,10 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     plugins: ['@tarojs/plugin-html'],
     defineConstants: {},
     copy: {
-      patterns: [],
+      // 音效等静态资源直接拷进产物（to 相对项目根目录）
+      patterns: [
+        { from: 'src/assets/audio', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/audio` }
+      ],
       options: {},
     },
     framework: 'react',

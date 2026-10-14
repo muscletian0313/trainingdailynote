@@ -298,21 +298,7 @@
   color: $color-primary;
 }
 
-/* 训练心得：训练中按动作选感受，结束后汇总评分 */
-.noteBox {
-  min-height: 180rpx;
-  padding: $spacing-md;
-  border: 2rpx dashed $color-border;
-  border-radius: $radius-lg;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.notePlaceholder {
-  font-size: $font-size-sm;
-  color: $color-text-tertiary;
-  line-height: $line-height-normal;
-}
-
+/* 训练心得：只有练完拿到评分后才展示 */
 .noteBoxActive {
   padding: $spacing-lg;
   border: 2rpx solid rgba(255, 107, 44, 0.35);

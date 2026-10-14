@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Input, Picker, Image } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 import dayjs from 'dayjs';
+import type { PlanExercise } from '@/types';
 import { DEFAULT_CARDIO_MIN, getFeelOption } from '@/constants';
 import { formatWeight } from '@/utils/format';
 import { navigateBack, navigateTo, showModal, showToast } from '@/utils/taro';
@@ -15,6 +16,27 @@ import EmptyState from '@/components/EmptyState';
 import { feelMessage, isBodyweight, isPlanFinished, planMuscleTags } from '@/utils/workout';
 import { MUSCLE_ART } from '@/assets/muscles/art';
 import styles from './index.module.scss';
+
+/**
+ * 动作的组配置摘要：
+ * 各组相同时显示「20kg · 3 组 × 10 次」，递减/混合组显示「3 组 · 20/15/12.5kg」
+ */
+function planSetsSummary(item: PlanExercise): string {
+  const sets = item.sets;
+  if (!sets.length) return '未设置组';
+  const bodyweight = isBodyweight(item.exerciseId);
+  const first = sets[0];
+  const uniform = sets.every((set) => set.weight === first.weight && set.reps === first.reps);
+  if (uniform) {
+    return `${bodyweight ? '自重' : `${formatWeight(first.weight)}kg`} · ${sets.length} 组 × ${
+      first.reps
+    } 次`;
+  }
+  if (bodyweight) {
+    return `${sets.length} 组 · ${sets.map((set) => set.reps).join('/')} 次`;
+  }
+  return `${sets.length} 组 · ${sets.map((set) => formatWeight(set.weight)).join('/')}kg`;
+}
 
 const PlanDetailPage: React.FC = () => {
   const router = useRouter();
@@ -102,7 +124,7 @@ const PlanDetailPage: React.FC = () => {
     );
   }
 
-  const totalSets = plan.exercises.reduce((sum, item) => sum + item.targetSets, 0);
+  const totalSets = plan.exercises.reduce((sum, item) => sum + item.sets.length, 0);
 
   /** 该计划是否已完成过：一个计划只允许完成一次，完成后仅可查看 */
   const planFinished = isPlanFinished(sessions, plan.id);
@@ -230,13 +252,7 @@ const PlanDetailPage: React.FC = () => {
                     <Text className={styles.itemMetaText}>
                       {info?.muscle === 'cardio'
                         ? `时长 ${item.targetDurationMin ?? DEFAULT_CARDIO_MIN} 分钟`
-                        : `${
-                            isBodyweight(item.exerciseId)
-                              ? '自重'
-                              : `${formatWeight(item.targetWeight)}kg`
-                          } · ${item.targetSets} 组 × ${item.targetReps} 次 · 组间歇 ${
-                            item.restSeconds
-                          }s`}
+                        : `${planSetsSummary(item)} · 组间歇 ${item.restSeconds}s`}
                     </Text>
                   </View>
                 </View>
@@ -257,46 +273,38 @@ const PlanDetailPage: React.FC = () => {
         </View>
       )}
 
-      {/* 训练心得：训练中按动作选择感受，结束后汇总评分；可在「我的 → 训练偏好」关闭 */}
-      {profile.noteEnabled ? (
+      {/* 训练心得：训练中按动作选择感受，结束后才有评分；没练过就不显示这块 */}
+      {profile.noteEnabled && planFeelScore !== null ? (
         <>
           <View className={styles.sectionHeader}>
             <Text className={styles.sectionTitle}>训练心得</Text>
           </View>
-          {planFeelScore !== null ? (
-            <View className={styles.noteBoxActive}>
-              <View className={styles.noteScoreRow}>
-                <Text className={styles.noteScore}>{planFeelScore}</Text>
-                <Text className={styles.noteScoreUnit}>/ 10 分</Text>
+          <View className={styles.noteBoxActive}>
+            <View className={styles.noteScoreRow}>
+              <Text className={styles.noteScore}>{planFeelScore}</Text>
+              <Text className={styles.noteScoreUnit}>/ 10 分</Text>
+            </View>
+            <Text className={styles.noteMessage}>{feelMessage(planFeelScore)}</Text>
+            {planRecord ? (
+              <View className={styles.noteFeelList}>
+                {planRecord.exercises.map((item) => {
+                  const feel = getFeelOption(item.feel);
+                  if (!feel) return null;
+                  const info = getExerciseById(item.exerciseId);
+                  return (
+                    <View key={item.key} className={styles.noteFeelItem}>
+                      <Text className={styles.noteFeelName}>
+                        {info ? info.name : '未知动作'}
+                      </Text>
+                      <Text className={styles.noteFeelValue}>
+                        {feel.emoji} {feel.label}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
-              <Text className={styles.noteMessage}>{feelMessage(planFeelScore)}</Text>
-              {planRecord ? (
-                <View className={styles.noteFeelList}>
-                  {planRecord.exercises.map((item) => {
-                    const feel = getFeelOption(item.feel);
-                    if (!feel) return null;
-                    const info = getExerciseById(item.exerciseId);
-                    return (
-                      <View key={item.key} className={styles.noteFeelItem}>
-                        <Text className={styles.noteFeelName}>
-                          {info ? info.name : '未知动作'}
-                        </Text>
-                        <Text className={styles.noteFeelValue}>
-                          {feel.emoji} {feel.label}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : null}
-            </View>
-          ) : (
-            <View className={styles.noteBox}>
-              <Text className={styles.notePlaceholder}>
-                训练时每做完一个动作选一下感受，结束后这里会显示本次训练心得评分
-              </Text>
-            </View>
-          )}
+            ) : null}
+          </View>
         </>
       ) : null}
 

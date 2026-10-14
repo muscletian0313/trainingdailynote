@@ -7,7 +7,6 @@ import styles from './index.module.scss';
 interface SetRowProps {
   index: number;
   set: WorkoutSet;
-  canRemove: boolean;
   /** 自重动作：重量栏固定显示「自重」，不可填写 */
   bodyweight?: boolean;
   onPatch: (patch: Partial<WorkoutSet>) => void;
@@ -18,7 +17,6 @@ interface SetRowProps {
 const SetRow: React.FC<SetRowProps> = ({
   index,
   set,
-  canRemove,
   bodyweight = false,
   onPatch,
   onToggle,
@@ -83,10 +81,7 @@ const SetRow: React.FC<SetRowProps> = ({
         <Text className={styles.doneText}>{set.done ? '✓' : ''}</Text>
       </View>
 
-      <View
-        className={classnames(styles.remove, !canRemove && styles.removeHidden)}
-        onClick={canRemove ? onRemove : undefined}
-      >
+      <View className={styles.remove} onClick={onRemove}>
         <Text className={styles.removeText}>✕</Text>
       </View>
     </View>

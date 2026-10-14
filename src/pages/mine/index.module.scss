@@ -181,3 +181,97 @@
   line-height: $line-height-loose;
   text-align: center;
 }
+
+/* 组间歇提示音选择弹层 */
+.sheetMask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 72vh;
+  padding: $spacing-sm $spacing-lg calc(env(safe-area-inset-bottom) + 24rpx);
+  border-radius: $radius-lg $radius-lg 0 0;
+  background: $color-bg-card;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+}
+
+.sheetTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sheetClose {
+  height: 56rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.sheetCloseText {
+  font-size: $font-size-sm;
+  color: $color-primary;
+}
+
+.sheetList {
+  max-height: 56vh;
+}
+
+.soundRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 92rpx;
+  border-bottom: 2rpx solid $color-divider;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.soundRowActive {
+  .soundName {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.soundName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.soundCheck {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.sheetTip {
+  margin-top: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  text-align: center;
+}

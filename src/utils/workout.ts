@@ -139,6 +139,44 @@ export interface Performance {
   reps: number;
 }
 
+/** 某动作的历次训练记录（按时间倒序，只取该动作有完成组的那几次） */
+export interface PerformanceRecord {
+  sessionId: string;
+  startedAt: number;
+  /** 该次该动作的已完成组 */
+  sets: Performance[];
+  /** 有氧动作：该次总时长（分钟） */
+  cardioMin?: number;
+  /** 该次该动作的主观感受（1-5），没选过则为空 */
+  feel?: number;
+}
+
+/** 取某动作最近 N 次的训练记录（默认 4 次） */
+export function recentPerformances(
+  sessions: Session[],
+  exerciseId: string,
+  limit = 4
+): PerformanceRecord[] {
+  const ordered = [...sessions].sort((a, b) => b.startedAt - a.startedAt);
+  const result: PerformanceRecord[] = [];
+  for (const session of ordered) {
+    const target = session.exercises.find((item) => item.exerciseId === exerciseId);
+    if (!target) continue;
+    const done = target.sets.filter((set) => set.done);
+    if (!done.length) continue;
+    const cardioMin = done.reduce((sum, set) => sum + (set.durationMin ?? 0), 0);
+    result.push({
+      sessionId: session.id,
+      startedAt: session.startedAt,
+      sets: done.map((set) => ({ weight: set.weight, reps: set.reps })),
+      cardioMin: cardioMin > 0 ? cardioMin : undefined,
+      feel: target.feel
+    });
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
 /** 查找某动作最近一次的训练表现（用于自动预填重量） */
 export function findLastPerformance(sessions: Session[], exerciseId: string): Performance | null {
   const ordered = [...sessions].sort((a, b) => b.startedAt - a.startedAt);
