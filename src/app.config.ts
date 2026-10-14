@@ -9,7 +9,8 @@ export default defineAppConfig({
     'pages/plan-edit/index',
     'pages/plan-detail/index',
     'pages/record-detail/index',
-    'pages/exercise-detail/index'
+    'pages/exercise-detail/index',
+    'pages/onboarding/index'
   ],
   window: {
     backgroundTextStyle: 'light',

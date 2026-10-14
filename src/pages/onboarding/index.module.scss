@@ -1,0 +1,374 @@
+@use '@/styles/variables.scss' as *;
+
+/* 新手引导：实心粗块 + 硬阴影，做出「力量感」 */
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 32rpx);
+  background: $color-bg-page;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* 顶部：只放「跳过」，避开右上角小程序胶囊 */
+.topbar {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+}
+
+.skip {
+  padding: $spacing-xs 0;
+  font-size: 26rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text-tertiary;
+}
+
+/* 题目区：整体垂直居中 */
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.title {
+  display: block;
+  font-size: 64rpx;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -2rpx;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 性别：双块 */
+.optRow {
+  display: flex;
+  margin-top: $spacing-xl;
+}
+
+.optCard {
+  flex: 1;
+  height: 320rpx;
+  margin-left: $spacing-md;
+  border-radius: 32rpx;
+  background: #17171d;
+  border: 6rpx solid #2c2c36;
+  box-shadow: 0 16rpx 0 #050508;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:active {
+    transform: translateY(8rpx);
+    box-shadow: 0 8rpx 0 #050508;
+  }
+}
+
+.optCardActive {
+  border-color: $color-primary;
+  background: #1d130e;
+  box-shadow: 0 16rpx 0 #7a2f0d;
+}
+
+/* 性别头像：圆形，选中时套一圈主题橙 */
+.avatar {
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: $radius-round;
+  border: 6rpx solid #3a3a46;
+  overflow: hidden;
+  background: #101014;
+  box-sizing: border-box;
+}
+
+.avatarActive {
+  border-color: $color-primary;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: $radius-round;
+}
+
+.optLabel {
+  margin-top: $spacing-md;
+  font-size: 44rpx;
+  font-weight: 900;
+  letter-spacing: 4rpx;
+  color: #dcdce4;
+}
+
+.optLabelActive {
+  color: $color-primary;
+}
+
+/* 训练经验：三档卡片 */
+.cardList {
+  margin-top: $spacing-xl;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  margin-top: $spacing-md;
+  border-radius: 28rpx;
+  background: #17171d;
+  border: 6rpx solid #2c2c36;
+  box-shadow: 0 12rpx 0 #050508;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  &:active {
+    transform: translateY(6rpx);
+    box-shadow: 0 6rpx 0 #050508;
+  }
+}
+
+.cardActive {
+  border-color: $color-primary;
+  background: #1d130e;
+  box-shadow: 0 12rpx 0 #7a2f0d;
+}
+
+.cardBar {
+  width: 12rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+  background: #3a3a46;
+}
+
+.cardBarActive {
+  background: $color-primary;
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+}
+
+.cardTitle {
+  display: block;
+  font-size: 38rpx;
+  font-weight: 900;
+  letter-spacing: 4rpx;
+  color: #dcdce4;
+}
+
+.cardTitleActive {
+  color: $color-primary;
+}
+
+.cardDesc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 上下滚动的数字选择 */
+.wheelWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-xl;
+}
+
+.wheel {
+  flex: 1;
+  height: 400rpx;
+}
+
+/* 滚轮上下两端的深色渐隐（原生蒙层是白的，已置为透明） */
+.wheelFadeTop,
+.wheelFadeBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 160rpx;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.wheelFadeTop {
+  top: 0;
+  background: linear-gradient(180deg, $color-bg-page 0%, rgba(16, 16, 20, 0) 100%);
+}
+
+.wheelFadeBottom {
+  bottom: 0;
+  background: linear-gradient(0deg, $color-bg-page 0%, rgba(16, 16, 20, 0) 100%);
+}
+
+.wheelRow {
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wheelNum {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: $color-text-tertiary;
+  transition: all $transition-fast;
+}
+
+.wheelNumActive {
+  font-size: 76rpx;
+  font-weight: 900;
+  letter-spacing: -2rpx;
+  color: $color-primary;
+}
+
+.wheelNumFar {
+  font-size: 32rpx;
+  color: $color-text-disabled;
+}
+
+.wheelUnit {
+  flex-shrink: 0;
+  width: 96rpx;
+  @include flex-center;
+}
+
+.wheelUnitText {
+  font-size: $font-size-md;
+  font-weight: 900;
+  color: $color-text-tertiary;
+}
+
+/* 收尾页：竖排 slogan */
+.slogan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sloganLine {
+  font-size: 152rpx;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 4rpx;
+  color: $color-text-primary;
+}
+
+.sloganAccent {
+  color: $color-primary;
+}
+
+/* 收尾页按钮上方的说明 */
+.doneHint {
+  display: block;
+  margin-bottom: $spacing-md;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: $font-weight-medium;
+  letter-spacing: 1rpx;
+  color: $color-text-tertiary;
+}
+
+/* 底部：粗进度条 + 操作按钮 */
+.footer {
+  padding-top: $spacing-md;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+}
+
+.step {
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+  font-size: 30rpx;
+  font-weight: 900;
+  letter-spacing: 2rpx;
+  color: $color-primary;
+}
+
+.track {
+  flex: 1;
+  height: 24rpx;
+  border-radius: $radius-round;
+  background: #23232b;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: $radius-round;
+  background: $color-primary;
+  transition: width $transition-base;
+}
+
+.actions {
+  display: flex;
+}
+
+.ghostBtn {
+  height: 128rpx;
+  padding: 0 $spacing-xl;
+  margin-right: $spacing-md;
+  border-radius: 32rpx;
+  border: 6rpx solid #2c2c36;
+  background: #17171d;
+  box-shadow: 0 14rpx 0 #050508;
+  @include flex-center;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:active {
+    transform: translateY(8rpx);
+    box-shadow: 0 6rpx 0 #050508;
+  }
+}
+
+.ghostText {
+  font-size: $font-size-lg;
+  font-weight: 900;
+  color: #dcdce4;
+}
+
+.primaryBtn {
+  flex: 1;
+  height: 128rpx;
+  border-radius: 32rpx;
+  background: $color-primary;
+  box-shadow: 0 14rpx 0 #8a3410;
+  @include flex-center;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:active {
+    transform: translateY(8rpx);
+    box-shadow: 0 6rpx 0 #8a3410;
+  }
+}
+
+.primaryText {
+  font-size: 40rpx;
+  font-weight: 900;
+  letter-spacing: 6rpx;
+  color: #1b0d05;
+}

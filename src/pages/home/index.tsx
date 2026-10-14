@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
-import { navigateTo, showModal, showToast, switchTab } from '@/utils/taro';
+import { navigateTo, redirectTo, showModal, showToast, switchTab } from '@/utils/taro';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
 import type { Plan } from '@/types';
@@ -49,6 +49,15 @@ const HomePage: React.FC = () => {
     const timer = setInterval(() => setTick((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [hasActive]);
+
+  // 首次进入：还没填过「了解你」问卷，直接进引导页
+  useEffect(() => {
+    if (!profile.onboardedAt) {
+      redirectTo({ url: '/pages/onboarding/index' });
+    }
+    // 只在首次挂载时判断一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const days = recentDaysVolume(sessions, 7);
   const weekCount = days.reduce((sum, item) => sum + item.sessionCount, 0);

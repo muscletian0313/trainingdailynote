@@ -3,11 +3,11 @@ import { View, Text, Input, Picker, Image } from '@tarojs/components';
 import { useRouter, pageScrollTo } from '@tarojs/taro';
 import dayjs from 'dayjs';
 import {
-  navigateBack,
   setNavigationBarTitle,
   showActionSheet,
   showModal,
-  showToast
+  showToast,
+  switchTab
 } from '@/utils/taro';
 import classnames from 'classnames';
 import type { MuscleGroup, PlanExercise, PlanSet } from '@/types';
@@ -350,7 +350,8 @@ const PlanEditPage: React.FC = () => {
       console.info('[PlanEdit] 新建计划', trimmed);
     }
     showToast({ title: '已保存', icon: 'success' });
-    setTimeout(() => navigateBack(), 400);
+    // 保存后一律直接回首页，不走上一页
+    setTimeout(() => switchTab({ url: '/pages/home/index' }), 400);
   };
 
   return (

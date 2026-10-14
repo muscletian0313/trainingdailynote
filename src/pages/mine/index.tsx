@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Input, Switch, ScrollView } from '@tarojs/components';
-import { playSound, showActionSheet, showModal, showToast } from '@/utils/taro';
+import { navigateTo, playSound, showActionSheet, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
 import { REST_OPTIONS, REST_SOUNDS, REST_SOUND_OFF, restSoundSrc } from '@/constants';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -197,6 +197,17 @@ const MinePage: React.FC = () => {
         </View>
         <View className={classnames(styles.row, styles.rowDanger)} onClick={handleClearAll}>
           <Text className={styles.rowLabel}>清空全部数据</Text>
+          <Text className={styles.rowArrow}>›</Text>
+        </View>
+      </View>
+
+      <Text className={styles.sectionLabel}>帮助</Text>
+      <View className={styles.group}>
+        <View className={styles.row} onClick={() => navigateTo({ url: '/pages/onboarding/index' })}>
+          <View>
+            <Text className={styles.rowLabel}>重看新手引导</Text>
+            <Text className={styles.rowSub}>重新填写基本情况和训练经验</Text>
+          </View>
           <Text className={styles.rowArrow}>›</Text>
         </View>
       </View>

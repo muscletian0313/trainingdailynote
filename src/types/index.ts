@@ -106,6 +106,12 @@ export interface Plan {
   secondaryMuscles?: MuscleGroup[];
 }
 
+/** 性别 */
+export type Gender = 'male' | 'female';
+
+/** 训练经验档位 */
+export type TrainingLevel = 'beginner' | 'advanced' | 'master';
+
 /** 用户资料与偏好 */
 export interface UserProfile {
   nickname: string;
@@ -120,4 +126,18 @@ export interface UserProfile {
   restVibrate: boolean;
   /** 是否在计划详情页展示「训练心得」区域 */
   noteEnabled: boolean;
+  /** 完成新手问卷的时间戳（存在即表示已引导过） */
+  onboardedAt?: number;
+  /** 性别（用于热量估算与体重默认值） */
+  gender?: Gender;
+  /** 年龄（岁） */
+  age?: number;
+  /** 体重（kg） */
+  weight?: number;
+  /** 训练经验：新手 / 老手 / 大神 */
+  experience?: TrainingLevel;
+  /** 训练年限（年） */
+  trainingYears?: number;
+  /** 每周训练频次（次/周） */
+  trainingFrequency?: number;
 }
