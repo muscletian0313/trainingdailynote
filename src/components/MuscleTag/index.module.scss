@@ -1,0 +1,12 @@
+@use '@/styles/variables.scss' as *;
+
+.tag {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: 1.6;
+  white-space: nowrap;
+}

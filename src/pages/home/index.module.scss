@@ -1,0 +1,394 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.1) 0%, $color-bg-page 320rpx);
+}
+
+.header {
+  padding: $spacing-lg 0 $spacing-md;
+}
+
+.greeting {
+  display: block;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: $line-height-tight;
+}
+
+.date {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 进行中的训练 */
+.activeCard {
+  position: relative;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, rgba(255, 107, 44, 0.24) 0%, rgba(255, 107, 44, 0.06) 100%);
+  border: 2rpx solid rgba(255, 107, 44, 0.4);
+  margin-bottom: $spacing-md;
+}
+
+.activeTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.activeBadge {
+  display: flex;
+  align-items: center;
+  height: 40rpx;
+  padding: 0 16rpx;
+  border-radius: $radius-xs;
+  background: $color-primary;
+}
+
+.activeBadgeText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}
+
+.activeName {
+  margin-top: $spacing-sm;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.activeMeta {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.activeBtn {
+  margin-top: $spacing-md;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+
+  &:active {
+    opacity: 0.88;
+  }
+}
+
+.activeBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}
+
+/* 已完成的计划：卡片按钮转绿色完成态 */
+.planDoneBtn {
+  background: rgba(52, 211, 153, 0.18);
+}
+
+.planDoneBtnText {
+  color: $color-success;
+}
+
+/* 进行中的训练：暂停态徽章转黄 */
+.activeBadgePaused {
+  background: rgba(251, 191, 36, 0.18);
+
+  .activeBadgeText {
+    color: $color-warning;
+  }
+}
+
+/* 进行中卡片底部的操作按钮组：继续训练 / 暂停 / 结束训练 */
+.activeActions {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+}
+
+.activeAction {
+  flex: 1;
+  height: $button-height-md;
+  margin-left: $spacing-sm;
+  border-radius: $radius-button;
+  background: $color-bg-hover;
+  @include flex-center;
+  transition: all $transition-fast;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:active {
+    opacity: 0.88;
+  }
+}
+
+.activeActionPrimary {
+  flex: 1.4;
+  background: $color-primary;
+}
+
+.activeActionText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.activeActionPrimaryText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}
+
+/* 统计卡片 */
+.statCard {
+  display: flex;
+  padding: $spacing-lg $spacing-md;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.statItem {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statValue {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.1;
+}
+
+.statValueAccent {
+  color: $color-primary;
+}
+
+.statUnit {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+.statLabel {
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statDivider {
+  width: 2rpx;
+  background: $color-divider;
+  margin: 8rpx 0;
+}
+
+/* 主按钮 */
+.startBtn {
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+  transition: all $transition-base;
+  margin-bottom: $spacing-xl;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+}
+
+.startBtnText {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+  letter-spacing: 2rpx;
+}
+
+/* 区块标题 */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionAction {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 计划横向滚动 */
+.planScroll {
+  @include scroll-x-container;
+  margin: 0 (-$page-padding);
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.planCard {
+  @include scroll-x-item(300rpx);
+  margin-right: $spacing-md;
+  padding: $spacing-md;
+  /* 透明描边占位：让今日卡片的橙色描边不挤占内容宽度，保证所有卡片内容区一致 */
+  border: 2rpx solid transparent;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* 当日计划：高亮边框 + 主题色描边 */
+.planCardToday {
+  border-color: rgba(255, 107, 44, 0.55);
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.16) 0%, $color-bg-card 120rpx);
+  box-shadow: 0 0 0 2rpx rgba(255, 107, 44, 0.12), $shadow-card;
+}
+
+.planCardNameRow {
+  display: flex;
+  align-items: center;
+}
+
+.planCardName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.planTodayBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+  line-height: 1.6;
+}
+
+.planCardCount {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  /* 单行省略：文案长短不同也不会让卡片高度参差不齐 */
+  @include text-ellipsis;
+}
+
+.planCardTags {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  margin-top: 16rpx;
+  height: 40rpx;
+}
+
+.planTag {
+  margin-right: 8rpx;
+}
+
+/* 最近训练 */
+.recentList {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.recentItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.recentItemBorder {
+  border-bottom: 2rpx solid $color-divider;
+}
+
+.recentDot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+}
+
+.recentMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.recentName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.recentMeta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.recentRight {
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.recentVolume {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+}
+
+.recentVolumeUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+.recentArrow {
+  margin-top: 6rpx;
+  font-size: $font-size-sm;
+  color: $color-text-disabled;
+}

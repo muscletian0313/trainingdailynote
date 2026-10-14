@@ -1,0 +1,501 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding 260rpx;
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.08) 0%, $color-bg-page 260rpx);
+}
+
+/* 概览卡片 */
+.summary {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.summaryTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  height: 60rpx;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.editHint {
+  flex-shrink: 0;
+  /* 镜像成「右手拿笔」 */
+  display: inline-block;
+  transform: scaleX(-1);
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-left: $spacing-sm;
+}
+
+.summaryMeta {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 已用时 + 暂停/继续 */
+.summaryMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8rpx;
+
+  .summaryMeta {
+    margin-top: 0;
+  }
+}
+
+.pauseBtn {
+  flex-shrink: 0;
+  height: 52rpx;
+  margin-left: $spacing-sm;
+  padding: 0 $spacing-md;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+}
+
+.pauseBtnActive {
+  border-color: $color-primary;
+  background: rgba(255, 107, 44, 0.16);
+}
+
+.pauseBtnText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+/* 有氧动作：时长 + 自定义强度 */
+.cardioBox {
+  margin-top: $spacing-sm;
+}
+
+.cardioLine {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-sm;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.cardioLabel {
+  flex-shrink: 0;
+  width: 72rpx;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.cardioValue {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 64rpx;
+  padding: 0 $spacing-sm;
+  border-radius: $radius-sm;
+  background: $color-bg-input;
+}
+
+.cardioInputNum {
+  flex: 1;
+  min-width: 0;
+  height: 64rpx;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  text-align: center;
+}
+
+.cardioUnit {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.cardioInput {
+  flex: 1;
+  min-width: 0;
+  height: 64rpx;
+  padding: 0 $spacing-sm;
+  border-radius: $radius-sm;
+  background: $color-bg-input;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+/* 有氧统计里手填的数值（热量 / 心率） */
+.statInput {
+  width: 100%;
+  height: 48rpx;
+  margin-top: 4rpx;
+  text-align: center;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+/* 手填项的小铅笔提示 */
+.statEditIcon {
+  /* 镜像成「右手拿笔」 */
+  display: inline-block;
+  transform: scaleX(-1);
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.progressTrack {
+  margin-top: $spacing-md;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: $radius-round;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  transition: width $transition-base;
+}
+
+.summaryStats {
+  display: flex;
+  margin-top: $spacing-md;
+}
+
+.summaryStat {
+  flex: 1;
+  min-width: 0;
+}
+
+.summaryStatLabel {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.summaryStatValue {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.summaryStatAccent {
+  color: $color-primary;
+}
+
+.summaryStatUnit {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+/* 动作卡片 */
+.exerciseCard {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.exerciseHeader {
+  display: flex;
+  align-items: center;
+}
+
+.orderBadge {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  @include flex-center;
+}
+
+.orderBadgeText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.exerciseTitleWrap {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+}
+
+.exerciseName {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.exerciseMeta {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
+}
+
+.exerciseMetaText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: $spacing-sm;
+  @include text-ellipsis;
+}
+
+.exerciseActions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+}
+
+.iconBtn {
+  width: 52rpx;
+  height: 52rpx;
+  margin-left: 6rpx;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.iconBtnDisabled {
+  opacity: 0.3;
+}
+
+.iconBtnText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+/* 组表头 */
+.setHead {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+}
+
+.headIndex {
+  width: 52rpx;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+}
+
+.headWeight {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12rpx;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+}
+
+.headTimes {
+  width: 36rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.headReps {
+  width: 140rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+}
+
+.headDone {
+  width: 64rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+}
+
+.headRemove {
+  width: 56rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.addSet {
+  margin-top: $spacing-md;
+  height: 72rpx;
+  border-radius: $radius-sm;
+  border: 2rpx dashed $color-border;
+  @include flex-center;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.addSetText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+/* 添加动作 */
+.addExercise {
+  margin-top: $spacing-md;
+  height: 108rpx;
+  border-radius: $radius-lg;
+  border: 2rpx dashed rgba(255, 107, 44, 0.5);
+  background: rgba(255, 107, 44, 0.06);
+  @include flex-center;
+
+  &:active {
+    background: rgba(255, 107, 44, 0.12);
+  }
+}
+
+.addExerciseText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-primary;
+}
+
+/* 放弃训练 */
+.giveUp {
+  margin-top: $spacing-xl;
+  @include flex-center;
+}
+
+.giveUpText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  text-decoration: underline;
+}
+
+/* 底部操作栏 */
+.bottomBar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  padding: $spacing-sm $page-padding calc(env(safe-area-inset-bottom) + 16rpx);
+  background: rgba(16, 16, 20, 0.96);
+  border-top: 2rpx solid $color-border;
+}
+
+.bottomBtn {
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.bottomBtnGhost {
+  background: $color-bg-hover;
+  margin-right: $spacing-sm;
+}
+
+.bottomBtnPrimary {
+  flex: 1.2;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+}
+
+.bottomBtnTextGhost {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.bottomBtnTextPrimary {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+/* 休息计时条 */
+.restBar {
+  position: fixed;
+  right: $page-padding;
+  left: $page-padding;
+  bottom: calc(env(safe-area-inset-bottom) + 172rpx);
+  z-index: 20;
+  height: 100rpx;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  box-shadow: $shadow-popup;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.restInfo {
+  display: flex;
+  align-items: baseline;
+}
+
+.restLabel {
+  font-size: $font-size-sm;
+  color: rgba(16, 16, 20, 0.7);
+}
+
+.restTime {
+  margin-left: $spacing-sm;
+  font-size: 44rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+.restSkip {
+  height: 60rpx;
+  padding: 0 32rpx;
+  border-radius: $radius-button;
+  background: rgba(16, 16, 20, 0.18);
+  @include flex-center;
+}
+
+.restSkipText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-inverse;
+}
+
+/* 空状态容器 */
+.emptyWrap {
+  margin-top: 120rpx;
+}

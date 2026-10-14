@@ -1,0 +1,218 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.08) 0%, $color-bg-page 240rpx);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: $spacing-lg 0 $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.createBtn {
+  height: 72rpx;
+  padding: 0 30rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.88;
+    transform: scale(0.97);
+  }
+}
+
+.createBtnText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+  white-space: nowrap;
+}
+
+/* 计划卡片 */
+.card {
+  margin-bottom: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+/* 当日计划：高亮边框 + 主题色描边 */
+.cardToday {
+  border: 2rpx solid rgba(255, 107, 44, 0.55);
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.14) 0%, $color-bg-card 140rpx);
+  box-shadow: 0 0 0 2rpx rgba(255, 107, 44, 0.12), $shadow-card;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.dateWrap {
+  display: flex;
+  align-items: baseline;
+}
+
+.dateMain {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.dateSub {
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.moreBtn {
+  width: 64rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.moreText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  margin-top: 12rpx;
+}
+
+.cardName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.todayBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+  line-height: 1.6;
+}
+
+.doneBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: rgba(52, 211, 153, 0.16);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+  line-height: 1.6;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: $spacing-sm;
+}
+
+.tag {
+  margin-right: $spacing-xs;
+  margin-bottom: $spacing-xs;
+}
+
+.noMuscle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 总重量 / 总容量 / 动作数 */
+.statsRow {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 2rpx solid $color-divider;
+}
+
+.statItem {
+  flex: 1;
+  min-width: 0;
+  @include flex-center;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.2;
+}
+
+.statUnit {
+  margin-left: 4rpx;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+}
+
+.statLabel {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statDivider {
+  width: 2rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+  background: $color-divider;
+}
+
+.emptyWrap {
+  margin-top: $spacing-xl;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}

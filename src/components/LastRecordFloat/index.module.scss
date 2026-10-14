@@ -1,0 +1,163 @@
+@use '@/styles/variables.scss' as *;
+
+.fab {
+  position: fixed;
+  right: $page-padding;
+  bottom: calc(env(safe-area-inset-bottom) + 300rpx);
+  z-index: 30;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: $radius-round;
+  background: $color-bg-elevated;
+  border: 2rpx solid $color-border;
+  box-shadow: $shadow-float;
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.94);
+  }
+}
+
+.fabActive {
+  background: $color-primary;
+  border-color: $color-primary;
+}
+
+.fabText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  line-height: 1;
+}
+
+.fabTextActive {
+  color: $color-text-inverse;
+}
+
+.panel {
+  position: fixed;
+  right: $page-padding;
+  bottom: calc(env(safe-area-inset-bottom) + 424rpx);
+  left: $page-padding;
+  z-index: 29;
+  height: 52vh;
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-lg;
+  border-radius: $radius-xl;
+  background: $color-bg-elevated;
+  border: 2rpx solid $color-border;
+  box-shadow: $shadow-popup;
+  animation: floatIn $transition-base;
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(24rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.close {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+}
+
+.closeText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin-top: $spacing-md;
+}
+
+.exercise {
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  border-radius: $radius-md;
+  background: $color-bg-card;
+}
+
+.exerciseTop {
+  display: flex;
+  align-items: center;
+}
+
+.exerciseIndex {
+  width: 36rpx;
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.exerciseName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.exerciseTag {
+  margin-left: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.setWrap {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-xs;
+}
+
+.setChip {
+  padding: 8rpx 14rpx;
+  margin: 0 $spacing-xs $spacing-xs 0;
+  border-radius: $radius-xs;
+  background: $color-bg-hover;
+}
+
+.setChipDone {
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.setChipText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.setChipTextDone {
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}

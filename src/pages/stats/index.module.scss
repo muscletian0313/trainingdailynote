@@ -1,0 +1,349 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.08) 0%, $color-bg-page 240rpx);
+}
+
+.header {
+  padding: $spacing-lg 0 $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.overview {
+  display: flex;
+  padding: $spacing-lg $spacing-sm;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.overviewItem {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.overviewValue {
+  font-size: 44rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.1;
+}
+
+.overviewValueAccent {
+  color: $color-primary;
+}
+
+.overviewUnit {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+.overviewLabel {
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.overviewDivider {
+  width: 2rpx;
+  background: $color-divider;
+  margin: 8rpx 0;
+}
+
+.section {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionExtra {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 个人最佳 PR */
+.prRow {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.prMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.prName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.prMeta {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
+}
+
+.prDate {
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.prValue {
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.prValueMain {
+  display: flex;
+  align-items: baseline;
+}
+
+.prLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-right: 6rpx;
+}
+
+.prWeight {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: 1.1;
+}
+
+.prUnit {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+.prReps {
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.prMore {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+  text-align: center;
+}
+
+/* 柱状图 */
+.chart {
+  display: flex;
+  align-items: flex-end;
+  height: 240rpx;
+}
+
+.chartCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.barTrack {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar {
+  width: 40rpx;
+  border-radius: $radius-xs $radius-xs 0 0;
+  background: $color-chart-bar;
+  transition: all $transition-base;
+}
+
+.barEmpty {
+  width: 40rpx;
+  height: 8rpx;
+  border-radius: $radius-xs;
+  background: $color-chart-bar-empty;
+}
+
+.barLabel {
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.barLabelToday {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+/* 肌群分布 */
+.muscleRow {
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.muscleTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.muscleNameWrap {
+  display: flex;
+  align-items: center;
+}
+
+.muscleName {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  margin-left: $spacing-sm;
+}
+
+.muscleValue {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.muscleTrack {
+  height: 14rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  overflow: hidden;
+}
+
+.muscleFill {
+  height: 100%;
+  border-radius: $radius-round;
+}
+
+/* 历史记录 */
+.recordList {
+  margin-top: $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.recordItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.recordItemBorder {
+  border-bottom: 2rpx solid $color-divider;
+}
+
+.recordMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.recordName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.recordMeta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.recordRight {
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.recordVolume {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+}
+
+.recordVolumeUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+.recordArrow {
+  margin-top: 6rpx;
+  font-size: $font-size-sm;
+  color: $color-text-disabled;
+}
+
+.emptyWrap {
+  margin-top: $spacing-xl;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}

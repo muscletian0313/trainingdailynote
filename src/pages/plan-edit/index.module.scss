@@ -1,0 +1,283 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding 220rpx;
+  background: $color-bg-page;
+}
+
+.card {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+}
+
+.nameInput {
+  width: 100%;
+  height: 76rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.fieldHint {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 训练部位选择 */
+.muscleHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.muscleHeadText {
+  flex: 1;
+  min-width: 0;
+}
+
+.muscleArt {
+  flex-shrink: 0;
+  width: 108rpx;
+  height: 108rpx;
+  margin-left: $spacing-sm;
+  border-radius: $radius-md;
+  background: #0a0a0e;
+  border: 2rpx solid rgba(255, 107, 44, 0.35);
+}
+
+.muscleGrid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-xs;
+}
+
+.muscleChip {
+  height: 64rpx;
+  margin: $spacing-xs $spacing-xs 0 0;
+  padding: 0 $spacing-md;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+
+.muscleChipText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.cardDivider {
+  height: 2rpx;
+  margin: $spacing-md 0;
+  background: $color-divider;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: $spacing-lg 0 $spacing-sm;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionExtra {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.exerciseCard {
+  margin-bottom: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.exerciseHeader {
+  display: flex;
+  align-items: center;
+}
+
+.orderBadge {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  @include flex-center;
+}
+
+.orderBadgeText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.exerciseTitleWrap {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+}
+
+.exerciseName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.exerciseMeta {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
+}
+
+.exerciseActions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+}
+
+.iconBtn {
+  width: 52rpx;
+  height: 52rpx;
+  margin-left: 6rpx;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  @include flex-center;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.iconBtnDisabled {
+  opacity: 0.3;
+}
+
+.iconBtnDanger {
+  background: rgba(248, 115, 106, 0.14);
+
+  .iconBtnText {
+    color: $color-error;
+  }
+}
+
+.iconBtnText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+}
+
+.configLabel {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.configValue {
+  display: flex;
+  align-items: center;
+}
+
+.configValueText {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.configArrow {
+  margin-left: $spacing-xs;
+  font-size: $font-size-lg;
+  color: $color-text-disabled;
+}
+
+.addExercise {
+  height: 108rpx;
+  border-radius: $radius-lg;
+  border: 2rpx dashed rgba(255, 107, 44, 0.5);
+  background: rgba(255, 107, 44, 0.06);
+  @include flex-center;
+
+  &:active {
+    background: rgba(255, 107, 44, 0.12);
+  }
+}
+
+.addExerciseText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-primary;
+}
+
+.emptyTip {
+  padding: 64rpx 0;
+  @include flex-center;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.bottomBar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  padding: $spacing-sm $page-padding calc(env(safe-area-inset-bottom) + 16rpx);
+  background: rgba(16, 16, 20, 0.96);
+  border-top: 2rpx solid $color-border;
+}
+
+.saveBtn {
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+}
+
+.saveBtnText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}

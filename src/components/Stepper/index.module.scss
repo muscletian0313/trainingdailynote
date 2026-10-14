@@ -1,0 +1,76 @@
+@use '@/styles/variables.scss' as *;
+
+.stepper {
+  display: flex;
+  align-items: center;
+}
+
+.btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  @include flex-center;
+  transition: all $transition-fast;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.compact {
+  .btn {
+    width: 48rpx;
+    height: 48rpx;
+  }
+
+  .btnText {
+    font-size: $font-size-lg;
+  }
+}
+
+.disabled {
+  opacity: 0.35;
+}
+
+.btnText {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  line-height: 1;
+}
+
+.valueWrap {
+  min-width: 96rpx;
+  padding: 0 $spacing-xs;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.value {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  min-width: 40rpx;
+  text-align: center;
+}
+
+/* 可直接输入的数值（重量） */
+.valueInput {
+  width: 120rpx;
+  height: 56rpx;
+  padding: 0;
+  border-radius: $radius-xs;
+  background: $color-bg-input;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  text-align: center;
+}
+
+.suffix {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}

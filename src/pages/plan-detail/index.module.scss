@@ -1,0 +1,367 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding 220rpx;
+  background: $color-bg-page;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, rgba(255, 107, 44, 0.2) 0%, rgba(255, 107, 44, 0.05) 100%);
+  border: 2rpx solid rgba(255, 107, 44, 0.28);
+}
+
+/* 头部左侧文案区 */
+.headBody {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 头部右侧：铅笔 + 主训部位插图 */
+.headSide {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: $spacing-sm;
+}
+
+/* 主训部位插图：暖色底图上嵌一块深色圆角图，观感更整、更像徽章 */
+.headArt {
+  width: 200rpx;
+  height: 200rpx;
+  margin-top: $spacing-xs;
+  border-radius: 24rpx;
+  background: #0a0a0e;
+  border: 2rpx solid rgba(255, 107, 44, 0.35);
+  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* 就地编辑表单容器 */
+.headEditWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 计划名 + 就地编辑铅笔：铅笔紧跟名字，名字长时自动右移（超长则省略） */
+.headNameRow {
+  display: flex;
+  align-items: center;
+}
+
+.headName {
+  min-width: 0;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+/* 训练部位标签：实心为主训，浅色为次训 */
+.headTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 10rpx;
+}
+
+.headTag {
+  margin-left: 8rpx;
+}
+
+.headMeta {
+  display: block;
+  margin-top: 12rpx;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.headDate {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+/* 就地编辑：训练部位与开始日期 */
+.headRow {
+  display: flex;
+  align-items: center;
+}
+
+.headEditLabel {
+  flex: 1;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+.editBtn {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  margin-left: $spacing-sm;
+  border-radius: $radius-sm;
+  background: rgba(255, 107, 44, 0.16);
+  @include flex-center;
+  transition: all $transition-fast;
+
+  &:active {
+    background: rgba(255, 107, 44, 0.3);
+  }
+}
+
+.editIcon {
+  /* 镜像成「右手拿笔」 */
+  display: inline-block;
+  transform: scaleX(-1);
+  font-size: $font-size-md;
+  color: $color-primary;
+  line-height: 1;
+}
+
+.headNameInput {
+  width: 100%;
+  height: 80rpx;
+  margin-top: $spacing-sm;
+  padding: 0 $spacing-sm;
+  box-sizing: border-box;
+  border-radius: $radius-sm;
+  background: $color-bg-input;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.headDateEdit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $radius-sm;
+  background: $color-bg-input;
+}
+
+.headDateEditLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.headDateEditValue {
+  display: flex;
+  align-items: center;
+}
+
+.headDateEditText {
+  font-size: $font-size-sm;
+  color: $color-primary;
+}
+
+.headDateEditArrow {
+  margin-left: 6rpx;
+  font-size: $font-size-md;
+  color: $color-text-disabled;
+}
+
+.headActions {
+  display: flex;
+  margin-top: $spacing-md;
+}
+
+.headAction {
+  flex: 1;
+  height: 68rpx;
+  border-radius: $radius-button;
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.headActionGhost {
+  margin-right: $spacing-sm;
+  background: $color-bg-hover;
+}
+
+.headActionGhostText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.headActionPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+}
+
+.headActionPrimaryText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: $spacing-lg 0 $spacing-sm;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionExtra {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.list {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.itemBorder {
+  border-bottom: 2rpx solid $color-divider;
+}
+
+.orderBadge {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  @include flex-center;
+}
+
+.orderBadgeText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.itemMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+}
+
+.itemName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
+}
+
+.itemMetaText {
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.itemEditIcon {
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+  /* 镜像成「右手拿笔」 */
+  display: inline-block;
+  transform: scaleX(-1);
+  font-size: $font-size-md;
+  color: $color-primary;
+}
+
+/* 训练心得：先留出框体，功能后续再做 */
+.noteBox {
+  min-height: 180rpx;
+  padding: $spacing-md;
+  border: 2rpx dashed $color-border;
+  border-radius: $radius-lg;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.notePlaceholder {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  line-height: $line-height-normal;
+}
+
+.emptyWrap {
+  margin-top: $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.bottomBar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  padding: $spacing-sm $page-padding calc(env(safe-area-inset-bottom) + 16rpx);
+  background: rgba(16, 16, 20, 0.96);
+  border-top: 2rpx solid $color-border;
+}
+
+.bottomBtn {
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.bottomBtnGhost {
+  background: $color-bg-hover;
+  margin-right: $spacing-sm;
+}
+
+.bottomBtnPrimary {
+  flex: 1.3;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+}
+
+.bottomBtnTextGhost {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.bottomBtnTextPrimary {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}

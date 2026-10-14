@@ -1,0 +1,52 @@
+@use '@/styles/variables.scss' as *;
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 96rpx 48rpx;
+}
+
+.glyph {
+  font-size: 80rpx;
+  line-height: 1;
+  margin-bottom: $spacing-md;
+  opacity: 0.85;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.desc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  text-align: center;
+  line-height: $line-height-normal;
+  margin-bottom: $spacing-lg;
+}
+
+.action {
+  height: $button-height-md;
+  padding: 0 48rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.88;
+    transform: scale(0.98);
+  }
+}
+
+.actionText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-inverse;
+  white-space: nowrap;
+}

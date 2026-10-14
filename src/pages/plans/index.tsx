@@ -1,0 +1,242 @@
+import React, { useMemo } from 'react';
+import { View, Text } from '@tarojs/components';
+import { navigateTo, showActionSheet, showModal, showToast } from '@/utils/taro';
+import dayjs from 'dayjs';
+import classnames from 'classnames';
+import type { Plan, Session } from '@/types';
+import { usePlanStore } from '@/store/usePlanStore';
+import { useSessionStore } from '@/store/useSessionStore';
+import {
+  isPlanFinished,
+  planMuscleTags,
+  sessionTotalSets,
+  sessionTotalWeight
+} from '@/utils/workout';
+import { dayLabel, formatVolume, isDateToday, weekdayLabel } from '@/utils/format';
+import MuscleTag from '@/components/MuscleTag';
+import EmptyState from '@/components/EmptyState';
+import styles from './index.module.scss';
+
+/** 列表展示范围：最近 7 天 */
+const RECENT_DAYS = 7;
+
+const PlansPage: React.FC = () => {
+  const plans = usePlanStore((state) => state.plans);
+  const removePlan = usePlanStore((state) => state.removePlan);
+  const sessions = useSessionStore((state) => state.sessions);
+  const active = useSessionStore((state) => state.active);
+  const startSession = useSessionStore((state) => state.startSession);
+  const discardActive = useSessionStore((state) => state.discardActive);
+
+  const todayKey = dayjs().format('YYYY-MM-DD');
+  const fromKey = dayjs()
+    .subtract(RECENT_DAYS - 1, 'day')
+    .format('YYYY-MM-DD');
+
+  /** 近 7 天内的计划，按开始日期倒序（最近的在最上） */
+  const recentPlans = useMemo(
+    () =>
+      plans
+        .filter((plan) => {
+          if (!plan.startDate) return false;
+          const key = dayjs(plan.startDate).format('YYYY-MM-DD');
+          return key >= fromKey && key <= todayKey;
+        })
+        .sort(
+          (a, b) =>
+            dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf() ||
+            b.createdAt - a.createdAt
+        ),
+    [plans, fromKey, todayKey]
+  );
+
+  /** 每个计划最近一次训练（sessions 已是时间倒序，取首次命中即为最近一次） */
+  const lastSessionByPlan = useMemo(() => {
+    const map = new Map<string, Session>();
+    sessions.forEach((session) => {
+      if (session.planId && !map.has(session.planId)) map.set(session.planId, session);
+    });
+    return map;
+  }, [sessions]);
+
+  const openEdit = (planId?: string) => {
+    const url = planId ? `/pages/plan-edit/index?id=${planId}` : '/pages/plan-edit/index';
+    navigateTo({ url });
+  };
+
+  const openDetail = (planId: string) => {
+    navigateTo({ url: `/pages/plan-detail/index?id=${planId}` });
+  };
+
+  const startPlan = (plan: Plan) => {
+    if (isPlanFinished(sessions, plan.id)) {
+      showToast({ title: '该计划已完成，只能查看记录', icon: 'none' });
+      return;
+    }
+    const go = () => {
+      startSession({ plan });
+      navigateTo({ url: '/pages/session/index' });
+    };
+    if (active) {
+      showModal({
+        title: '提示',
+        content: '当前有进行中的训练，是否放弃并开始新的训练？',
+        confirmText: '确定放弃',
+        success: (res) => {
+          if (res.confirm) {
+            discardActive();
+            go();
+          }
+        }
+      });
+      return;
+    }
+    go();
+  };
+
+  const handleMore = (plan: Plan) => {
+    // 已完成的计划只能查看，不再提供「开始训练」与「编辑计划」
+    const itemList = isPlanFinished(sessions, plan.id)
+      ? ['删除计划']
+      : ['开始训练', '编辑计划', '删除计划'];
+    showActionSheet({
+      itemList,
+      success: (res) => {
+        const action = itemList[res.tapIndex];
+        if (action === '开始训练') {
+          if (!plan.exercises.length) {
+            showToast({ title: '请先为计划添加动作', icon: 'none' });
+            return;
+          }
+          startPlan(plan);
+          return;
+        }
+        if (action === '编辑计划') {
+          openEdit(plan.id);
+          return;
+        }
+        showModal({
+          title: '删除计划',
+          content: `确定删除「${plan.name}」吗？`,
+          confirmColor: '#f8736a',
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              removePlan(plan.id);
+              showToast({ title: '已删除', icon: 'none' });
+            }
+          }
+        });
+      }
+    });
+  };
+
+  return (
+    <View className={styles.page}>
+      <View className={styles.header}>
+        <View>
+          <Text className={styles.title}>训练计划</Text>
+          <Text className={styles.subtitle}>
+            近 {RECENT_DAYS} 天 · {recentPlans.length} 个计划
+          </Text>
+        </View>
+        <View className={styles.createBtn} onClick={() => openEdit()}>
+          <Text className={styles.createBtnText}>+ 新建计划</Text>
+        </View>
+      </View>
+
+      {recentPlans.length ? (
+        recentPlans.map((plan) => {
+          const isToday = isDateToday(plan.startDate);
+          const finished = isPlanFinished(sessions, plan.id);
+          const ts = dayjs(plan.startDate).valueOf();
+          const last = lastSessionByPlan.get(plan.id);
+          const muscles = planMuscleTags(plan);
+          return (
+            <View
+              key={plan.id}
+              className={classnames(styles.card, isToday && styles.cardToday)}
+              onClick={() => openDetail(plan.id)}
+            >
+              <View className={styles.cardTop}>
+                <View className={styles.dateWrap}>
+                  <Text className={styles.dateMain}>{dayjs(plan.startDate).format('M月D日')}</Text>
+                  <Text className={styles.dateSub}>
+                    {dayLabel(ts)} {weekdayLabel(ts)}
+                  </Text>
+                </View>
+                <View
+                  className={styles.moreBtn}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleMore(plan);
+                  }}
+                >
+                  <Text className={styles.moreText}>···</Text>
+                </View>
+              </View>
+
+              <View className={styles.nameRow}>
+                <Text className={styles.cardName}>{plan.name}</Text>
+                {isToday ? <Text className={styles.todayBadge}>今日</Text> : null}
+                {finished ? <Text className={styles.doneBadge}>已完成</Text> : null}
+              </View>
+
+              <View className={styles.tags}>
+                {plan.exercises.length ? (
+                  muscles.map((muscle, index) => (
+                    <MuscleTag
+                      key={muscle}
+                      muscle={muscle}
+                      solid={index === 0}
+                      className={styles.tag}
+                    />
+                  ))
+                ) : (
+                  <Text className={styles.noMuscle}>还没有动作</Text>
+                )}
+              </View>
+
+              <View className={styles.statsRow}>
+                <View className={styles.statItem}>
+                  <Text className={styles.statValue}>
+                    {last ? formatVolume(sessionTotalWeight(last)) : '—'}
+                    {last ? <Text className={styles.statUnit}>kg</Text> : null}
+                  </Text>
+                  <Text className={styles.statLabel}>总重量</Text>
+                </View>
+                <View className={styles.statDivider} />
+                <View className={styles.statItem}>
+                  <Text className={styles.statValue}>
+                    {last ? sessionTotalSets(last) : '—'}
+                    {last ? <Text className={styles.statUnit}>组</Text> : null}
+                  </Text>
+                  <Text className={styles.statLabel}>总容量</Text>
+                </View>
+                <View className={styles.statDivider} />
+                <View className={styles.statItem}>
+                  <Text className={styles.statValue}>
+                    {plan.exercises.length}
+                    <Text className={styles.statUnit}>个</Text>
+                  </Text>
+                  <Text className={styles.statLabel}>动作数</Text>
+                </View>
+              </View>
+            </View>
+          );
+        })
+      ) : (
+        <View className={styles.emptyWrap}>
+          <EmptyState
+            glyph="📋"
+            title={`近 ${RECENT_DAYS} 天还没有训练计划`}
+            desc="创建计划可以固定每次训练的动作和组数，训练时一键开始"
+            actionText="创建计划"
+            onAction={() => openEdit()}
+          />
+        </View>
+      )}
+    </View>
+  );
+};
+
+export default PlansPage;

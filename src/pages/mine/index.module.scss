@@ -1,0 +1,183 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.1) 0%, $color-bg-page 260rpx);
+}
+
+.profile {
+  margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.profileTop {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  flex-shrink: 0;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.avatarText {
+  font-size: 56rpx;
+  line-height: 1;
+}
+
+.profileMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+}
+
+.nicknameInput {
+  width: 100%;
+  height: 56rpx;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.nicknameHint {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.profileStats {
+  display: flex;
+  margin-top: $spacing-lg;
+  padding-top: $spacing-md;
+  border-top: 2rpx solid $color-divider;
+}
+
+.profileStat {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profileStatValue {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.1;
+}
+
+.profileStatValueAccent {
+  color: $color-primary;
+}
+
+.profileStatUnit {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+  margin-left: 4rpx;
+}
+
+.profileStatLabel {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.profileStatDivider {
+  width: 2rpx;
+  background: $color-divider;
+  margin: 8rpx 0;
+}
+
+.sectionLabel {
+  display: block;
+  margin: $spacing-lg 0 $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.group {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.rowBorder {
+  border-bottom: 2rpx solid $color-divider;
+}
+
+.rowLabel {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.rowSub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.rowValue {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+}
+
+.rowValueText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.rowArrow {
+  margin-left: $spacing-xs;
+  font-size: $font-size-lg;
+  color: $color-text-disabled;
+}
+
+.rowDanger {
+  .rowLabel {
+    color: $color-error;
+  }
+}
+
+.about {
+  margin-top: $spacing-xl;
+  @include flex-center;
+  flex-direction: column;
+}
+
+.aboutText {
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+  line-height: $line-height-loose;
+  text-align: center;
+}

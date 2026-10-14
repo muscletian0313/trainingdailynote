@@ -1,0 +1,225 @@
+@use '@/styles/variables.scss' as *;
+
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: $color-bg-mask;
+}
+
+.panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 82vh;
+  display: flex;
+  flex-direction: column;
+  background: $color-bg-elevated;
+  border-radius: $radius-xl $radius-xl 0 0;
+  animation: slideUp $transition-base;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg $page-padding $spacing-sm;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  @include flex-center;
+}
+
+.closeText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.searchWrap {
+  padding: 0 $page-padding $spacing-sm;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  height: 76rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 $page-padding $spacing-sm;
+  flex-shrink: 0;
+}
+
+.chip {
+  height: 60rpx;
+  padding: 0 26rpx;
+  margin: 0 $spacing-xs $spacing-xs 0;
+  border-radius: $radius-button;
+  background: $color-bg-hover;
+  @include flex-center;
+  transition: all $transition-fast;
+}
+
+.chipActive {
+  background: $color-primary;
+}
+
+.chipText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+.chipTextActive {
+  color: $color-text-inverse;
+  font-weight: $font-weight-semibold;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 $page-padding;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  border-radius: $radius-md;
+  background: $color-bg-card;
+  transition: all $transition-fast;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.itemMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  margin-top: 8rpx;
+}
+
+.equipment {
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+}
+
+.check {
+  width: 56rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+  border-radius: $radius-round;
+  border: 2rpx solid $color-border;
+  box-sizing: border-box;
+  @include flex-center;
+  transition: all $transition-fast;
+}
+
+.checkActive {
+  background: $color-primary;
+  border-color: $color-primary;
+}
+
+.checkText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+  line-height: 1;
+}
+
+.emptyTip {
+  padding: 96rpx 0;
+  @include flex-center;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.footer {
+  flex-shrink: 0;
+  padding: $spacing-md $page-padding calc(env(safe-area-inset-bottom) + 24rpx);
+  border-top: 2rpx solid $color-border;
+}
+
+.confirm {
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+}
+
+.confirmDisabled {
+  opacity: 0.45;
+}
+
+.confirmText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+  white-space: nowrap;
+}
