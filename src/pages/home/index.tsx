@@ -50,9 +50,11 @@ const HomePage: React.FC = () => {
     return () => clearInterval(timer);
   }, [hasActive]);
 
-  // 首次进入：还没填过「了解你」问卷，直接进引导页
+  // 首次进入：没有任何引导记录、也没有计划与训练记录的新用户才自动进引导页。
+  // 后面两个条件是兜底——万一本地那条引导标记写入丢失，老用户也不会第二天又被拉去答题。
   useEffect(() => {
-    if (!profile.onboardedAt) {
+    const isNewUser = !profile.onboardedAt && !plans.length && !sessions.length;
+    if (isNewUser) {
       redirectTo({ url: '/pages/onboarding/index' });
     }
     // 只在首次挂载时判断一次

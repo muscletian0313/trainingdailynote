@@ -49,6 +49,16 @@
   color: $color-text-tertiary;
 }
 
+/* 开屏说明页：白字、加粗放大，一眼看到重点 */
+.introLead {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 900;
+  line-height: 1.5;
+  letter-spacing: 1rpx;
+  color: $color-text-primary;
+}
+
 /* 性别：双块 */
 .optRow {
   display: flex;
