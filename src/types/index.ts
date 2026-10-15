@@ -138,6 +138,8 @@ export interface UserProfile {
   experience?: TrainingLevel;
   /** 训练年限（年） */
   trainingYears?: number;
+  /** 训练年限里的零头月份（0~12） */
+  trainingMonths?: number;
   /** 每周训练频次（次/周） */
   trainingFrequency?: number;
 }
