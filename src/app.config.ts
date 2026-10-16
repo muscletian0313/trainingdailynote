@@ -8,6 +8,7 @@ export default defineAppConfig({
     'pages/session/index',
     'pages/plan-edit/index',
     'pages/plan-detail/index',
+    'pages/plan-share/index',
     'pages/record-detail/index',
     'pages/exercise-detail/index',
     'pages/onboarding/index'

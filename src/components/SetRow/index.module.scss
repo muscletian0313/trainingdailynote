@@ -34,9 +34,21 @@
 }
 
 .weightField {
+  position: relative;
   flex: 1;
   min-width: 0;
   margin-left: 12rpx;
+}
+
+/* 辅助类动作的负号前缀（器械辅助引体向上） */
+.sign {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
 }
 
 .repsField {
@@ -60,14 +72,6 @@
   color: $color-text-tertiary;
   margin-left: 4rpx;
   flex-shrink: 0;
-}
-
-/* 自重动作：重量栏固定文案 */
-.bodyweight {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  color: $color-text-secondary;
-  text-align: center;
 }
 
 .times {

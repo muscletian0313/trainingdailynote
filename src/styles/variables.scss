@@ -28,10 +28,10 @@ $radius-xl: 20rpx; // 特大卡片
 $radius-button: 48rpx; // 按钮专用（全圆角，符合主流小程序）
 $radius-round: 999rpx; // 完全圆形
 
-// 按钮高度（新增）
-$button-height-sm: 64rpx; // 小按钮（次要操作）
-$button-height-md: 80rpx; // 常规按钮（主流标准）
-$button-height-lg: 96rpx; // 大按钮（主要操作、底部固定）
+// 按钮高度（新增，随字号一起放大 20%）
+$button-height-sm: 76rpx; // 小按钮（次要操作）
+$button-height-md: 96rpx; // 常规按钮（主流标准）
+$button-height-lg: 116rpx; // 大按钮（主要操作、底部固定）
 
 // 阴影（语义化）
 $shadow-card: 0 2rpx 12rpx rgba(0, 0, 0, 0.08); // 卡片阴影
@@ -39,13 +39,13 @@ $shadow-card-hover: 0 4rpx 20rpx rgba(0, 0, 0, 0.12); // 卡片悬浮
 $shadow-float: 0 4rpx 16rpx rgba(0, 0, 0, 0.1); // 浮层阴影（如筛选栏、底部操作栏）
 $shadow-popup: 0 8rpx 32rpx rgba(0, 0, 0, 0.15); // 弹窗阴影
 
-// 字体大小
-$font-size-xs: 22rpx;
-$font-size-sm: 24rpx;
-$font-size-md: 28rpx;
-$font-size-lg: 32rpx;
-$font-size-xl: 36rpx;
-$font-size-xxl: 40rpx;
+// 字体大小（整体比 750 基准放大 8%，小字更易读）
+$font-size-xs: 23rpx;
+$font-size-sm: 26rpx;
+$font-size-md: 31rpx;
+$font-size-lg: 34rpx;
+$font-size-xl: 39rpx;
+$font-size-xxl: 43rpx;
 
 // 行高
 $line-height-tight: 1.3;

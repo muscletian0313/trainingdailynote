@@ -47,8 +47,17 @@ interface PlanState {
   plans: Plan[];
   addPlan: (plan: Plan) => void;
   updatePlan: (plan: Plan) => void;
+  /** 复制一份计划（动作与组都换新 id，互不影响），开始日期改成今天 */
+  duplicatePlan: (id: string) => Plan | undefined;
   removePlan: (id: string) => void;
   clearPlans: () => void;
+}
+
+/** 今天日期，形如 2026-10-16 */
+function todayKey(): string {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 export const usePlanStore = create<PlanState>((set, get) => ({
@@ -64,6 +73,28 @@ export const usePlanStore = create<PlanState>((set, get) => ({
     );
     saveJSON(STORAGE_KEYS.plans, plans);
     set({ plans });
+  },
+  duplicatePlan: (id) => {
+    const source = get().plans.find((item) => item.id === id);
+    if (!source) return undefined;
+    const now = Date.now();
+    const copy: Plan = {
+      ...source,
+      id: uid('plan'),
+      startDate: todayKey(),
+      exercises: source.exercises.map((item) => ({
+        ...item,
+        key: uid('pe'),
+        variants: item.variants ? { ...item.variants } : undefined,
+        sets: item.sets.map((set) => ({ ...set, id: uid('ps') }))
+      })),
+      createdAt: now,
+      updatedAt: now
+    };
+    const plans = [copy, ...get().plans];
+    saveJSON(STORAGE_KEYS.plans, plans);
+    set({ plans });
+    return copy;
   },
   removePlan: (id) => {
     const plans = get().plans.filter((item) => item.id !== id);

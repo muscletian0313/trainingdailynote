@@ -47,7 +47,19 @@
   white-space: nowrap;
 }
 
-/* 计划卡片 */
+/* 草稿标记：跟在计划名右边（草稿卡其余部分与正式计划卡完全一致） */
+.draftBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: $color-primary-soft;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  line-height: 1.6;
+}
+
 .card {
   margin-bottom: $spacing-md;
   padding: $spacing-lg;
@@ -103,6 +115,42 @@
   &:active {
     background: $color-border;
   }
+}
+
+/* 卡片右上角：分享（可选）+ ··· */
+.cardTopActions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 草稿分享：微信原生 button，只当分享触发器用，默认样式全部清掉 */
+.draftShareBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56rpx;
+  margin: 0;
+  padding: 0 20rpx;
+  border: none;
+  border-radius: $radius-sm;
+  background: rgba(255, 107, 44, 0.16);
+  transition: all $transition-fast;
+
+  &:active {
+    background: rgba(255, 107, 44, 0.3);
+  }
+
+  &::after {
+    border: none;
+  }
+}
+
+.draftShareText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $color-primary;
 }
 
 .moreText {

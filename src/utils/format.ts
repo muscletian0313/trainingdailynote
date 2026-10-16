@@ -64,6 +64,16 @@ export function formatWeight(weight: number): string {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1);
 }
 
+/**
+ * 组的重量展示：
+ * 负重自重动作（额外负重 > 0）显示成「70+10」；其余显示总重「70」。
+ */
+export function formatSetWeight(set: { weight: number; addedWeight?: number }): string {
+  const added = set.addedWeight ?? 0;
+  if (!added) return formatWeight(set.weight);
+  return `${formatWeight(set.weight - added)}+${formatWeight(added)}`;
+}
+
 /** 容量展示，带千分位 */
 export function formatVolume(volume: number): string {
   const rounded = Math.round(volume);

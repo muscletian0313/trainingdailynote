@@ -1,41 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, Input, Picker, Image } from '@tarojs/components';
-import { useRouter } from '@tarojs/taro';
+import { View, Text, Input, Picker, Image, Button } from '@tarojs/components';
+import { useRouter, useShareAppMessage } from '@tarojs/taro';
 import dayjs from 'dayjs';
 import type { PlanExercise } from '@/types';
 import { DEFAULT_CARDIO_MIN, getFeelOption } from '@/constants';
-import { formatWeight } from '@/utils/format';
+import { formatSetWeight } from '@/utils/format';
 import { navigateBack, navigateTo, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useProfileStore } from '@/store/useProfileStore';
-import { getExerciseById } from '@/store/useExerciseStore';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
+import { variantBadges } from '@/data/exerciseVariants';
+import { encodePlan } from '@/utils/planShare';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
-import { feelMessage, isBodyweight, isPlanFinished, planMuscleTags } from '@/utils/workout';
+import { feelMessage, isPlanFinished, isTimedExercise, planMuscleTags } from '@/utils/workout';
 import { MUSCLE_ART } from '@/assets/muscles/art';
 import styles from './index.module.scss';
 
 /**
  * 动作的组配置摘要：
- * 各组相同时显示「20kg · 3 组 × 10 次」，递减/混合组显示「3 组 · 20/15/12.5kg」
+ * 各组相同时显示「20kg · 3 组 × 10 次」，递减/混合组显示「3 组 · 20/15/12.5kg」；
+ * 计时类动作（平板支撑）把「次」换成「秒」。
  */
-function planSetsSummary(item: PlanExercise): string {
+function planSetsSummary(item: PlanExercise, timed = false): string {
+  const unit = timed ? '秒' : '次';
   const sets = item.sets;
   if (!sets.length) return '未设置组';
-  const bodyweight = isBodyweight(item.exerciseId);
   const first = sets[0];
   const uniform = sets.every((set) => set.weight === first.weight && set.reps === first.reps);
   if (uniform) {
-    return `${bodyweight ? '自重' : `${formatWeight(first.weight)}kg`} · ${sets.length} 组 × ${
-      first.reps
-    } 次`;
+    return `${formatSetWeight(first)}kg · ${sets.length} 组 × ${first.reps} ${unit}`;
   }
-  if (bodyweight) {
-    return `${sets.length} 组 · ${sets.map((set) => set.reps).join('/')} 次`;
-  }
-  return `${sets.length} 组 · ${sets.map((set) => formatWeight(set.weight)).join('/')}kg`;
+  return `${sets.length} 组 · ${sets.map((set) => formatSetWeight(set)).join('/')}kg`;
 }
 
 const PlanDetailPage: React.FC = () => {
@@ -43,6 +41,7 @@ const PlanDetailPage: React.FC = () => {
   const planId = router.params?.id || '';
   const plan = usePlanStore((state) => state.plans.find((item) => item.id === planId));
   const updatePlan = usePlanStore((state) => state.updatePlan);
+  const duplicatePlan = usePlanStore((state) => state.duplicatePlan);
   const active = useSessionStore((state) => state.active);
   const sessions = useSessionStore((state) => state.sessions);
   const startSession = useSessionStore((state) => state.startSession);
@@ -62,6 +61,15 @@ const PlanDetailPage: React.FC = () => {
   };
 
   const cancelEdit = () => setEditing(false);
+
+  /** 分享给好友：计划被打包进路径参数，对方点开即可一键保存 */
+  useShareAppMessage(() => ({
+    title: plan ? `分享训练计划：${plan.name}` : '来练记，一起记录每次训练',
+    path:
+      plan && plan.exercises.length
+        ? `/pages/plan-share/index?d=${encodePlan(plan)}`
+        : '/pages/plans/index'
+  }));
 
   const saveEdit = () => {
     if (!plan) return;
@@ -106,6 +114,29 @@ const PlanDetailPage: React.FC = () => {
       return;
     }
     navigateTo({ url: `/pages/plan-edit/index?id=${plan.id}&focusKey=${key}` });
+  };
+
+  /**
+   * 复制计划：生成一份内容一模一样的副本，开始日期改成今天，
+   * 原计划不受影响；复制出来的照样能编辑，改完保存即可。
+   */
+  const copyPlan = () => {
+    if (!plan) return;
+    showModal({
+      title: '复制计划',
+      content: `将生成一份和「${plan.name}」一样的副本，开始日期为今天，原计划不受影响。`,
+      confirmText: '复制',
+      success: (res) => {
+        if (!res.confirm) return;
+        const copy = duplicatePlan(plan.id);
+        if (!copy) {
+          showToast({ title: '复制失败，请重试', icon: 'none' });
+          return;
+        }
+        showToast({ title: '已复制，改完保存即可', icon: 'success' });
+        setTimeout(() => navigateTo({ url: `/pages/plan-edit/index?id=${copy.id}` }), 400);
+      }
+    });
   };
 
   if (!plan) {
@@ -202,6 +233,11 @@ const PlanDetailPage: React.FC = () => {
                     <Text className={styles.editIcon}>✎</Text>
                   </View>
                 )}
+                {plan.exercises.length ? (
+                  <Button className={styles.shareBtn} openType="share">
+                    <Text className={styles.shareBtnText}>分享</Text>
+                  </Button>
+                ) : null}
               </View>
               <View className={styles.headTags}>
                 <MuscleTag muscle={primary} solid />
@@ -233,6 +269,7 @@ const PlanDetailPage: React.FC = () => {
         <View className={styles.list}>
           {plan.exercises.map((item, index) => {
             const info = getExerciseById(item.exerciseId);
+            const badges = variantBadges(info ? info.name : '已下架', item.variants);
             return (
               <View
                 key={item.key}
@@ -246,13 +283,28 @@ const PlanDetailPage: React.FC = () => {
                   <Text className={styles.orderBadgeText}>{index + 1}</Text>
                 </View>
                 <View className={styles.itemMain}>
-                  <Text className={styles.itemName}>{info ? info.name : '未知动作'}</Text>
+                  <View className={styles.itemNameRow}>
+                    <Text className={styles.itemName}>{info ? info.name : '已下架'}</Text>
+                    {info ? (
+                      <MuscleTag
+                        {...exerciseMuscleTag(info, item.variants)}
+                        className={styles.itemNameTag}
+                      />
+                    ) : null}
+                  </View>
                   <View className={styles.itemMeta}>
-                    {info ? <MuscleTag muscle={info.muscle} /> : null}
+                    {badges.map((badge, badgeIndex) => (
+                      <Text
+                        key={badge.label}
+                        className={badge.locked ? styles.itemTargetLocked : styles.itemTarget}
+                      >
+                        {badgeIndex > 0 ? ` · ${badge.label}` : badge.label}
+                      </Text>
+                    ))}
                     <Text className={styles.itemMetaText}>
                       {info?.muscle === 'cardio'
                         ? `时长 ${item.targetDurationMin ?? DEFAULT_CARDIO_MIN} 分钟`
-                        : `${planSetsSummary(item)} · 组间歇 ${item.restSeconds}s`}
+                        : `${planSetsSummary(item, isTimedExercise(item.exerciseId))} · 组间歇 ${item.restSeconds}s`}
                     </Text>
                   </View>
                 </View>
@@ -294,7 +346,7 @@ const PlanDetailPage: React.FC = () => {
                   return (
                     <View key={item.key} className={styles.noteFeelItem}>
                       <Text className={styles.noteFeelName}>
-                        {info ? info.name : '未知动作'}
+                        {info ? info.name : '已下架'}
                       </Text>
                       <Text className={styles.noteFeelValue}>
                         {feel.emoji} {feel.label}
@@ -309,6 +361,14 @@ const PlanDetailPage: React.FC = () => {
       ) : null}
 
       <View className={styles.bottomBar}>
+        {plan.exercises.length ? (
+          <View
+            className={classnames(styles.bottomBtn, styles.bottomBtnGhost)}
+            onClick={copyPlan}
+          >
+            <Text className={styles.bottomBtnTextGhost}>复制计划</Text>
+          </View>
+        ) : null}
         {planFinished ? (
           <View
             className={classnames(styles.bottomBtn, styles.bottomBtnGhost)}

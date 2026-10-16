@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Input, Picker, Image } from '@tarojs/components';
-import { useRouter, pageScrollTo } from '@tarojs/taro';
+import { useRouter, pageScrollTo, useUnload } from '@tarojs/taro';
 import dayjs from 'dayjs';
 import {
   setNavigationBarTitle,
@@ -23,13 +23,24 @@ import {
 import { getPlanById, usePlanStore } from '@/store/usePlanStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useSessionStore } from '@/store/useSessionStore';
-import { getExerciseById } from '@/store/useExerciseStore';
-import { isBodyweight, isPlanFinished, planPrimaryMuscle, recentPerformances } from '@/utils/workout';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
+import {
+  DEFAULT_HOLD_SECONDS,
+  isAddedWeightExercise,
+  isAssistExercise,
+  isPlanFinished,
+  isTimedExercise,
+  planPrimaryMuscle,
+  recentPerformances
+} from '@/utils/workout';
+import { estimateStartWeight } from '@/utils/strengthEstimate';
 import { withAlpha } from '@/utils/format';
 import { uid } from '@/utils/id';
+import { variantBadges, hasAddedLoad } from '@/data/exerciseVariants';
+import { clearPlanDraft, loadPlanDraft, savePlanDraft, type PlanDraft } from '@/utils/planDraft';
 import { MUSCLE_ART } from '@/assets/muscles/art';
 import Stepper from '@/components/Stepper';
-import ExercisePicker from '@/components/ExercisePicker';
+import ExercisePicker, { type PickedExercise } from '@/components/ExercisePicker';
 import MuscleTag from '@/components/MuscleTag';
 import styles from './index.module.scss';
 
@@ -38,20 +49,34 @@ interface MuscleChipProps {
   active: boolean;
   /** 主训用实心色块，次训用浅色描边，便于区分主次 */
   solid?: boolean;
+  /** 灰掉且不可点（主训已经选过的部位，次训里不能再选） */
+  disabled?: boolean;
   onClick: () => void;
 }
 
-const MuscleChip: React.FC<MuscleChipProps> = ({ muscle, active, solid = false, onClick }) => {
+const MuscleChip: React.FC<MuscleChipProps> = ({
+  muscle,
+  active,
+  solid = false,
+  disabled = false,
+  onClick
+}) => {
   const color = MUSCLE_COLORS[muscle];
-  const style = active
-    ? solid
-      ? { backgroundColor: color, borderColor: color }
-      : { backgroundColor: withAlpha(color, 0.18), borderColor: color }
-    : undefined;
-  const textStyle = active ? { color: solid ? '#101014' : color } : undefined;
+  const style = disabled
+    ? undefined
+    : active
+      ? solid
+        ? { backgroundColor: color, borderColor: color }
+        : { backgroundColor: withAlpha(color, 0.18), borderColor: color }
+      : undefined;
+  const textStyle = disabled ? undefined : active ? { color: solid ? '#101014' : color } : undefined;
 
   return (
-    <View className={styles.muscleChip} style={style} onClick={onClick}>
+    <View
+      className={classnames(styles.muscleChip, disabled && styles.muscleChipDisabled)}
+      style={style}
+      onClick={disabled ? undefined : onClick}
+    >
       <Text className={styles.muscleChipText} style={textStyle}>
         {MUSCLE_LABELS[muscle]}
       </Text>
@@ -62,7 +87,12 @@ const MuscleChip: React.FC<MuscleChipProps> = ({ muscle, active, solid = false, 
 interface PlanSetRowProps {
   index: number;
   set: PlanSet;
-  bodyweight: boolean;
+  /** 辅助类动作：重量记负数，输入框前面加「−」 */
+  assist?: boolean;
+  /** 负重自重动作：输入的是额外负重，总重 = 自重 + 负重 */
+  addedMode?: boolean;
+  /** 计时类动作（平板支撑）：这一格填的是秒数，不是次数 */
+  timed?: boolean;
   onPatch: (patch: Partial<PlanSet>) => void;
   onRemove: () => void;
 }
@@ -71,15 +101,25 @@ interface PlanSetRowProps {
 const PlanSetRow: React.FC<PlanSetRowProps> = ({
   index,
   set,
-  bodyweight,
+  assist = false,
+  addedMode = false,
+  timed = false,
   onPatch,
   onRemove
 }) => {
-  const [weightText, setWeightText] = useState(set.weight ? String(set.weight) : '');
+  const bodyWeight = useProfileStore((state) => state.profile.weight ?? 0);
+
+  /** 负重档填的是「额外负重」，其余填的是重量本身（辅助类是绝对值） */
+  const toText = (item: PlanSet) => {
+    if (addedMode) return item.addedWeight ? String(item.addedWeight) : '';
+    return item.weight ? String(Math.abs(item.weight)) : '';
+  };
+
+  const [weightText, setWeightText] = useState(() => toText(set));
   const [repsText, setRepsText] = useState(set.reps ? String(set.reps) : '');
 
   useEffect(() => {
-    setWeightText(set.weight ? String(set.weight) : '');
+    setWeightText(toText(set));
     setRepsText(set.reps ? String(set.reps) : '');
     // 只在切换不同组时重置输入内容
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,26 +129,30 @@ const PlanSetRow: React.FC<PlanSetRowProps> = ({
     <View className={styles.setRow}>
       <Text className={styles.setIndex}>{index}</Text>
 
-      {bodyweight ? (
-        <View className={styles.setWeightField}>
-          <Text className={styles.setBodyweight}>自重</Text>
-        </View>
-      ) : (
-        <View className={styles.setWeightField}>
-          <Input
-            className={styles.setInput}
-            type="digit"
-            value={weightText}
-            placeholder="0"
-            placeholderStyle="color:#4a4a55"
-            onInput={(event) => {
-              setWeightText(event.detail.value);
-              onPatch({ weight: parseFloat(event.detail.value) || 0 });
-            }}
-          />
-          <Text className={styles.setUnit}>kg</Text>
-        </View>
-      )}
+      <View className={styles.setWeightField}>
+        {assist || addedMode ? (
+          <Text className={styles.setSign}>
+            {assist ? '−' : bodyWeight > 0 ? `${bodyWeight}+` : '+'}
+          </Text>
+        ) : null}
+        <Input
+          className={styles.setInput}
+          type="digit"
+          value={weightText}
+          placeholder="0"
+          placeholderStyle="color:#4a4a55"
+          onInput={(event) => {
+            setWeightText(event.detail.value);
+            const num = parseFloat(event.detail.value) || 0;
+            if (addedMode) {
+              onPatch({ addedWeight: num, weight: bodyWeight + num });
+              return;
+            }
+            onPatch({ weight: assist ? -Math.abs(num) : num });
+          }}
+        />
+        <Text className={styles.setUnit}>kg</Text>
+      </View>
 
       <Text className={styles.setTimes}>×</Text>
 
@@ -117,13 +161,14 @@ const PlanSetRow: React.FC<PlanSetRowProps> = ({
           className={styles.setInput}
           type="number"
           value={repsText}
-          placeholder="0"
+          placeholder={timed ? '60' : '0'}
           placeholderStyle="color:#4a4a55"
           onInput={(event) => {
             setRepsText(event.detail.value);
             onPatch({ reps: parseInt(event.detail.value, 10) || 0 });
           }}
         />
+        {timed ? <Text className={styles.setUnit}>秒</Text> : null}
       </View>
 
       <View className={styles.setRemove} onClick={onRemove}>
@@ -133,6 +178,9 @@ const PlanSetRow: React.FC<PlanSetRowProps> = ({
   );
 };
 
+/** 边填边存的防抖间隔 */
+const DRAFT_SAVE_DELAY = 600;
+
 const PlanEditPage: React.FC = () => {
   const router = useRouter();
   const planId = router.params?.id;
@@ -141,17 +189,94 @@ const PlanEditPage: React.FC = () => {
   const addPlan = usePlanStore((state) => state.addPlan);
   const updatePlan = usePlanStore((state) => state.updatePlan);
   const defaultRest = useProfileStore((state) => state.profile.defaultRest);
+  const profile = useProfileStore((state) => state.profile);
 
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState(() => dayjs().format('YYYY-MM-DD'));
   const [exercises, setExercises] = useState<PlanExercise[]>([]);
   const [primaryMuscle, setPrimaryMuscle] = useState<MuscleGroup | null>(null);
   const [secondaryMuscles, setSecondaryMuscles] = useState<MuscleGroup[]>([]);
+  /** 次训部位默认收起，没选就直接不占空间 */
+  const [secondaryOpen, setSecondaryOpen] = useState(false);
+  /** 上一次自动填进去的名称：名称还是它（或空）时，换主训部位可以整体替换 */
+  const autoNameRef = useRef('');
   const [pickerVisible, setPickerVisible] = useState(false);
+  /** 是否恢复了上次没写完的草稿（仅新建计划） */
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  /** 只有新建计划需要草稿：编辑已有计划时原始数据本来就在本地 */
+  const isDraftMode = !planId;
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 首帧不写草稿，避免把恢复前的空状态覆盖上去 */
+  const draftReady = useRef(false);
+  /** 当前填写内容的快照，供自动保存与退出兜底使用（避免闭包读到旧值） */
+  const draftRef = useRef<PlanDraft>({
+    name: '',
+    startDate: '',
+    primaryMuscle: null,
+    secondaryMuscles: [],
+    exercises: []
+  });
+  draftRef.current = { name, startDate, primaryMuscle, secondaryMuscles, exercises };
+
+  /** 已经正式保存过：卸载时就别再写草稿了 */
+  const savedRef = useRef(false);
+
+  /** 有内容才留草稿，避免存下一份空白草稿 */
+  const hasDraftContent = () =>
+    !!draftRef.current.name.trim() ||
+    draftRef.current.exercises.length > 0 ||
+    !!draftRef.current.primaryMuscle;
+
+  const persistDraft = () => {
+    if (!isDraftMode || savedRef.current || !hasDraftContent()) return;
+    savePlanDraft(draftRef.current);
+  };
+
+  /** 清空草稿，回到空白的新建页 */
+  const discardDraft = () => {
+    clearPlanDraft();
+    setName('');
+    setStartDate(dayjs().format('YYYY-MM-DD'));
+    setExercises([]);
+    setPrimaryMuscle(null);
+    setSecondaryMuscles([]);
+    setDraftRestored(false);
+  };
+
+  /** 返回键 / 意外退出时兜底写一次，防止防抖还没触发就丢了 */
+  useUnload(() => {
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    persistDraft();
+  });
+
+  // 边填边存草稿（防抖），退出后再进来就能接着填
+  useEffect(() => {
+    if (!isDraftMode) return undefined;
+    if (!draftReady.current) {
+      draftReady.current = true;
+      return undefined;
+    }
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(persistDraft, DRAFT_SAVE_DELAY);
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDraftMode, name, startDate, exercises, primaryMuscle, secondaryMuscles]);
 
   useEffect(() => {
     if (!planId) {
       setNavigationBarTitle({ title: '新建计划' });
+      const draft = loadPlanDraft();
+      if (draft) {
+        setName(draft.name);
+        setStartDate(draft.startDate || dayjs().format('YYYY-MM-DD'));
+        setExercises(draft.exercises);
+        setPrimaryMuscle(draft.primaryMuscle);
+        setSecondaryMuscles(draft.secondaryMuscles);
+        setDraftRestored(true);
+      }
       return;
     }
     setNavigationBarTitle({ title: '编辑计划' });
@@ -184,13 +309,33 @@ const PlanEditPage: React.FC = () => {
     );
   };
 
-  const addExercises = (exerciseIds: string[]) => {
+  /**
+   * 选主训部位：忘了写计划名称就顺手填上（名称被自己改过就不动）。
+   * 次训里同一个部位只是变灰不可点，不再自动移除，避免界面跳动。
+   */
+  const pickPrimary = (muscle: MuscleGroup) => {
+    setPrimaryMuscle(muscle);
+    setName((prev) => {
+      const untouched = !prev.trim() || prev === autoNameRef.current;
+      if (!untouched) return prev;
+      autoNameRef.current = MUSCLE_LABELS[muscle];
+      return autoNameRef.current;
+    });
+  };
+
+  const addExercises = (items: PickedExercise[]) => {
     const sessions = useSessionStore.getState().sessions;
-    const list: PlanExercise[] = exerciseIds.map((exerciseId) => {
+    const list: PlanExercise[] = items.map(({ exerciseId, variants }) => {
       // 有氧动作只配时长，不涉及重量 / 组数 / 次数
       const cardio = getExerciseById(exerciseId)?.muscle === 'cardio';
-      // 自重动作不带重量
-      const bodyweight = isBodyweight(exerciseId);
+      // 计时类动作（平板支撑）填的是秒数，默认给 60 秒
+      const repsDefault = isTimedExercise(exerciseId) ? DEFAULT_HOLD_SECONDS : DEFAULT_REPS;
+      // 没历史记录时的默认重量：
+      // 自重动作（引体 / 双杠）带出用户体重；其余按问卷预估一个起步重量
+      const fallbackWeight = isAddedWeightExercise(exerciseId)
+        ? profile.weight ?? 0
+        : estimateStartWeight(exerciseId, profile, { reps: DEFAULT_REPS, variants }) ??
+          (isAssistExercise(exerciseId) ? -DEFAULT_WEIGHT : DEFAULT_WEIGHT);
       // 有历史记录：按最近一次训练逐组预填，用户微调即可；没有：默认 1 组自己加
       const lastRecord = recentPerformances(sessions, exerciseId, 1)[0];
       const sets: PlanSet[] = cardio
@@ -198,13 +343,14 @@ const PlanEditPage: React.FC = () => {
         : lastRecord?.sets.length
           ? lastRecord.sets.map((item) => ({
               id: uid('ps'),
-              weight: bodyweight ? 0 : item.weight,
-              reps: item.reps || DEFAULT_REPS
+              weight: item.weight,
+              reps: item.reps || repsDefault
             }))
-          : [{ id: uid('ps'), weight: bodyweight ? 0 : DEFAULT_WEIGHT, reps: DEFAULT_REPS }];
+          : [{ id: uid('ps'), weight: fallbackWeight, reps: repsDefault }];
       return {
         key: uid('pe'),
         exerciseId,
+        variants,
         sets,
         restSeconds: defaultRest,
         targetDurationMin: cardio ? DEFAULT_CARDIO_MIN : undefined
@@ -349,6 +495,9 @@ const PlanEditPage: React.FC = () => {
       });
       console.info('[PlanEdit] 新建计划', trimmed);
     }
+    // 正式保存成功：草稿使命结束，卸载时也不要再写回去
+    savedRef.current = true;
+    if (isDraftMode) clearPlanDraft();
     showToast({ title: '已保存', icon: 'success' });
     // 保存后一律直接回首页，不走上一页
     setTimeout(() => switchTab({ url: '/pages/home/index' }), 400);
@@ -356,6 +505,15 @@ const PlanEditPage: React.FC = () => {
 
   return (
     <View className={styles.page}>
+      {draftRestored && (
+        <View className={styles.draftBar}>
+          <Text className={styles.draftBarText}>草稿已恢复，接着填就行</Text>
+          <Text className={styles.draftBarAction} onClick={discardDraft}>
+            清空
+          </Text>
+        </View>
+      )}
+
       <View className={styles.card}>
         <Text className={styles.fieldLabel}>计划名称</Text>
         <Input
@@ -386,25 +544,39 @@ const PlanEditPage: React.FC = () => {
               muscle={muscle}
               solid
               active={primaryMuscle === muscle}
-              onClick={() => setPrimaryMuscle(muscle)}
+              onClick={() => pickPrimary(muscle)}
             />
           ))}
         </View>
 
         <View className={styles.cardDivider} />
 
-        <Text className={styles.fieldLabel}>次训部位</Text>
-        <Text className={styles.fieldHint}>可多选，没别的就留空</Text>
-        <View className={styles.muscleGrid}>
-          {MUSCLE_GROUPS.map((muscle) => (
-            <MuscleChip
-              key={muscle}
-              muscle={muscle}
-              active={secondaryMuscles.includes(muscle)}
-              onClick={() => toggleSecondary(muscle)}
-            />
-          ))}
+        <View className={styles.secondaryHead} onClick={() => setSecondaryOpen((prev) => !prev)}>
+          <View className={styles.muscleHeadText}>
+            <Text className={styles.fieldLabel}>次训部位</Text>
+            {secondaryMuscles.length ? (
+              <Text className={styles.fieldHint}>
+                {secondaryMuscles.map((muscle) => MUSCLE_LABELS[muscle]).join(' · ')}
+              </Text>
+            ) : (
+              <Text className={styles.fieldHint}>可多选，没别的就留空</Text>
+            )}
+          </View>
+          <Text className={styles.secondaryToggle}>{secondaryOpen ? '收起' : '＋'}</Text>
         </View>
+        {secondaryOpen ? (
+          <View className={styles.muscleGrid}>
+            {MUSCLE_GROUPS.map((muscle) => (
+              <MuscleChip
+                key={muscle}
+                muscle={muscle}
+                active={secondaryMuscles.includes(muscle)}
+                disabled={primaryMuscle === muscle}
+                onClick={() => toggleSecondary(muscle)}
+              />
+            ))}
+          </View>
+        ) : null}
 
         <View className={styles.cardDivider} />
 
@@ -436,9 +608,12 @@ const PlanEditPage: React.FC = () => {
 
       {exercises.map((item, index) => {
         const info = getExerciseById(item.exerciseId);
-        const exerciseName = info ? info.name : '未知动作';
+        const exerciseName = info ? info.name : '已下架';
+        const muscleTag = info ? exerciseMuscleTag(info, item.variants) : undefined;
+        const badges = variantBadges(exerciseName, item.variants);
         const isCardio = info?.muscle === 'cardio';
-        const bodyweight = isBodyweight(item.exerciseId);
+        const assist = isAssistExercise(item.exerciseId);
+        const addedMode = hasAddedLoad(item.variants);
         return (
           <View key={item.key} id={`ex-${item.key}`} className={styles.exerciseCard}>
             <View className={styles.exerciseHeader}>
@@ -446,10 +621,30 @@ const PlanEditPage: React.FC = () => {
                 <Text className={styles.orderBadgeText}>{index + 1}</Text>
               </View>
               <View className={styles.exerciseTitleWrap}>
-                <Text className={styles.exerciseName}>{exerciseName}</Text>
-                <View className={styles.exerciseMeta}>
-                  {info ? <MuscleTag muscle={info.muscle} /> : null}
+                <View className={styles.exerciseNameRow}>
+                  <Text className={styles.exerciseName}>{exerciseName}</Text>
+                  {muscleTag ? (
+                    <MuscleTag
+                      muscle={muscleTag.muscle}
+                      label={muscleTag.label}
+                      className={styles.exerciseNameTag}
+                    />
+                  ) : null}
                 </View>
+                {badges.length ? (
+                  <View className={styles.exerciseMeta}>
+                    {badges.map((badge, badgeIndex) => (
+                      <Text
+                        key={badge.label}
+                        className={
+                          badge.locked ? styles.exerciseVariantLocked : styles.exerciseVariant
+                        }
+                      >
+                        {badgeIndex > 0 ? ` · ${badge.label}` : badge.label}
+                      </Text>
+                    ))}
+                  </View>
+                ) : null}
               </View>
               <View className={styles.exerciseActions}>
                 <View
@@ -493,9 +688,13 @@ const PlanEditPage: React.FC = () => {
               <>
                 <View className={styles.setHead}>
                   <Text className={styles.headIndex}>组</Text>
-                  <Text className={styles.headWeight}>{bodyweight ? '自重' : '重量(kg)'}</Text>
+                  <Text className={styles.headWeight}>
+                    {addedMode ? '自重+负重(kg)' : '重量(kg)'}
+                  </Text>
                   <Text className={styles.headTimes} />
-                  <Text className={styles.headReps}>次数</Text>
+                  <Text className={styles.headReps}>
+                    {isTimedExercise(item.exerciseId) ? '秒数' : '次数'}
+                  </Text>
                   <Text className={styles.headRemove} />
                 </View>
 
@@ -504,7 +703,9 @@ const PlanEditPage: React.FC = () => {
                     key={set.id}
                     index={setIndex + 1}
                     set={set}
-                    bodyweight={bodyweight}
+                    assist={assist}
+                    addedMode={addedMode}
+                    timed={isTimedExercise(item.exerciseId)}
                     onPatch={(patch) => updatePlanSet(item.key, set.id, patch)}
                     onRemove={() => handleSetRemove(item.key, set.id, exerciseName)}
                   />

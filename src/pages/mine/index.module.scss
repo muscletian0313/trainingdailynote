@@ -38,6 +38,13 @@
   line-height: 1;
 }
 
+/* 图片头像（问卷带出来的性别头像）铺满圆形 */
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: $radius-round;
+}
+
 .profileMain {
   flex: 1;
   min-width: 0;

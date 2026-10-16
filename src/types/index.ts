@@ -6,9 +6,11 @@ export type MuscleGroup =
   | 'back'
   | 'legs'
   | 'shoulders'
-  | 'arms'
+  | 'biceps'
+  | 'triceps'
   | 'core'
   | 'cardio'
+  | 'fullbody'
   | 'other';
 
 /** 动作（动作库中的条目） */
@@ -24,23 +26,46 @@ export interface Exercise {
 /** 训练中的一组 */
 export interface WorkoutSet {
   id: string;
-  /** 重量 kg（有氧动作固定 0） */
+  /**
+   * 负荷 kg：
+   * 普通动作 = 重量；辅助类（器械辅助引体）= 负数；负重自重动作 = 自重 + 负重
+   */
   weight: number;
+  /** 负重自重动作：额外负重（用于显示「70+10」） */
+  addedWeight?: number;
   /** 次数（有氧动作固定 0） */
   reps: number;
   /** 是否已完成 */
   done: boolean;
   /** 有氧动作：时长（分钟），存在即代表这是一条有氧记录 */
   durationMin?: number;
-  /** 有氧动作：自定义强度（玩家手写，如「中速」「坡度 8」） */
+  /** 有氧动作：距离（公里）；跳绳这类不记距离的就是空 */
+  distanceKm?: number;
+  /** 有氧动作：消耗热量（kcal） */
+  calories?: number;
+  /** 有氧动作：配速（手写，如 6'30"/km） */
+  pace?: string;
+  /** 有氧动作：坡度（手写，如 8%） */
+  incline?: string;
+  /** 有氧动作：阻力（手写，如 8 档） */
+  resistance?: string;
+  /** 有氧动作：自定义强度（老数据，如「中速」） */
   intensity?: string;
 }
+
+/**
+ * 动作变式选择：变式组 key → 选项 key。
+ * 例：{ angle: 'incline', width: 'wide' } 表示「上斜 · 宽握」
+ */
+export type ExerciseVariants = Record<string, string>;
 
 /** 训练中的一个动作实例（含实时组数据） */
 export interface SessionExercise {
   /** 会话内唯一 key（同一动作可重复出现） */
   key: string;
   exerciseId: string;
+  /** 变式选择（握法/握距这类），没选就没有 */
+  variants?: ExerciseVariants;
   sets: WorkoutSet[];
   /** 目标组数 */
   targetSets: number;
@@ -74,8 +99,10 @@ export interface Session {
 /** 计划里的一组（支持每组不同重量/次数，例如递减组） */
 export interface PlanSet {
   id: string;
-  /** 目标重量 kg（自重动作为 0） */
+  /** 目标重量 kg（辅助类动作为负数；负重自重动作 = 自重 + 负重） */
   weight: number;
+  /** 负重自重动作：额外负重（用于显示「70+10」） */
+  addedWeight?: number;
   /** 目标次数 */
   reps: number;
 }
@@ -84,6 +111,8 @@ export interface PlanSet {
 export interface PlanExercise {
   key: string;
   exerciseId: string;
+  /** 变式选择（握法/握距这类），没选就没有 */
+  variants?: ExerciseVariants;
   /** 逐组的目标重量 / 次数；有氧动作为空数组 */
   sets: PlanSet[];
   restSeconds: number;

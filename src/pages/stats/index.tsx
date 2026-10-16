@@ -4,7 +4,7 @@ import { navigateTo } from '@/utils/taro';
 import classnames from 'classnames';
 import { MUSCLE_COLORS, MUSCLE_GROUPS, MUSCLE_LABELS } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
-import { getExerciseById } from '@/store/useExerciseStore';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
 import EmptyState from '@/components/EmptyState';
 import MuscleTag from '@/components/MuscleTag';
 import TrainingCalendar from '@/components/TrainingCalendar';
@@ -33,7 +33,8 @@ const StatsPage: React.FC = () => {
       session.exercises.forEach((item) => {
         const info = getExerciseById(item.exerciseId);
         if (!info) return;
-        const target = stats.find((entry) => entry.group === info.muscle);
+        const group = exerciseMuscleTag(info, item.variants).muscle;
+        const target = stats.find((entry) => entry.group === group);
         if (target) target.sets += item.sets.filter((set) => set.done).length;
       });
     });
@@ -44,6 +45,11 @@ const StatsPage: React.FC = () => {
 
   const openRecord = (id: string) => {
     navigateTo({ url: `/pages/record-detail/index?id=${id}` });
+  };
+
+  /** 从日历里点某天用过的计划 → 进计划详情（那里可以复制成今天的新计划） */
+  const openPlan = (id: string) => {
+    navigateTo({ url: `/pages/plan-detail/index?id=${id}` });
   };
 
   return (
@@ -80,7 +86,11 @@ const StatsPage: React.FC = () => {
           </View>
 
           <View className={styles.section}>
-            <TrainingCalendar sessions={sessions} onPickSession={openRecord} />
+            <TrainingCalendar
+              sessions={sessions}
+              onPickSession={openRecord}
+              onPickPlan={openPlan}
+            />
           </View>
 
           {prs.length ? (
@@ -94,7 +104,7 @@ const StatsPage: React.FC = () => {
                 return (
                   <View key={pr.exerciseId} className={styles.prRow} onClick={() => openRecord(pr.sessionId)}>
                     <View className={styles.prMain}>
-                      <Text className={styles.prName}>{info ? info.name : '未知动作'}</Text>
+                      <Text className={styles.prName}>{info ? info.name : '已下架'}</Text>
                       <View className={styles.prMeta}>
                         {info ? <MuscleTag muscle={info.muscle} /> : null}
                         <Text className={styles.prDate}>{dayLabel(pr.achievedAt)}达成</Text>

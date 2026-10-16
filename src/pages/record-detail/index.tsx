@@ -3,24 +3,40 @@ import { View, Text, Input } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 import { navigateBack, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
+import type { WorkoutSet } from '@/types';
 import { getFeelOption } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
-import { getExerciseById } from '@/store/useExerciseStore';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
+import { variantBadges } from '@/data/exerciseVariants';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import {
   cardioExercises,
   exerciseVolume,
   feelMessage,
-  isBodyweight,
   sessionCardioMin,
   sessionDurationSec,
+  isTimedExercise,
   strengthExercises,
   strengthSets,
   strengthVolume
 } from '@/utils/workout';
-import { formatDateTime, formatDuration, formatVolume, formatWeight } from '@/utils/format';
+import { formatDateTime, formatDuration, formatSetWeight, formatVolume } from '@/utils/format';
 import styles from './index.module.scss';
+
+/** 有氧一组的数据摘要：时长 · 距离 · 配速 / 坡度 / 阻力 · 卡路里 */
+function cardioSetText(set: WorkoutSet): string {
+  const parts: string[] = [];
+  if (set.durationMin) parts.push(`${set.durationMin} 分钟`);
+  if (set.distanceKm) parts.push(`${set.distanceKm} 公里`);
+  if (set.pace) parts.push(`配速 ${set.pace}`);
+  if (set.incline) parts.push(`坡度 ${set.incline}`);
+  if (set.resistance) parts.push(`阻力 ${set.resistance}`);
+  if (set.calories) parts.push(`${set.calories} kcal`);
+  // 老记录里手写的强度
+  if (set.intensity) parts.push(set.intensity);
+  return parts.length ? parts.join(' · ') : '未记录';
+}
 
 const RecordDetailPage: React.FC = () => {
   const router = useRouter();
@@ -201,6 +217,8 @@ const RecordDetailPage: React.FC = () => {
 
       {session.exercises.map((exercise, index) => {
         const info = getExerciseById(exercise.exerciseId);
+        const muscleTag = info ? exerciseMuscleTag(info, exercise.variants) : undefined;
+        const badges = variantBadges(info ? info.name : '已下架', exercise.variants);
         const doneCount = exercise.sets.filter((set) => set.done).length;
         const feel = getFeelOption(exercise.feel);
         return (
@@ -210,9 +228,27 @@ const RecordDetailPage: React.FC = () => {
                 <Text className={styles.orderBadgeText}>{index + 1}</Text>
               </View>
               <View className={styles.exerciseTitleWrap}>
-                <Text className={styles.exerciseName}>{info ? info.name : '未知动作'}</Text>
+                <View className={styles.exerciseNameRow}>
+                  <Text className={styles.exerciseName}>{info ? info.name : '已下架'}</Text>
+                  {muscleTag ? (
+                    <MuscleTag
+                      muscle={muscleTag.muscle}
+                      label={muscleTag.label}
+                      className={styles.exerciseNameTag}
+                    />
+                  ) : null}
+                </View>
                 <View className={styles.exerciseMeta}>
-                  {info ? <MuscleTag muscle={info.muscle} /> : null}
+                  {badges.map((badge, badgeIndex) => (
+                    <Text
+                      key={badge.label}
+                      className={
+                        badge.locked ? styles.exerciseVariantLocked : styles.exerciseVariant
+                      }
+                    >
+                      {badgeIndex > 0 ? ` · ${badge.label}` : badge.label}
+                    </Text>
+                  ))}
                   <Text className={styles.exerciseVolume}>
                     {info?.muscle === 'cardio'
                       ? `${exercise.sets.reduce(
@@ -240,12 +276,10 @@ const RecordDetailPage: React.FC = () => {
                     className={classnames(styles.setChipText, set.done && styles.setChipTextDone)}
                   >
                     {set.durationMin !== undefined
-                        ? `${set.durationMin} 分钟${set.intensity ? ` · ${set.intensity}` : ''}`
-                        : `${setIndex + 1}. ${
-                            isBodyweight(exercise.exerciseId)
-                              ? '自重'
-                              : `${formatWeight(set.weight)}kg`
-                          } × ${set.reps}`}
+                        ? cardioSetText(set)
+                        : `${setIndex + 1}. ${formatSetWeight(set)}kg × ${set.reps}${
+                            info && isTimedExercise(info.id) ? ' 秒' : ''
+                          }`}
                   </Text>
                 </View>
               ))}

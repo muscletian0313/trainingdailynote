@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
-import { View, Text } from '@tarojs/components';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, Button } from '@tarojs/components';
+import { useDidShow, useShareAppMessage } from '@tarojs/taro';
 import { navigateTo, showActionSheet, showModal, showToast } from '@/utils/taro';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
-import type { Plan, Session } from '@/types';
+import type { MuscleGroup, Plan, Session } from '@/types';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import {
@@ -13,6 +14,8 @@ import {
   sessionTotalWeight
 } from '@/utils/workout';
 import { dayLabel, formatVolume, isDateToday, weekdayLabel } from '@/utils/format';
+import { clearPlanDraft, loadPlanDraft, type PlanDraft } from '@/utils/planDraft';
+import { draftToPlan, encodePlan } from '@/utils/planShare';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import styles from './index.module.scss';
@@ -27,6 +30,28 @@ const PlansPage: React.FC = () => {
   const active = useSessionStore((state) => state.active);
   const startSession = useSessionStore((state) => state.startSession);
   const discardActive = useSessionStore((state) => state.discardActive);
+
+  /** 新建计划没写完留下的草稿，单独一张卡 */
+  const [draft, setDraft] = useState<PlanDraft | null>(() => loadPlanDraft());
+  // 从制定计划页返回（或保存成正式计划）后要重新读一次
+  useDidShow(() => {
+    setDraft(loadPlanDraft());
+  });
+
+  /** 草稿卡上的「分享」按钮被按下（右上角 ··· 转发不属于分享草稿） */
+  const shareDraftRef = useRef(false);
+
+  // 草稿也支持分享：对方点开即可保存成自己的计划
+  useShareAppMessage(() => {
+    if (shareDraftRef.current && draft && draft.exercises.length) {
+      shareDraftRef.current = false;
+      return {
+        title: `分享训练计划：${draft.name.trim() || '未命名计划'}`,
+        path: `/pages/plan-share/index?d=${encodePlan(draftToPlan(draft))}`
+      };
+    }
+    return { title: '来练记，一起记录每次训练', path: '/pages/plans/index' };
+  });
 
   const todayKey = dayjs().format('YYYY-MM-DD');
   const fromKey = dayjs()
@@ -66,6 +91,21 @@ const PlansPage: React.FC = () => {
 
   const openDetail = (planId: string) => {
     navigateTo({ url: `/pages/plan-detail/index?id=${planId}` });
+  };
+
+  /** 丢弃没写完的草稿 */
+  const handleDraftDelete = () => {
+    showModal({
+      title: '丢弃草稿',
+      content: '确定丢弃这份没写完的草稿吗？',
+      confirmColor: '#f8736a',
+      success: (res) => {
+        if (res.confirm) {
+          clearPlanDraft();
+          setDraft(null);
+        }
+      }
+    });
   };
 
   const startPlan = (plan: Plan) => {
@@ -130,6 +170,14 @@ const PlansPage: React.FC = () => {
     });
   };
 
+  /** 草稿卡按正式计划卡的样式展示，只多一个「草稿」标记 */
+  const draftDate = draft ? dayjs(draft.startDate || undefined) : null;
+  const draftMuscles: MuscleGroup[] = draft
+    ? [draft.primaryMuscle, ...draft.secondaryMuscles].filter(
+        (item): item is MuscleGroup => Boolean(item)
+      )
+    : [];
+
   return (
     <View className={styles.page}>
       <View className={styles.header}>
@@ -143,6 +191,83 @@ const PlansPage: React.FC = () => {
           <Text className={styles.createBtnText}>+ 新建计划</Text>
         </View>
       </View>
+
+      {/* 没写完的新建计划：和正式计划卡一样，点击继续填，··· 删除 */}
+      {draft && draftDate ? (
+        <View className={styles.card} onClick={() => openEdit()}>
+          <View className={styles.cardTop}>
+            <View className={styles.dateWrap}>
+              <Text className={styles.dateMain}>{draftDate.format('M月D日')}</Text>
+              <Text className={styles.dateSub}>
+                {dayLabel(draftDate.valueOf())} {weekdayLabel(draftDate.valueOf())}
+              </Text>
+            </View>
+            <View className={styles.cardTopActions}>
+              {draft.exercises.length ? (
+                <Button
+                  className={styles.draftShareBtn}
+                  openType="share"
+                  onClick={(event) => event.stopPropagation()}
+                  onTouchStart={() => {
+                    shareDraftRef.current = true;
+                  }}
+                >
+                  <Text className={styles.draftShareText}>分享</Text>
+                </Button>
+              ) : null}
+              <View
+                className={styles.moreBtn}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleDraftDelete();
+                }}
+              >
+                <Text className={styles.moreText}>···</Text>
+              </View>
+            </View>
+          </View>
+
+          <View className={styles.nameRow}>
+            <Text className={styles.cardName}>{draft.name.trim() || '未命名计划'}</Text>
+            <Text className={styles.draftBadge}>草稿</Text>
+          </View>
+
+          <View className={styles.tags}>
+            {draftMuscles.length ? (
+              draftMuscles.map((muscle, index) => (
+                <MuscleTag
+                  key={muscle}
+                  muscle={muscle}
+                  solid={index === 0}
+                  className={styles.tag}
+                />
+              ))
+            ) : (
+              <Text className={styles.noMuscle}>还没有动作</Text>
+            )}
+          </View>
+
+          <View className={styles.statsRow}>
+            <View className={styles.statItem}>
+              <Text className={styles.statValue}>—</Text>
+              <Text className={styles.statLabel}>总重量</Text>
+            </View>
+            <View className={styles.statDivider} />
+            <View className={styles.statItem}>
+              <Text className={styles.statValue}>—</Text>
+              <Text className={styles.statLabel}>总容量</Text>
+            </View>
+            <View className={styles.statDivider} />
+            <View className={styles.statItem}>
+              <Text className={styles.statValue}>
+                {draft.exercises.length}
+                <Text className={styles.statUnit}>个</Text>
+              </Text>
+              <Text className={styles.statLabel}>动作数</Text>
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {recentPlans.length ? (
         recentPlans.map((plan) => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Input, ScrollView } from '@tarojs/components';
+import { pageScrollTo } from '@tarojs/taro';
 import dayjs from 'dayjs';
 import {
   navigateBack,
@@ -12,24 +13,27 @@ import {
 } from '@/utils/taro';
 import classnames from 'classnames';
 import {
+  CARDIO_EXTRA_FIELDS,
   FEEL_OPTIONS,
   REST_OPTIONS,
+  cardioHasDistance,
   getFeelOption,
   restSoundSrc
 } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useProfileStore } from '@/store/useProfileStore';
-import { getExerciseById } from '@/store/useExerciseStore';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
 import SetRow from '@/components/SetRow';
-import ExercisePicker from '@/components/ExercisePicker';
+import ExercisePicker, { type PickedExercise } from '@/components/ExercisePicker';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import {
   feelMessage,
   hasCardio,
-  isBodyweight,
+  isAssistExercise,
   isExerciseFinished,
   isSessionPaused,
+  isTimedExercise,
   recentPerformances,
   sessionCardioMin,
   sessionDoneSets,
@@ -38,7 +42,8 @@ import {
   sessionTotalSets,
   sessionVolume
 } from '@/utils/workout';
-import { formatClock, formatTimer, formatVolume } from '@/utils/format';
+import { variantBadges, hasAddedLoad } from '@/data/exerciseVariants';
+import { formatClock, formatSetWeight, formatTimer, formatVolume } from '@/utils/format';
 import styles from './index.module.scss';
 
 interface RestState {
@@ -227,8 +232,10 @@ const SessionPage: React.FC = () => {
     });
   };
 
-  const handleAddExercises = (exerciseIds: string[]) => {
-    exerciseIds.forEach((id) => addExerciseToActive(id, 3, profile.defaultRest || 90));
+  const handleAddExercises = (items: PickedExercise[]) => {
+    items.forEach(({ exerciseId, variants }) =>
+      addExerciseToActive(exerciseId, 3, profile.defaultRest || 90, variants)
+    );
   };
 
   const selectRestForExercise = (key: string, current: number) => {
@@ -283,21 +290,58 @@ const SessionPage: React.FC = () => {
     setFocusKey(null);
   };
 
+  /** 有氧动作名（不是有氧动作就返回空串）：结束时用来判断要不要提醒补数据 */
+  const cardioNameOf = (exerciseId: string) => {
+    const info = getExerciseById(exerciseId);
+    return info?.muscle === 'cardio' ? info.name : '';
+  };
+
   const handleFinish = () => {
     if (!active) return;
+    const doFinish = () => {
+      showModal({
+        title: '结束训练',
+        content: '结束并保存这次训练记录？',
+        confirmText: '确定结束',
+        success: (res) => {
+          if (!res.confirm) return;
+          // 先根据各动作的感受算出心得评分并展示，用户确认后再真正保存
+          const score = sessionFeelScore(active);
+          if (score !== null) patchActiveMeta({ feelScore: score });
+          setFeelResult({
+            score,
+            message:
+              score !== null
+                ? feelMessage(score)
+                : '训练完成，干得漂亮！保持这个节奏，继续加油 💪'
+          });
+        }
+      });
+    };
+
+    // 有氧要自己填时长 / 距离 / 卡路里：没填就在结束时提醒一下，补不补都行
+    const missing = active.exercises.filter(
+      (item) => cardioNameOf(item.exerciseId) && !item.sets.some((set) => (set.durationMin ?? 0) > 0)
+    );
+    if (!missing.length) {
+      doFinish();
+      return;
+    }
+    const first = missing[0];
     showModal({
-      title: '结束训练',
-      content: '结束并保存这次训练记录？',
-      confirmText: '确定结束',
+      title: '有氧还没填数据',
+      content: `「${missing
+        .map((item) => cardioNameOf(item.exerciseId))
+        .join('、')}」还差时长（距离、卡路里选填），现在补一下？`,
+      confirmText: '现在补',
+      cancelText: '直接结束',
       success: (res) => {
-        if (!res.confirm) return;
-        // 先根据各动作的感受算出心得评分并展示，用户确认后再真正保存
-        const score = sessionFeelScore(active);
-        if (score !== null) patchActiveMeta({ feelScore: score });
-        setFeelResult({
-          score,
-          message: score !== null ? feelMessage(score) : '训练完成，干得漂亮！保持这个节奏，继续加油 💪'
-        });
+        if (!res.confirm) {
+          doFinish();
+          return;
+        }
+        setFocusKey(first.key);
+        setTimeout(() => pageScrollTo({ selector: `#ex-${first.key}`, duration: 300 }), 200);
       }
     });
   };
@@ -449,18 +493,22 @@ const SessionPage: React.FC = () => {
         active.exercises.map((exercise, index) => {
           const info = getExerciseById(exercise.exerciseId);
           const isCardio = info?.muscle === 'cardio';
+          /** 有氧动作名：决定要显示哪些附加字段（配速 / 坡度 / 阻力） */
+          const cardioName = info?.name ?? '';
           // 当前正在进行的动作：展开 + 橙色边框；其余折叠成只显示动作名
           const isCurrent = exercise.key === currentKey;
           const doneCount = exercise.sets.filter((set) => set.done).length;
           const finished = isExerciseFinished(exercise);
           const feelOption = getFeelOption(exercise.feel);
-          // 自重动作：重量栏显示「自重」，不用填 kg
-          const bodyweight = isBodyweight(exercise.exerciseId);
+          const assist = isAssistExercise(exercise.exerciseId);
+          const addedMode = hasAddedLoad(exercise.variants);
+          const muscleTag = info ? exerciseMuscleTag(info, exercise.variants) : undefined;
+          const badges = variantBadges(info ? info.name : '已下架', exercise.variants);
           // 当前动作不显示摘要文案（下面就是组表头，避免卡片太挤）；其余显示进度
           const metaText = isCardio
             ? feelOption
               ? `${feelOption.emoji} ${feelOption.desc}`
-              : '记录时长与强度'
+              : '填时长 / 距离 / 卡路里'
             : isCurrent
               ? ''
               : feelOption
@@ -469,6 +517,7 @@ const SessionPage: React.FC = () => {
           return (
             <View
               key={exercise.key}
+              id={`ex-${exercise.key}`}
               className={classnames(
                 styles.exerciseCard,
                 isCurrent ? styles.exerciseCardActive : styles.exerciseCardCollapsed
@@ -484,9 +533,27 @@ const SessionPage: React.FC = () => {
                   <Text className={styles.orderBadgeText}>{index + 1}</Text>
                 </View>
                 <View className={styles.exerciseTitleWrap}>
-                  <Text className={styles.exerciseName}>{info ? info.name : '未知动作'}</Text>
+                  <View className={styles.exerciseNameRow}>
+                    <Text className={styles.exerciseName}>{info ? info.name : '已下架'}</Text>
+                    {muscleTag ? (
+                      <MuscleTag
+                        muscle={muscleTag.muscle}
+                        label={muscleTag.label}
+                        className={styles.exerciseNameTag}
+                      />
+                    ) : null}
+                  </View>
                   <View className={styles.exerciseMeta}>
-                    {info ? <MuscleTag muscle={info.muscle} /> : null}
+                    {badges.map((badge, badgeIndex) => (
+                      <Text
+                        key={badge.label}
+                        className={
+                          badge.locked ? styles.exerciseVariantLocked : styles.exerciseVariant
+                        }
+                      >
+                        {badgeIndex > 0 ? ` · ${badge.label}` : badge.label}
+                      </Text>
+                    ))}
                     {metaText ? <Text className={styles.exerciseMetaText}>{metaText}</Text> : null}
                   </View>
                 </View>
@@ -576,17 +643,63 @@ const SessionPage: React.FC = () => {
                       </View>
                     </View>
 
+                    {/* 跳绳这类不记距离 */}
+                    {cardioHasDistance(cardioName) ? (
+                      <View className={styles.cardioLine}>
+                        <Text className={styles.cardioLabel}>距离</Text>
+                        <View className={styles.cardioValue}>
+                          <Input
+                            className={styles.cardioInputNum}
+                            type="digit"
+                            value={set.distanceKm !== undefined ? String(set.distanceKm) : ''}
+                            placeholder="选填"
+                            placeholderStyle="color:#4a4a55"
+                            onInput={(event) =>
+                              updateSetInActive(exercise.key, set.id, {
+                                distanceKm: parseFloat(event.detail.value) || 0
+                              })
+                            }
+                          />
+                          <Text className={styles.cardioUnit}>公里</Text>
+                        </View>
+                      </View>
+                    ) : null}
+
+                    {/* 各机器特有的：配速 / 坡度 / 阻力 */}
+                    {(CARDIO_EXTRA_FIELDS[cardioName] ?? []).map((field) => (
+                      <View key={field.key} className={styles.cardioLine}>
+                        <Text className={styles.cardioLabel}>{field.label}</Text>
+                        <Input
+                          className={styles.cardioInput}
+                          value={set[field.key] ?? ''}
+                          placeholder={field.placeholder}
+                          placeholderStyle="color:#4a4a55"
+                          onInput={(event) =>
+                            updateSetInActive(exercise.key, set.id, {
+                              [field.key]: event.detail.value
+                            })
+                          }
+                        />
+                      </View>
+                    ))}
+
                     <View className={styles.cardioLine}>
-                      <Text className={styles.cardioLabel}>强度</Text>
-                      <Input
-                        className={styles.cardioInput}
-                        value={set.intensity ?? ''}
-                        placeholder="自己写，如 中速 / 坡度 8"
-                        placeholderStyle="color:#4a4a55"
-                        onInput={(event) =>
-                          updateSetInActive(exercise.key, set.id, { intensity: event.detail.value })
-                        }
-                      />
+                      <Text className={styles.cardioLabel}>卡路里</Text>
+                      <View className={styles.cardioValue}>
+                        <Input
+                          className={styles.cardioInputNum}
+                          type="number"
+                          value={set.calories !== undefined ? String(set.calories) : ''}
+                          placeholder="选填"
+                          placeholderStyle="color:#4a4a55"
+                          onInput={(event) =>
+                            updateSetInActive(exercise.key, set.id, {
+                              calories: parseInt(event.detail.value, 10) || 0
+                            })
+                          }
+                        />
+                        <Text className={styles.cardioUnit}>kcal</Text>
+                      </View>
                     </View>
                   </View>
                 ))
@@ -594,9 +707,13 @@ const SessionPage: React.FC = () => {
                 <>
                   <View className={styles.setHead}>
                     <Text className={styles.headIndex}>组</Text>
-                    <Text className={styles.headWeight}>{bodyweight ? '自重' : '重量(kg)'}</Text>
+                    <Text className={styles.headWeight}>
+                      {addedMode ? '自重+负重(kg)' : '重量(kg)'}
+                    </Text>
                     <Text className={styles.headTimes} />
-                    <Text className={styles.headReps}>次数</Text>
+                    <Text className={styles.headReps}>
+                      {isTimedExercise(exercise.exerciseId) ? '秒数' : '次数'}
+                    </Text>
                     <Text className={styles.headDone}>完成</Text>
                     <Text className={styles.headRemove} />
                   </View>
@@ -606,7 +723,9 @@ const SessionPage: React.FC = () => {
                       key={set.id}
                       index={setIndex + 1}
                       set={set}
-                      bodyweight={bodyweight}
+                      assist={assist}
+                      addedMode={addedMode}
+                      timed={isTimedExercise(exercise.exerciseId)}
                       onPatch={(patch) => updateSetInActive(exercise.key, set.id, patch)}
                       onToggle={() =>
                         handleToggleSet(exercise.key, set.id, set.done, exercise.restSeconds)
@@ -623,7 +742,7 @@ const SessionPage: React.FC = () => {
                 </>
               )}
 
-              {/* 动作做完后：选择本次感受，选完自动进入下一个动作 */}
+              {/* 动作做完后：选择本次感受，选完自动进入下一个动作（有氧可以跳过） */}
               {finished ? (
                 <View className={styles.feelBox}>
                   <Text className={styles.feelTitle}>
@@ -647,6 +766,17 @@ const SessionPage: React.FC = () => {
                       </View>
                     ))}
                   </View>
+                  {isCardio ? (
+                    <Text
+                      className={styles.feelSkip}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setFocusKey(null);
+                      }}
+                    >
+                      跳过
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
                 </>
@@ -758,8 +888,11 @@ const SessionPage: React.FC = () => {
         defaultMuscle={replaceInfo?.muscle ?? null}
         similarToId={replaceExercise?.exerciseId}
         onClose={() => setReplaceKey(null)}
-        onConfirm={(ids) => {
-          if (replaceKey && ids[0]) replaceExerciseInActive(replaceKey, ids[0]);
+        onConfirm={(items) => {
+          const picked = items[0];
+          if (replaceKey && picked) {
+            replaceExerciseInActive(replaceKey, picked.exerciseId, picked.variants);
+          }
           setReplaceKey(null);
         }}
       />
@@ -805,7 +938,7 @@ const SessionPage: React.FC = () => {
               <View className={styles.historyHeadMain}>
                 <Text className={styles.historyCardTitle}>历史日训</Text>
                 <Text className={styles.historyCardSub}>
-                  {historyInfo ? historyInfo.name : '未知动作'}
+                  {historyInfo ? historyInfo.name : '已下架'}
                   {historyRecords.length ? ` · 近 ${historyRecords.length} 次` : ''}
                 </Text>
               </View>
@@ -818,7 +951,6 @@ const SessionPage: React.FC = () => {
               <ScrollView scrollY className={styles.historyList}>
                 {historyRecords.map((record) => {
                   const feel = getFeelOption(record.feel);
-                  const bodyweight = isBodyweight(historyExercise.exerciseId);
                   return (
                     <View key={record.sessionId} className={styles.historyItem}>
                       <View className={styles.historyItemTop}>
@@ -837,7 +969,9 @@ const SessionPage: React.FC = () => {
                           : record.sets
                               .map(
                                 (set) =>
-                                  `${bodyweight ? '自重' : `${set.weight}kg`}×${set.reps}`
+                                  `${formatSetWeight(set)}kg×${set.reps}${
+                                    historyInfo && isTimedExercise(historyInfo.id) ? '秒' : ''
+                                  }`
                               )
                               .join(' · ')}
                       </Text>

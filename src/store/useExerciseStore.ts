@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { useMemo } from 'react';
-import type { Exercise, MuscleGroup } from '@/types';
+import type { Exercise, ExerciseVariants, MuscleGroup } from '@/types';
 import { loadJSON, removeKey, saveJSON, STORAGE_KEYS } from '@/utils/storage';
 import { uid } from '@/utils/id';
 import { PRESET_EXERCISES } from '@/data/exercises';
+import { variantMuscleOf, variantRegionOf } from '@/data/exerciseVariants';
 
 interface ExerciseState {
   customExercises: Exercise[];
@@ -61,6 +62,8 @@ const REGION_RULES: { muscle: MuscleGroup; keyword: string; region: string }[] =
   { muscle: 'chest', keyword: '上胸', region: 'chest:upper' },
   { muscle: 'chest', keyword: '下斜', region: 'chest:lower' },
   { muscle: 'chest', keyword: '下胸', region: 'chest:lower' },
+  // 双杠臂屈伸偏下胸（用户梳理清单时也是归到「下斜」一组的）
+  { muscle: 'chest', keyword: '双杠', region: 'chest:lower' },
   // 肩：后束 / 中束 / 前束 / 斜方
   { muscle: 'shoulders', keyword: '后束', region: 'shoulders:rear' },
   { muscle: 'shoulders', keyword: '反向飞鸟', region: 'shoulders:rear' },
@@ -77,27 +80,31 @@ const REGION_RULES: { muscle: MuscleGroup; keyword: string; region: string }[] =
   { muscle: 'shoulders', keyword: '推肩', region: 'shoulders:press' },
   // 臀腿：臀 / 小腿 / 腘绳 / 股四
   { muscle: 'legs', keyword: '臀', region: 'legs:glute' },
+  // 髋外展练臀中肌，归到「臀」
+  { muscle: 'legs', keyword: '外展', region: 'legs:glute' },
+  { muscle: 'legs', keyword: '内收', region: 'legs:adductor' },
   { muscle: 'legs', keyword: '提踵', region: 'legs:calf' },
   { muscle: 'legs', keyword: '腿弯举', region: 'legs:ham' },
-  { muscle: 'legs', keyword: '罗马尼亚硬拉', region: 'legs:ham' },
+  { muscle: 'legs', keyword: '腘绳', region: 'legs:ham' },
   { muscle: 'legs', keyword: '腿屈伸', region: 'legs:quad' },
   { muscle: 'legs', keyword: '深蹲', region: 'legs:quad' },
   { muscle: 'legs', keyword: '腿举', region: 'legs:quad' },
   { muscle: 'legs', keyword: '箭步', region: 'legs:quad' },
   { muscle: 'legs', keyword: '分腿蹲', region: 'legs:quad' },
-  // 背：宽度（下拉/引体） / 厚度（划船）
-  { muscle: 'back', keyword: '引体', region: 'back:lat' },
-  { muscle: 'back', keyword: '下拉', region: 'back:lat' },
-  { muscle: 'back', keyword: '直臂下压', region: 'back:lat' },
-  { muscle: 'back', keyword: '硬拉', region: 'back:row' },
-  // 手臂：二头 / 三头
-  { muscle: 'arms', keyword: '弯举', region: 'arms:biceps' },
-  { muscle: 'arms', keyword: '二头', region: 'arms:biceps' },
-  { muscle: 'arms', keyword: '锤式', region: 'arms:biceps' },
-  { muscle: 'arms', keyword: '下压', region: 'arms:triceps' },
-  { muscle: 'arms', keyword: '臂屈伸', region: 'arms:triceps' },
-  { muscle: 'arms', keyword: '三头', region: 'arms:triceps' },
-  { muscle: 'arms', keyword: '窄距', region: 'arms:triceps' },
+  // 保加利亚蹲不细分：中立位只算「腿」，前倾算「臀」（见 VARIANT_REGION）
+  { muscle: 'legs', keyword: '保加利亚', region: 'legs:general' },
+  // 背：上背（划船类，练厚度） / 中背（引体、下拉，练背阔） / 下背（硬拉、挺身）
+  { muscle: 'back', keyword: '划船', region: 'back:upper' },
+  { muscle: 'back', keyword: '提拉', region: 'back:upper' },
+  { muscle: 'back', keyword: '面拉', region: 'back:upper' },
+  { muscle: 'back', keyword: '耸肩', region: 'back:upper' },
+  { muscle: 'back', keyword: '引体', region: 'back:mid' },
+  { muscle: 'back', keyword: '下拉', region: 'back:mid' },
+  { muscle: 'back', keyword: '直臂下压', region: 'back:mid' },
+  { muscle: 'back', keyword: '硬拉', region: 'back:lower' },
+  { muscle: 'back', keyword: '挺身', region: 'back:lower' },
+  { muscle: 'back', keyword: '躬身', region: 'back:lower' },
+  { muscle: 'back', keyword: '早安', region: 'back:lower' },
   // 核心：上腹 / 下腹 / 侧腹 / 深层
   { muscle: 'core', keyword: '卷腹', region: 'core:upper' },
   { muscle: 'core', keyword: '举腿', region: 'core:lower' },
@@ -110,8 +117,69 @@ const DEFAULT_REGION: Partial<Record<MuscleGroup, string>> = {
   chest: 'chest:mid',
   shoulders: 'shoulders:press',
   legs: 'legs:quad',
-  back: 'back:row'
+  back: 'back:upper'
 };
+
+/**
+ * 各肌群的细分部位选项：选动作时可以在肌群下面再过滤一层。
+ * 用户可以完全不点，直接搜索或往下翻全部动作。
+ */
+export const REGION_OPTIONS: Partial<Record<MuscleGroup, { region: string; label: string }[]>> = {
+  chest: [
+    { region: 'chest:upper', label: '上胸' },
+    { region: 'chest:mid', label: '中胸' },
+    { region: 'chest:lower', label: '下胸' }
+  ],
+  back: [
+    { region: 'back:upper', label: '上背' },
+    { region: 'back:mid', label: '中背' },
+    { region: 'back:lower', label: '下背' }
+  ],
+  legs: [
+    { region: 'legs:general', label: '腿' },
+    { region: 'legs:quad', label: '股四头' },
+    { region: 'legs:ham', label: '腘绳肌' },
+    { region: 'legs:glute', label: '臀' },
+    { region: 'legs:adductor', label: '内收' },
+    { region: 'legs:calf', label: '小腿' }
+  ],
+  shoulders: [
+    { region: 'shoulders:front', label: '前束' },
+    { region: 'shoulders:side', label: '中束' },
+    { region: 'shoulders:rear', label: '后束' },
+    { region: 'shoulders:trap', label: '斜方' },
+    { region: 'shoulders:press', label: '推举' }
+  ],
+  core: [
+    { region: 'core:upper', label: '上腹' },
+    { region: 'core:lower', label: '下腹' },
+    { region: 'core:oblique', label: '侧腹' },
+    { region: 'core:deep', label: '深层' }
+  ]
+};
+
+/**
+ * 换个握距 / 练法就能主练别的肌群的动作：按那些肌群筛选时也要能选到。
+ * 例：杠铃卧推选窄握距其实是在练三头，挑三头动作时它也该在列表里。
+ */
+const EXTRA_MUSCLES: Record<string, MuscleGroup[]> = {
+  杠铃卧推: ['triceps'],
+  史密斯架卧推: ['triceps'],
+  器械推胸: ['triceps'],
+  双杠臂屈伸: ['triceps']
+};
+
+/**
+ * 部位筛选是否命中：
+ * 「全身」动作（硬拉这类）挂在任何一个力量部位下都会列出来，方便随手选到；
+ * 有氧 / 自定义不算「练的部位」，所以不往那两个里塞。
+ */
+export function matchesMuscleFilter(exercise: Exercise, muscle: MuscleGroup): boolean {
+  if (exercise.muscle === muscle) return true;
+  if (EXTRA_MUSCLES[exercise.name]?.includes(muscle)) return true;
+  if (exercise.muscle !== 'fullbody') return false;
+  return muscle !== 'cardio' && muscle !== 'other';
+}
 
 /** 动作练的具体部位（细分到上胸/中胸/下胸、前束/中束/后束这类粒度） */
 export function exerciseRegion(exercise: Exercise): string | undefined {
@@ -120,6 +188,28 @@ export function exerciseRegion(exercise: Exercise): string | undefined {
   );
   if (hit) return hit.region;
   return DEFAULT_REGION[exercise.muscle];
+}
+
+/** 细化部位的中文名，例如 back:upper → 上背；没有就返回 undefined */
+export function exerciseRegionLabel(exercise: Exercise, variants?: ExerciseVariants): string | undefined {
+  // 变式会改变练到的部位（宽距偏上、窄距偏中），优先用变式算出来的
+  const region = variantRegionOf(exercise.muscle, variants) ?? exerciseRegion(exercise);
+  if (!region) return undefined;
+  return (REGION_OPTIONS[exercise.muscle] ?? []).find((item) => item.region === region)?.label;
+}
+
+/**
+ * 展示用的肌群 + 细分部位：
+ * 变式可能把动作改成主练别的肌群（杠铃卧推选窄握距＝练三头），
+ * 这时只显示新肌群，不再挂原来的细分部位。
+ */
+export function exerciseMuscleTag(
+  exercise: Exercise,
+  variants?: ExerciseVariants
+): { muscle: MuscleGroup; label?: string } {
+  const muscle = variantMuscleOf(exercise.muscle, variants);
+  if (muscle) return { muscle };
+  return { muscle: exercise.muscle, label: exerciseRegionLabel(exercise, variants) };
 }
 
 /**

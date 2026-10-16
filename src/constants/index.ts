@@ -1,4 +1,4 @@
-import type { MuscleGroup } from '@/types';
+import type { MuscleGroup, TrainingLevel } from '@/types';
 
 /** 肌群展示顺序 */
 export const MUSCLE_GROUPS: MuscleGroup[] = [
@@ -6,9 +6,11 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
   'back',
   'legs',
   'shoulders',
-  'arms',
+  'biceps',
+  'triceps',
   'core',
   'cardio',
+  'fullbody',
   'other'
 ];
 
@@ -18,21 +20,32 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   back: '背',
   legs: '臀腿',
   shoulders: '肩',
-  arms: '手臂',
+  biceps: '肱二头肌',
+  triceps: '肱三头肌',
   core: '核心',
   cardio: '有氧',
+  fullbody: '全身',
   other: '自定义'
+};
+
+/** 训练经验对应的默认昵称（问卷里选完经验后自动作为昵称） */
+export const LEVEL_NICKNAMES: Record<TrainingLevel, string> = {
+  beginner: '健身新人',
+  advanced: '健身老手',
+  master: '健身大神'
 };
 
 /** 肌群主题色（用于 JS 逻辑与内联样式） */
 export const MUSCLE_COLORS: Record<MuscleGroup, string> = {
-  chest: '#ff6b2c',
+  chest: '#f43f5e',
   back: '#4d8dff',
   legs: '#34d399',
   shoulders: '#fbbf24',
-  arms: '#a78bfa',
+  biceps: '#a78bfa',
+  triceps: '#818cf8',
   core: '#22d3ee',
   cardio: '#f472b6',
+  fullbody: '#a3e635',
   other: '#94a3b8'
 };
 
@@ -44,6 +57,44 @@ export const DEFAULT_WEIGHT = 20;
 
 /** 有氧动作默认时长（分钟） */
 export const DEFAULT_CARDIO_MIN = 30;
+
+/** 有氧动作的附加字段（时长、卡路里人人都有，跳绳没有距离） */
+export interface CardioExtraField {
+  key: 'pace' | 'incline' | 'resistance';
+  label: string;
+  placeholder: string;
+}
+
+const PACE_FIELD: CardioExtraField = {
+  key: 'pace',
+  label: '配速',
+  placeholder: '自己填，如 6\'30"/km'
+};
+
+export const CARDIO_EXTRA_FIELDS: Record<string, CardioExtraField[]> = {
+  跑步机: [
+    PACE_FIELD,
+    { key: 'incline', label: '坡度', placeholder: '自己填，如 8%' }
+  ],
+  爬楼机: [PACE_FIELD],
+  椭圆机: [
+    { key: 'resistance', label: '阻力', placeholder: '自己填，如 8 档' },
+    PACE_FIELD
+  ],
+  动感单车: [
+    { key: 'resistance', label: '阻力', placeholder: '自己填，如 8 档' },
+    PACE_FIELD
+  ],
+  划船机: [PACE_FIELD],
+  跳绳: []
+};
+
+/** 不记距离的有氧动作（跳绳就跳个绳，没距离） */
+const CARDIO_NO_DISTANCE = new Set(['跳绳']);
+
+export function cardioHasDistance(name: string): boolean {
+  return !CARDIO_NO_DISTANCE.has(name);
+}
 
 /** 默认目标组数 */
 export const DEFAULT_SETS = 3;

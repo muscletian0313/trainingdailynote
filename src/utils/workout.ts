@@ -3,13 +3,14 @@ import type { MuscleGroup, Plan, Session, SessionExercise, WorkoutSet } from '@/
 import { getExerciseById } from '@/store/useExerciseStore';
 import { pad2 } from './format';
 
-/** 单组容量（已完成才计入） */
+/** 单组容量（已完成才计入）；辅助类动作的重量记负数，取绝对值算 */
 export function setVolume(set: WorkoutSet): number {
-  return set.done ? set.weight * set.reps : 0;
+  return set.done ? Math.abs(set.weight) * set.reps : 0;
 }
 
-/** 单个动作的容量 */
+/** 单个动作的容量（计时类动作没有「重量 × 次数」的概念，不计容量） */
 export function exerciseVolume(exercise: SessionExercise): number {
+  if (isTimedExercise(exercise.exerciseId)) return 0;
   return exercise.sets.reduce((sum, item) => sum + setVolume(item), 0);
 }
 
@@ -18,10 +19,14 @@ export function sessionVolume(session: Session): number {
   return session.exercises.reduce((sum, item) => sum + exerciseVolume(item), 0);
 }
 
-/** 训练总重量：所有已完成组的重量之和 */
+/** 训练总重量：所有已完成组的重量之和（辅助类的负数取绝对值，计时类不计） */
 export function sessionTotalWeight(session: Session): number {
   return session.exercises.reduce(
-    (sum, exercise) => sum + exercise.sets.reduce((acc, set) => acc + (set.done ? set.weight : 0), 0),
+    (sum, exercise) =>
+      isTimedExercise(exercise.exerciseId)
+        ? sum
+        : sum +
+          exercise.sets.reduce((acc, set) => acc + (set.done ? Math.abs(set.weight) : 0), 0),
     0
   );
 }
@@ -100,11 +105,38 @@ export function isExerciseFinished(exercise: SessionExercise): boolean {
   return exercise.sets.length > 0 && exercise.sets.every((set) => set.done);
 }
 
-/** 自重类动作（负荷就是自身体重）：训练中重量栏显示「自重」，不填 kg */
-export function isBodyweight(exerciseId: string): boolean {
+/**
+ * 自重类动作（引体向上 / 双杠臂屈伸这类）：负荷 = 体重 + 负重。
+ * 所以自重动作也要能填重量，默认带出用户填过的体重，没填过就留空自己写。
+ */
+export function isAddedWeightExercise(exerciseId: string): boolean {
   const equipment = getExerciseById(exerciseId)?.equipment;
   return equipment === '自重' || equipment === '吊环';
 }
+
+/**
+ * 辅助类动作（器械辅助引体向上）：重量记成负数（-多少公斤 = 借了多少力）。
+ */
+const ASSIST_EXERCISES = new Set(['器械辅助引体向上']);
+
+export function isAssistExercise(exerciseId: string): boolean {
+  const name = getExerciseById(exerciseId)?.name;
+  return Boolean(name && ASSIST_EXERCISES.has(name));
+}
+
+/**
+ * 计时类动作（平板支撑这类）：一组是「撑多少秒」，不是「做多少次」。
+ * 秒数存在 reps 字段里，展示时把单位换成「秒」，也不参与容量 / PR 统计。
+ */
+const TIMED_EXERCISES = new Set(['平板支撑', '侧平板支撑']);
+
+export function isTimedExercise(exerciseId: string): boolean {
+  const name = getExerciseById(exerciseId)?.name;
+  return Boolean(name && TIMED_EXERCISES.has(name));
+}
+
+/** 计时动作的默认秒数（计划里新建一组时用） */
+export const DEFAULT_HOLD_SECONDS = 60;
 
 /**
  * 训练心得评分（1-10）：把各动作的主观感受（1-5）取平均后换算。
@@ -136,6 +168,8 @@ export function isPlanFinished(sessions: Session[], planId: string): boolean {
 
 export interface Performance {
   weight: number;
+  /** 负重自重动作：额外负重（显示成「70+10」用） */
+  addedWeight?: number;
   reps: number;
 }
 
@@ -168,7 +202,7 @@ export function recentPerformances(
     result.push({
       sessionId: session.id,
       startedAt: session.startedAt,
-      sets: done.map((set) => ({ weight: set.weight, reps: set.reps })),
+      sets: done.map((set) => ({ weight: set.weight, addedWeight: set.addedWeight, reps: set.reps })),
       cardioMin: cardioMin > 0 ? cardioMin : undefined,
       feel: target.feel
     });
@@ -183,8 +217,9 @@ export function findLastPerformance(sessions: Session[], exerciseId: string): Pe
   for (const session of ordered) {
     const target = session.exercises.find((item) => item.exerciseId === exerciseId);
     if (!target) continue;
-    const done = target.sets.filter((set) => set.done && set.weight > 0);
+    const done = target.sets.filter((set) => set.done && set.weight !== 0);
     if (!done.length) continue;
+    // 辅助类动作重量是负数：辅助越少越强，所以「最大」的那个就是最好的
     const best = done.reduce((a, b) => (b.weight > a.weight ? b : a));
     return { weight: best.weight, reps: best.reps };
   }
@@ -265,6 +300,8 @@ export function computePrs(sessions: Session[]): PrItem[] {
   const map = new Map<string, PrItem>();
   sessions.forEach((session) => {
     session.exercises.forEach((exercise) => {
+      // 计时类动作（平板支撑）没有 1RM 的概念，跳过
+      if (isTimedExercise(exercise.exerciseId)) return;
       exercise.sets.forEach((set) => {
         if (!set.done || set.weight <= 0) return;
         const oneRm = estimateOneRm(set.weight, set.reps);
@@ -314,11 +351,10 @@ const NAME_MUSCLE_KEYWORDS: { keyword: string; muscle: MuscleGroup }[] = (
     { keyword: '划船机', muscle: 'cardio' },
     { keyword: '划船', muscle: 'back' },
     { keyword: '硬拉', muscle: 'back' },
-    { keyword: '弯举', muscle: 'arms' },
-    { keyword: '屈伸', muscle: 'arms' },
-    { keyword: '二头', muscle: 'arms' },
-    { keyword: '三头', muscle: 'arms' },
-    { keyword: '手臂', muscle: 'arms' },
+    { keyword: '二头', muscle: 'biceps' },
+    { keyword: '弯举', muscle: 'biceps' },
+    { keyword: '三头', muscle: 'triceps' },
+    { keyword: '臂屈伸', muscle: 'triceps' },
     { keyword: '下肢', muscle: 'legs' },
     { keyword: '深蹲', muscle: 'legs' },
     { keyword: '箭步', muscle: 'legs' },
@@ -334,7 +370,7 @@ const NAME_MUSCLE_KEYWORDS: { keyword: string; muscle: MuscleGroup }[] = (
     { keyword: '腿', muscle: 'legs' },
     { keyword: '蹲', muscle: 'legs' },
     { keyword: '肩', muscle: 'shoulders' },
-    { keyword: '臂', muscle: 'arms' },
+    { keyword: '臂', muscle: 'biceps' },
     { keyword: '腹', muscle: 'core' },
     { keyword: '腰', muscle: 'core' },
     { keyword: '跑', muscle: 'cardio' }

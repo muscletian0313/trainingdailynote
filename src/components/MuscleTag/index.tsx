@@ -11,9 +11,11 @@ interface MuscleTagProps {
   className?: string;
   /** 是否使用填充背景 */
   solid?: boolean;
+  /** 覆盖显示文案（例如细分部位「中背」），颜色仍按肌群走 */
+  label?: string;
 }
 
-const MuscleTag: React.FC<MuscleTagProps> = ({ muscle, className, solid = false }) => {
+const MuscleTag: React.FC<MuscleTagProps> = ({ muscle, className, solid = false, label }) => {
   const color = MUSCLE_COLORS[muscle];
   const style = solid
     ? { backgroundColor: color, color: '#101014' }
@@ -21,7 +23,7 @@ const MuscleTag: React.FC<MuscleTagProps> = ({ muscle, className, solid = false 
 
   return (
     <Text className={classnames(styles.tag, className)} style={style}>
-      {MUSCLE_LABELS[muscle]}
+      {label || MUSCLE_LABELS[muscle]}
     </Text>
   );
 };

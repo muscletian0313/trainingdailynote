@@ -1,0 +1,209 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding 220rpx;
+  background: $color-bg-page;
+}
+
+.emptyWrap {
+  padding-top: 200rpx;
+}
+
+.lead {
+  display: block;
+  margin-top: $spacing-md;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 顶部计划信息：和计划详情页一套观感 */
+.head {
+  margin-top: $spacing-sm;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, rgba(255, 107, 44, 0.2) 0%, rgba(255, 107, 44, 0.05) 100%);
+  border: 2rpx solid rgba(255, 107, 44, 0.28);
+}
+
+.headName {
+  display: block;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.headTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 10rpx;
+}
+
+.headTag {
+  margin-left: 8rpx;
+}
+
+.headMeta {
+  display: block;
+  margin-top: 12rpx;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.headDate {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: $spacing-lg 0 $spacing-sm;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.list {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+}
+
+.itemBorder {
+  border-bottom: 2rpx solid $color-divider;
+}
+
+.orderBadge {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  @include flex-center;
+}
+
+.orderBadgeText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.itemMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+}
+
+.itemNameRow {
+  display: flex;
+  align-items: center;
+}
+
+.itemName {
+  flex-shrink: 1;
+  min-width: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.itemNameTag {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
+}
+
+.itemVariant {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+/* 写死的变式：灰色，只用于展示 */
+.itemVariantLocked {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.itemSets {
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 底部：保存 / 转发 */
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $page-padding calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background: $color-bg-page;
+  border-top: 2rpx solid $color-divider;
+}
+
+.saveBtn {
+  height: 96rpx;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.saveBtnDone {
+  background: $color-bg-hover;
+}
+
+.saveBtnText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+/* 微信原生 button：清掉默认样式，只当分享触发器用 */
+.resendBtn {
+  height: 80rpx;
+  margin-top: $spacing-sm;
+  padding: 0;
+  border: none;
+  border-radius: $radius-button;
+  background: $color-bg-hover;
+  font-size: $font-size-md;
+  line-height: 80rpx;
+  @include flex-center;
+
+  &::after {
+    border: none;
+  }
+}
+
+.resendBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}

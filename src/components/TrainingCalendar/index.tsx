@@ -3,23 +3,75 @@ import { View, Text } from '@tarojs/components';
 import { showActionSheet } from '@/utils/taro';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
-import type { Session } from '@/types';
-import { groupSessionsByDate, sessionVolume } from '@/utils/workout';
-import { formatVolume } from '@/utils/format';
+import type { MuscleGroup, Session } from '@/types';
+import { MUSCLE_COLORS, MUSCLE_GROUPS } from '@/constants';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
+import { usePlanStore } from '@/store/usePlanStore';
+import { groupSessionsByDate } from '@/utils/workout';
 import styles from './index.module.scss';
 
 const WEEK_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
 
+/** 日历视图：训练已上线，饮食与体重&维度先留入口 */
+type CalendarTab = 'training' | 'diet' | 'body';
+
+const TABS: { key: CalendarTab; label: string }[] = [
+  { key: 'training', label: '训练' },
+  { key: 'diet', label: '饮食' },
+  { key: 'body', label: '体重&维度' }
+];
+
+/** 格子窄，部位用短名 */
+const SHORT_LABELS: Record<MuscleGroup, string> = {
+  chest: '胸',
+  back: '背',
+  legs: '腿',
+  shoulders: '肩',
+  biceps: '二头',
+  triceps: '三头',
+  core: '核心',
+  cardio: '有氧',
+  fullbody: '全身',
+  other: '其他'
+};
+
+/** 一天最多画几条部位标记 */
+const MAX_MARKS = 3;
+
 interface TrainingCalendarProps {
   sessions: Session[];
   onPickSession: (sessionId: string) => void;
+  /** 某天用过的计划：点开直接进计划详情（可复制成今天的新计划） */
+  onPickPlan: (planId: string) => void;
 }
 
-const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ sessions, onPickSession }) => {
+const TrainingCalendar: React.FC<TrainingCalendarProps> = ({
+  sessions,
+  onPickSession,
+  onPickPlan
+}) => {
   const [month, setMonth] = useState(() => dayjs().startOf('month'));
+  const [tab, setTab] = useState<CalendarTab>('training');
+  const plans = usePlanStore((state) => state.plans);
 
   const byDate = useMemo(() => groupSessionsByDate(sessions), [sessions]);
   const todayKey = dayjs().format('YYYY-MM-DD');
+
+  /** 每天练到的部位（按部位表的固定顺序，颜色跟着部位走） */
+  const musclesByDate = useMemo(() => {
+    const map: Record<string, MuscleGroup[]> = {};
+    Object.entries(byDate).forEach(([date, daySessions]) => {
+      const seen = new Set<MuscleGroup>();
+      daySessions.forEach((session) => {
+        session.exercises.forEach((item) => {
+          const info = getExerciseById(item.exerciseId);
+          if (info) seen.add(exerciseMuscleTag(info, item.variants).muscle);
+        });
+      });
+      map[date] = MUSCLE_GROUPS.filter((muscle) => seen.has(muscle));
+    });
+    return map;
+  }, [byDate]);
 
   const cells = useMemo(() => {
     const offset = (month.day() + 6) % 7; // 周一为一周第一天
@@ -42,27 +94,75 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ sessions, onPickSes
 
   const handleDayPress = (daySessions: Session[]) => {
     if (!daySessions.length) return;
-    if (daySessions.length === 1) {
+    // 当天用到的计划（计划可能已被删除，删了就不给入口）
+    const dayPlans = Array.from(
+      new Set(daySessions.map((item) => item.planId).filter(Boolean) as string[])
+    )
+      .map((id) => plans.find((item) => item.id === id))
+      .filter((item): item is (typeof plans)[number] => Boolean(item));
+
+    // 只有一条记录、也没有计划可看：直接进记录详情
+    if (daySessions.length === 1 && !dayPlans.length) {
       onPickSession(daySessions[0].id);
       return;
     }
+
+    const actions: { label: string; run: () => void }[] = [];
+    daySessions.slice(0, 6).forEach((item) => {
+      actions.push({
+        label: `训练记录 · ${item.name}`,
+        run: () => onPickSession(item.id)
+      });
+    });
+    dayPlans.forEach((plan) => {
+      actions.push({
+        label: `查看计划 · ${plan.name}`,
+        run: () => onPickPlan(plan.id)
+      });
+    });
+
     showActionSheet({
-      itemList: daySessions
-        .slice(0, 6)
-        .map((item) => `${item.name} · ${formatVolume(sessionVolume(item))}kg`),
-      success: (res) => onPickSession(daySessions[res.tapIndex].id)
+      itemList: actions.map((item) => item.label),
+      success: (res) => {
+        const picked = actions[res.tapIndex];
+        if (picked) picked.run();
+      }
     });
   };
 
   return (
     <View className={styles.calendar}>
+      {/* 训练 / 饮食 / 体重&维度：后两个先把入口留出来 */}
+      <View className={styles.tabs}>
+        {TABS.map((item) => {
+          const active = tab === item.key;
+          return (
+            <View
+              key={item.key}
+              className={classnames(styles.tab, active && styles.tabActive)}
+              onClick={() => setTab(item.key)}
+            >
+              <Text className={classnames(styles.tabText, active && styles.tabTextActive)}>
+                {item.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
       <View className={styles.head}>
         <View className={styles.navBtn} onClick={() => changeMonth(-1)}>
           <Text className={styles.navText}>‹</Text>
         </View>
         <View className={styles.headCenter}>
           <Text className={styles.monthText}>{month.format('YYYY 年 M 月')}</Text>
-          <Text className={styles.monthSub}>本月训练 {monthCount} 天</Text>
+          <Text className={styles.monthSub}>
+            {tab === 'training'
+              ? `本月训练 ${monthCount} 天`
+              : tab === 'diet'
+                ? '饮食记录 · 开发中'
+                : '体重 & 维度 · 开发中'}
+          </Text>
         </View>
         <View className={styles.navBtn} onClick={() => changeMonth(1)}>
           <Text className={styles.navText}>›</Text>
@@ -86,6 +186,9 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ sessions, onPickSes
           const daySessions = byDate[dateKey] || [];
           const hasTraining = daySessions.length > 0;
           const isToday = dateKey === todayKey;
+          // 饮食 / 体重&维度还没数据，格子里只留日期
+          const marks =
+            tab === 'training' ? (musclesByDate[dateKey] ?? []).slice(0, MAX_MARKS) : [];
           return (
             <View key={dateKey} className={styles.cell}>
               <View
@@ -95,7 +198,9 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ sessions, onPickSes
                   isToday && styles.dayBoxToday,
                   isToday && hasTraining && styles.dayBoxTodayActive
                 )}
-                onClick={() => handleDayPress(daySessions)}
+                onClick={() => {
+                  if (tab === 'training') handleDayPress(daySessions);
+                }}
               >
                 <Text
                   className={classnames(
@@ -108,6 +213,19 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ sessions, onPickSes
                   {day}
                 </Text>
               </View>
+              {marks.length ? (
+                <View className={styles.marks}>
+                  {marks.map((muscle) => (
+                    <View
+                      key={muscle}
+                      className={styles.mark}
+                      style={{ backgroundColor: MUSCLE_COLORS[muscle] }}
+                    >
+                      <Text className={styles.markText}>{SHORT_LABELS[muscle]}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
           );
         })}

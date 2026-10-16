@@ -13,7 +13,7 @@ const ExerciseDetailPage: React.FC = () => {
   return (
     <View className={styles.page}>
       <View className={styles.card}>
-        <Text className={styles.name}>{exercise ? exercise.name : '未知动作'}</Text>
+        <Text className={styles.name}>{exercise ? exercise.name : '已下架'}</Text>
         <View className={styles.meta}>
           {exercise ? <MuscleTag muscle={exercise.muscle} /> : null}
           <Text className={styles.equipment}>{exercise ? exercise.equipment : ''}</Text>

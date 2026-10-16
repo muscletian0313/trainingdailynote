@@ -3,6 +3,7 @@ import { View, Text, Image, PickerView, PickerViewColumn } from '@tarojs/compone
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import type { Gender, TrainingLevel } from '@/types';
+import { LEVEL_NICKNAMES } from '@/constants';
 import { GENDER_AVATAR } from '@/assets/avatars';
 import { useProfileStore } from '@/store/useProfileStore';
 import { showToast } from '@/utils/taro';
@@ -37,12 +38,7 @@ interface WheelPickerProps {
   /** 右侧统一单位；文案里已经带单位时就不用传 */
   unit?: string;
   onChange: (index: number) => void;
-  /** 手指开始滑动就触发：滑回原值也能算作答 */
-  onStart: () => void;
 }
-
-/** 四道滚轮题，用来记录用户有没有真的作答 */
-type WheelKey = 'age' | 'weight' | 'years' | 'frequency';
 
 /** 单列内容：中间一行放大高亮，越远越淡 */
 const WheelColumn: React.FC<{ labels: string[]; activeIndex: number }> = ({
@@ -73,14 +69,13 @@ const INDICATOR_STYLE =
   'height: 80rpx; background: rgba(255, 255, 255, 0.05); border-top: 2rpx solid rgba(255, 255, 255, 0.08); border-bottom: 2rpx solid rgba(255, 255, 255, 0.08);';
 
 /** 上下滚动的选择器：右侧可以带一个固定单位 */
-const WheelPicker: React.FC<WheelPickerProps> = ({ index, labels, unit, onChange, onStart }) => (
+const WheelPicker: React.FC<WheelPickerProps> = ({ index, labels, unit, onChange }) => (
   <View className={styles.wheelWrap}>
     <PickerView
       className={styles.wheel}
       indicatorStyle={INDICATOR_STYLE}
       maskStyle="background: none;"
       value={[index]}
-      onPickStart={onStart}
       onChange={(event) => onChange(Number(event.detail.value[0]))}
     >
       <WheelColumn labels={labels} activeIndex={index} />
@@ -103,8 +98,6 @@ interface DurationPickerProps {
   months: number;
   onChangeYears: (value: number) => void;
   onChangeMonths: (value: number) => void;
-  /** 手指开始滑动就触发：滑回原值也能算作答 */
-  onStart: () => void;
 }
 
 /** 训练年限：年 + 个月 两列并排，各选各的 */
@@ -112,8 +105,7 @@ const DurationPicker: React.FC<DurationPickerProps> = ({
   years,
   months,
   onChangeYears,
-  onChangeMonths,
-  onStart
+  onChangeMonths
 }) => (
   <View className={styles.durationWrap}>
     <View className={styles.durationHead}>
@@ -121,7 +113,7 @@ const DurationPicker: React.FC<DurationPickerProps> = ({
         <Text className={styles.durationHeadText}>年</Text>
       </View>
       <View className={styles.durationHeadCell}>
-        <Text className={styles.durationHeadText}>个月</Text>
+        <Text className={styles.durationHeadText}>月</Text>
       </View>
     </View>
 
@@ -131,7 +123,6 @@ const DurationPicker: React.FC<DurationPickerProps> = ({
         indicatorStyle={INDICATOR_STYLE}
         maskStyle="background: none;"
         value={[years, months]}
-        onPickStart={onStart}
         onChange={(event) => {
           onChangeYears(Number(event.detail.value[0]));
           onChangeMonths(Number(event.detail.value[1]));
@@ -171,26 +162,21 @@ const OnboardingPage: React.FC = () => {
   const [trainYears, setTrainYears] = useState(0);
   const [trainMonths, setTrainMonths] = useState(0);
   const [frequency, setFrequency] = useState(3);
-  /** 滚轮题必须真的滚过一次才算作答；weight 另外用来判断「用户自己调过体重」 */
-  const [touched, setTouched] = useState<Partial<Record<WheelKey, boolean>>>({});
+  /** 用户自己调过体重后，切换性别不再覆盖它 */
+  const weightTouched = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const markTouched = (key: WheelKey) => {
-    setTouched((prev) => ({ ...prev, [key]: true }));
-  };
 
   const goNext = () => {
     setStep((prev) => Math.min(TOTAL - 1, prev + 1));
   };
 
-  /** 当前这题没作答就给个提示，不允许空着一路点「下一步」 */
+  /**
+   * 只有「没有默认值」的单选题需要强制作答；
+   * 滚轮题都有默认值，用户认可默认就直接下一步。
+   */
   const unansweredHint = (): string | null => {
     if (step === 0 && !gender) return '请先选择性别';
-    if (step === 1 && !touched.age) return '请滚动选择你的年龄';
-    if (step === 2 && !touched.weight) return '请滚动选择你的体重';
     if (step === 3 && !experience) return '请选择训练经验';
-    if (step === 4 && !touched.years) return '请滚动选择训练年限';
-    if (step === 5 && !touched.frequency) return '请滚动选择每周频次';
     return null;
   };
 
@@ -216,7 +202,7 @@ const OnboardingPage: React.FC = () => {
   const chooseGender = (value: Gender) => {
     setGender(value);
     // 用户自己调过体重就尊重他的选择，不跟着性别改
-    if (!touched.weight) setWeight(value === 'male' ? 70 : 50);
+    if (!weightTouched.current) setWeight(value === 'male' ? 70 : 50);
     autoAdvance();
   };
 
@@ -227,40 +213,40 @@ const OnboardingPage: React.FC = () => {
 
   const pickAge = (value: number) => {
     setAge(value);
-    markTouched('age');
   };
 
   const pickWeight = (value: number) => {
+    weightTouched.current = true;
     setWeight(value);
-    markTouched('weight');
   };
 
   const pickYears = (value: number) => {
     setTrainYears(value);
-    markTouched('years');
   };
 
   const pickMonths = (value: number) => {
     setTrainMonths(value);
-    markTouched('years');
   };
 
   const pickFrequency = (value: number) => {
     setFrequency(value);
-    markTouched('frequency');
   };
 
-  /** 记录问卷结果；不做任何参数推导 */
+  /** 记录问卷结果（昵称、头像都按问卷选择同步） */
   const saveAnswers = () => {
+    const level = experience ?? 'beginner';
+    const pickedGender = gender ?? 'male';
     updateProfile({
       onboardedAt: Date.now(),
-      gender: gender ?? 'male',
+      gender: pickedGender,
       age,
       weight,
-      experience: experience ?? 'beginner',
+      experience: level,
       trainingYears: trainYears,
       trainingMonths: trainMonths,
-      trainingFrequency: frequency
+      trainingFrequency: frequency,
+      nickname: LEVEL_NICKNAMES[level],
+      avatar: GENDER_AVATAR[pickedGender]
     });
   };
 
@@ -331,13 +317,7 @@ const OnboardingPage: React.FC = () => {
         <>
           <Text className={styles.title}>你的年龄</Text>
           <Text className={styles.subtitle}>上下滚动，选到你的岁数</Text>
-          <WheelPicker
-            index={age}
-            labels={AGE_LABELS}
-            unit="岁"
-            onChange={pickAge}
-            onStart={() => markTouched('age')}
-          />
+          <WheelPicker index={age} labels={AGE_LABELS} unit="岁" onChange={pickAge} />
         </>
       );
     }
@@ -347,13 +327,7 @@ const OnboardingPage: React.FC = () => {
         <>
           <Text className={styles.title}>你的体重</Text>
           <Text className={styles.subtitle}>用于推算负重起点与有氧消耗</Text>
-          <WheelPicker
-            index={weight}
-            labels={WEIGHT_LABELS}
-            unit="kg"
-            onChange={pickWeight}
-            onStart={() => markTouched('weight')}
-          />
+          <WheelPicker index={weight} labels={WEIGHT_LABELS} unit="kg" onChange={pickWeight} />
         </>
       );
     }
@@ -397,7 +371,6 @@ const OnboardingPage: React.FC = () => {
             months={trainMonths}
             onChangeYears={pickYears}
             onChangeMonths={pickMonths}
-            onStart={() => markTouched('years')}
           />
         </>
       );
@@ -412,7 +385,6 @@ const OnboardingPage: React.FC = () => {
           labels={FREQUENCY_LABELS}
           unit="次/周"
           onChange={pickFrequency}
-          onStart={() => markTouched('frequency')}
         />
       </>
     );
@@ -433,7 +405,7 @@ const OnboardingPage: React.FC = () => {
   /** 底部进度条 / 收尾页说明，三态互斥 */
   const renderFooterTop = () => {
     if (done) {
-      return <Text className={styles.doneHint}>现在，给自己排一份练得下去的计划</Text>;
+      return <Text className={styles.doneHint}>现在给自己制定一份可执行的训练计划</Text>;
     }
     if (!started) return null;
     return (

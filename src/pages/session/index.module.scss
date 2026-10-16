@@ -277,12 +277,24 @@
   margin-left: $spacing-sm;
 }
 
+/* 动作名 + 细分部位标签同一行（标签紧跟名字右边） */
+.exerciseNameRow {
+  display: flex;
+  align-items: center;
+}
+
 .exerciseName {
-  display: block;
+  flex-shrink: 1;
+  min-width: 0;
   font-size: $font-size-lg;
   font-weight: $font-weight-semibold;
   color: $color-text-primary;
   @include text-ellipsis;
+}
+
+.exerciseNameTag {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
 }
 
 .exerciseMeta {
@@ -295,6 +307,20 @@
   font-size: $font-size-xs;
   color: $color-text-tertiary;
   margin-left: $spacing-sm;
+  @include text-ellipsis;
+}
+
+/* 变式标注：对握 · 窄距 */
+.exerciseVariant {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  @include text-ellipsis;
+}
+
+/* 写死的变式：灰色，只用于展示 */
+.exerciseVariantLocked {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
   @include text-ellipsis;
 }
 
@@ -926,6 +952,15 @@
   display: flex;
   align-items: stretch;
   margin-top: $spacing-sm;
+}
+
+/* 有氧可以不打分，直接跳过 */
+.feelSkip {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  text-align: right;
 }
 
 .feelChip {

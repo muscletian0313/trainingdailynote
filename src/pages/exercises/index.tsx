@@ -4,7 +4,7 @@ import { navigateTo, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
 import type { MuscleGroup } from '@/types';
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from '@/constants';
-import { useAllExercises, useExerciseStore } from '@/store/useExerciseStore';
+import { useAllExercises, useExerciseStore, matchesMuscleFilter } from '@/store/useExerciseStore';
 import MuscleTag from '@/components/MuscleTag';
 import styles from './index.module.scss';
 
@@ -26,7 +26,7 @@ const ExercisesPage: React.FC = () => {
   const list = useMemo(() => {
     const text = keyword.trim();
     return exercises.filter((item) => {
-      const matchMuscle = muscle === 'all' || item.muscle === muscle;
+      const matchMuscle = muscle === 'all' || matchesMuscleFilter(item, muscle);
       const matchText = !text || item.name.includes(text);
       return matchMuscle && matchText;
     });
@@ -118,7 +118,11 @@ const ExercisesPage: React.FC = () => {
 
       {list.length ? (
         <View className={styles.list}>
-          {list.map((item, index) => (
+          {list.map((item, index) => {
+            // 筛选状态下按当前挑的部位标注（全身动作仍标全身）
+            const tagMuscle =
+              muscle === 'all' || item.muscle === 'fullbody' ? item.muscle : muscle;
+            return (
             <View
               key={item.id}
               className={classnames(styles.item, index !== list.length - 1 && styles.itemBorder)}
@@ -131,13 +135,14 @@ const ExercisesPage: React.FC = () => {
                   {item.isCustom ? ' · 自定义' : ''}
                 </Text>
                 <View className={styles.itemMeta}>
-                  <MuscleTag muscle={item.muscle} />
+                  <MuscleTag muscle={tagMuscle} />
                   <Text className={styles.equipment}>{item.equipment}</Text>
                 </View>
               </View>
               <Text className={styles.arrow}>›</Text>
             </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <View className={styles.emptyTip}>

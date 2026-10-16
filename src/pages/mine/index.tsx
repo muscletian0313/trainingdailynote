@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Input, Switch, ScrollView } from '@tarojs/components';
+import { View, Text, Image, Input, Switch, ScrollView } from '@tarojs/components';
 import { navigateTo, playSound, showActionSheet, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
 import { REST_OPTIONS, REST_SOUNDS, REST_SOUND_OFF, restSoundSrc } from '@/constants';
@@ -12,6 +12,11 @@ import { formatVolume } from '@/utils/format';
 import styles from './index.module.scss';
 
 const AVATARS = ['🏋️', '💪', '🔥', '🥇', '⚡', '🐯'];
+
+/** 头像是图片（问卷带出来的性别头像）还是 emoji */
+function isImageAvatar(value: string): boolean {
+  return value.startsWith('data:') || value.startsWith('http');
+}
 
 const MinePage: React.FC = () => {
   const profile = useProfileStore((state) => state.profile);
@@ -92,7 +97,11 @@ const MinePage: React.FC = () => {
       <View className={styles.profile}>
         <View className={styles.profileTop}>
           <View className={styles.avatar} onClick={handleAvatar}>
-            <Text className={styles.avatarText}>{profile.avatar}</Text>
+            {isImageAvatar(profile.avatar) ? (
+              <Image className={styles.avatarImg} src={profile.avatar} mode="aspectFill" />
+            ) : (
+              <Text className={styles.avatarText}>{profile.avatar}</Text>
+            )}
           </View>
           <View className={styles.profileMain}>
             <Input

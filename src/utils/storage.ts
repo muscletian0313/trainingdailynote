@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   sessions: 'fitlog.sessions',
   activeSession: 'fitlog.activeSession',
   plans: 'fitlog.plans',
+  /** 新建计划时中途退出的草稿（只有填写过内容才会写） */
+  planDraft: 'fitlog.planDraft',
   customExercises: 'fitlog.customExercises',
   profile: 'fitlog.profile'
 };
