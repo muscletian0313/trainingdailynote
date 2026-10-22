@@ -8,7 +8,13 @@ export const STORAGE_KEYS = {
   /** 新建计划时中途退出的草稿（只有填写过内容才会写） */
   planDraft: 'fitlog.planDraft',
   customExercises: 'fitlog.customExercises',
-  profile: 'fitlog.profile'
+  profile: 'fitlog.profile',
+  /** 体重 & 维度：按日期一条记录 */
+  bodyRecords: 'fitlog.bodyRecords',
+  /** 体重 & 维度：目标体重（kg） */
+  bodyTarget: 'fitlog.bodyTarget',
+  /** 计划页下次显示时回到「默认展开顶部计划」的一次性标记 */
+  planResetExpand: 'fitlog.planResetExpand'
 };
 
 /** 读取 JSON 数据，失败时返回兜底值 */

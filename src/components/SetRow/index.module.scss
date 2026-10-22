@@ -6,6 +6,12 @@
   margin-top: 16rpx;
 }
 
+/* 递减组：整行缩到 90% 并右对齐，一眼区分主组 / 递减组 */
+.rowDrop {
+  width: 90%;
+  margin-left: auto;
+}
+
 .rowDone {
   .input {
     color: $color-success;
@@ -13,11 +19,16 @@
 }
 
 .index {
-  width: 52rpx;
+  width: 104rpx;
   flex-shrink: 0;
-  font-size: $font-size-sm;
+  font-size: 22rpx;
   color: $color-text-tertiary;
   text-align: center;
+}
+
+/* 递减组：编号用主色，和普通组区分开 */
+.indexDrop {
+  color: $color-primary;
 }
 
 .weightField,

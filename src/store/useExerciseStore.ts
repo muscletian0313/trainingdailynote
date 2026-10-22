@@ -148,7 +148,7 @@ export const REGION_OPTIONS: Partial<Record<MuscleGroup, { region: string; label
     { region: 'shoulders:side', label: '中束' },
     { region: 'shoulders:rear', label: '后束' },
     { region: 'shoulders:trap', label: '斜方' },
-    { region: 'shoulders:press', label: '推举' }
+    { region: 'shoulders:press', label: '肩' }
   ],
   core: [
     { region: 'core:upper', label: '上腹' },
@@ -168,6 +168,25 @@ const EXTRA_MUSCLES: Record<string, MuscleGroup[]> = {
   器械推胸: ['triceps'],
   双杠臂屈伸: ['triceps']
 };
+
+/**
+ * 从某个肌群分类里加这些动作时，变式默认值要跟着分类走。
+ * - 三头里的杠铃卧推 / 史密斯架卧推 / 器械推胸：默认「平板 + 窄握距」
+ * - 双杠臂屈伸：三头分类默认夹肘（练三头），其他分类默认开肘（练胸）
+ */
+export function variantDefaultsFor(
+  name: string,
+  muscle?: MuscleGroup
+): ExerciseVariants | undefined {
+  if (name === '双杠臂屈伸') {
+    return { elbow: muscle === 'triceps' ? 'tuck' : 'flare' };
+  }
+  if (muscle !== 'triceps') return undefined;
+  if (name === '杠铃卧推' || name === '史密斯架卧推' || name === '器械推胸') {
+    return { angle: 'flat', width: 'narrow' };
+  }
+  return undefined;
+}
 
 /**
  * 部位筛选是否命中：
@@ -199,17 +218,21 @@ export function exerciseRegionLabel(exercise: Exercise, variants?: ExerciseVaria
 }
 
 /**
- * 展示用的肌群 + 细分部位：
- * 变式可能把动作改成主练别的肌群（杠铃卧推选窄握距＝练三头），
- * 这时只显示新肌群，不再挂原来的细分部位。
+ * 展示用的肌群标签。
+ * 现在所有动作都不再细分部位（胸就是胸、背就是背），只返回大肌群；
+ * 变式仍可能把动作改成主练别的肌群（杠铃卧推选窄握距＝练三头）。
  */
 export function exerciseMuscleTag(
   exercise: Exercise,
   variants?: ExerciseVariants
 ): { muscle: MuscleGroup; label?: string } {
+  // 双杠臂屈伸：夹肘练三头，开肘练胸
+  if (exercise.name === '双杠臂屈伸' && variants?.elbow === 'tuck') {
+    return { muscle: 'triceps' };
+  }
   const muscle = variantMuscleOf(exercise.muscle, variants);
   if (muscle) return { muscle };
-  return { muscle: exercise.muscle, label: exerciseRegionLabel(exercise, variants) };
+  return { muscle: exercise.muscle };
 }
 
 /**

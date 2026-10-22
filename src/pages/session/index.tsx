@@ -9,6 +9,7 @@ import {
   showActionSheet,
   showModal,
   showToast,
+  switchTab,
   vibrate
 } from '@/utils/taro';
 import classnames from 'classnames';
@@ -18,31 +19,35 @@ import {
   REST_OPTIONS,
   cardioHasDistance,
   getFeelOption,
-  restSoundSrc
+  restSoundSrc,
+  supportsEquipmentName
 } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
+import { usePlanStore } from '@/store/usePlanStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
+import type { ExerciseVariants, SessionExercise } from '@/types';
 import SetRow from '@/components/SetRow';
 import ExercisePicker, { type PickedExercise } from '@/components/ExercisePicker';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import {
-  feelMessage,
   hasCardio,
   isAssistExercise,
   isExerciseFinished,
   isSessionPaused,
   isTimedExercise,
-  recentPerformances,
+  recentPerformancesByVariants,
   sessionCardioMin,
   sessionDoneSets,
   sessionDurationSec,
-  sessionFeelScore,
+  sessionRating,
   sessionTotalSets,
-  sessionVolume
+  sessionVolume,
+  setLabels,
+  planFromSession
 } from '@/utils/workout';
-import { variantBadges, hasAddedLoad } from '@/data/exerciseVariants';
+import { barbellBarWeight, hasAddedLoad, isDumbbellExercise, lockedVariantsOf, reconcileVariants, variantBadges, variantGroupsOf, variantOptionsOf } from '@/data/exerciseVariants';
 import { formatClock, formatSetWeight, formatTimer, formatVolume } from '@/utils/format';
 import styles from './index.module.scss';
 
@@ -69,6 +74,8 @@ const SessionPage: React.FC = () => {
   const sessions = useSessionStore((state) => state.sessions);
   const startSession = useSessionStore((state) => state.startSession);
   const finishActive = useSessionStore((state) => state.finishActive);
+  const attachPlanToSession = useSessionStore((state) => state.attachPlanToSession);
+  const addPlan = usePlanStore((state) => state.addPlan);
   const discardActive = useSessionStore((state) => state.discardActive);
   const pauseActive = useSessionStore((state) => state.pauseActive);
   const resumeActive = useSessionStore((state) => state.resumeActive);
@@ -80,6 +87,7 @@ const SessionPage: React.FC = () => {
   const replaceExerciseInActive = useSessionStore((state) => state.replaceExerciseInActive);
   const patchExerciseInActive = useSessionStore((state) => state.patchExerciseInActive);
   const addSetToActive = useSessionStore((state) => state.addSetToActive);
+  const addDropSetToActive = useSessionStore((state) => state.addDropSetToActive);
   const removeSetFromActive = useSessionStore((state) => state.removeSetFromActive);
   const updateSetInActive = useSessionStore((state) => state.updateSetInActive);
   const toggleSetDone = useSessionStore((state) => state.toggleSetDone);
@@ -92,16 +100,16 @@ const SessionPage: React.FC = () => {
   const [now, setNow] = useState(Date.now());
   /** 手动点开某个折叠动作时临时聚焦；为空则跟随自动推进 */
   const [focusKey, setFocusKey] = useState<string | null>(null);
-  /** 结束训练时弹出的训练心得评分结果 */
-  const [feelResult, setFeelResult] = useState<{ score: number | null; message: string } | null>(
-    null
-  );
   /** 长时间没操作时弹出的提醒 */
   const [idleAlert, setIdleAlert] = useState(false);
   /** 展开「历史日训」的动作 key；同一时间只展开一个 */
   const [historyKey, setHistoryKey] = useState<string | null>(null);
   /** 正在替换的动作 key（弹出动作选择器） */
   const [replaceKey, setReplaceKey] = useState<string | null>(null);
+  /** 正在修改标签 / 器械名称的动作 key */
+  const [variantEditKey, setVariantEditKey] = useState<string | null>(null);
+  const [variantDraft, setVariantDraft] = useState<ExerciseVariants>({});
+  const [equipmentDraft, setEquipmentDraft] = useState('');
   /** 最近一次操作时间（触摸页面即刷新），用 ref 避免每秒重渲染 */
   const lastActiveAt = useRef(Date.now());
   /** 暂停中不计入「没操作」，用 ref 供定时器读取最新值 */
@@ -161,12 +169,44 @@ const SessionPage: React.FC = () => {
   const historyExercise = active?.exercises.find((item) => item.key === historyKey) ?? null;
   const historyInfo = historyExercise ? getExerciseById(historyExercise.exerciseId) : undefined;
   const historyRecords = historyExercise
-    ? recentPerformances(sessions, historyExercise.exerciseId, 4)
+    ? recentPerformancesByVariants(
+        sessions,
+        historyExercise.exerciseId,
+        historyExercise.variants,
+        4
+      )
     : [];
 
   /** 正在替换的动作：选择器默认定位到同部位，并把相近动作排前面 */
   const replaceExercise = active?.exercises.find((item) => item.key === replaceKey) ?? null;
   const replaceInfo = replaceExercise ? getExerciseById(replaceExercise.exerciseId) : undefined;
+
+  /** 正在改标签的动作（点动作名或标签打开底部弹层） */
+  const variantEditExercise =
+    active?.exercises.find((item) => item.key === variantEditKey) ?? null;
+  const variantEditInfo = variantEditExercise
+    ? getExerciseById(variantEditExercise.exerciseId)
+    : undefined;
+  const variantEditName = variantEditInfo ? variantEditInfo.name : '';
+  const variantEditGroups = variantEditExercise
+    ? variantGroupsOf(variantEditName, variantDraft)
+    : [];
+
+  const openVariantEditor = (exercise: SessionExercise) => {
+    const name = getExerciseById(exercise.exerciseId)?.name ?? '';
+    setVariantEditKey(exercise.key);
+    setVariantDraft(reconcileVariants(name, { ...(exercise.variants ?? {}) }));
+    setEquipmentDraft(exercise.equipmentName ?? '');
+  };
+
+  const saveVariantEditor = () => {
+    if (!variantEditExercise) return;
+    patchExerciseInActive(variantEditExercise.key, {
+      variants: reconcileVariants(variantEditName, variantDraft),
+      equipmentName: equipmentDraft.trim() || undefined
+    });
+    setVariantEditKey(null);
+  };
 
   const startRest = (seconds: number) => {
     if (!profile.restEnabled || !seconds) return;
@@ -233,8 +273,8 @@ const SessionPage: React.FC = () => {
   };
 
   const handleAddExercises = (items: PickedExercise[]) => {
-    items.forEach(({ exerciseId, variants }) =>
-      addExerciseToActive(exerciseId, 3, profile.defaultRest || 90, variants)
+    items.forEach(({ exerciseId, variants, equipmentName }) =>
+      addExerciseToActive(exerciseId, 3, profile.defaultRest || 90, variants, equipmentName)
     );
   };
 
@@ -254,12 +294,14 @@ const SessionPage: React.FC = () => {
     key: string,
     name: string,
     restSeconds: number,
+    index: number,
     isCardio = false
   ) => {
-    // 有氧动作不设组间休息
+    const total = active?.exercises.length ?? 0;
+    // 有氧动作不设组间休息，也没有递减组
     const itemList = isCardio
-      ? ['替换动作', '删除动作']
-      : ['替换动作', '设置组间休息', '删除动作'];
+      ? ['替换动作', '上移', '下移', '删除动作']
+      : ['替换动作', '上移', '下移', '设置组间休息', '添加递减组', '删除动作'];
     showActionSheet({
       itemList,
       success: (res) => {
@@ -268,8 +310,28 @@ const SessionPage: React.FC = () => {
           setReplaceKey(key);
           return;
         }
+        if (action === '上移') {
+          if (index === 0) {
+            showToast({ title: '已经是第一个动作', icon: 'none' });
+            return;
+          }
+          moveExerciseInActive(key, -1);
+          return;
+        }
+        if (action === '下移') {
+          if (index === total - 1) {
+            showToast({ title: '已经是最后一个动作', icon: 'none' });
+            return;
+          }
+          moveExerciseInActive(key, 1);
+          return;
+        }
         if (action === '设置组间休息') {
           selectRestForExercise(key, restSeconds);
+          return;
+        }
+        if (action === '添加递减组') {
+          addDropSetToActive(key);
           return;
         }
         showModal({
@@ -305,15 +367,29 @@ const SessionPage: React.FC = () => {
         confirmText: '确定结束',
         success: (res) => {
           if (!res.confirm) return;
-          // 先根据各动作的感受算出心得评分并展示，用户确认后再真正保存
-          const score = sessionFeelScore(active);
-          if (score !== null) patchActiveMeta({ feelScore: score });
-          setFeelResult({
-            score,
-            message:
-              score !== null
-                ? feelMessage(score)
-                : '训练完成，干得漂亮！保持这个节奏，继续加油 💪'
+          // 先按「难度 + 完成度 + 相对强度」算分，保存后到计划详情页展示系统评价
+          const rating = sessionRating(active, sessions);
+          if (rating) patchActiveMeta({ feelScore: rating.score, feelScoreMax: 100 });
+          const finished = finishActive();
+          if (!finished) return;
+          if (finished.planId) {
+            // 计划训练：进计划详情页，在底部看系统评价、可写自我评价
+            redirectTo({
+              url: `/pages/plan-detail/index?id=${finished.planId}&justFinished=${finished.id}`
+            });
+            return;
+          }
+          // 自由训练：按这次练的内容生成一个计划挂上去，同样落到计划详情
+          if (!finished.exercises.length) {
+            // 一个动作都没加：不留空计划，直接回首页
+            switchTab({ url: '/pages/home/index' });
+            return;
+          }
+          const plan = planFromSession(finished);
+          addPlan(plan);
+          attachPlanToSession(finished.id, plan.id);
+          redirectTo({
+            url: `/pages/plan-detail/index?id=${plan.id}&justFinished=${finished.id}`
           });
         }
       });
@@ -344,13 +420,6 @@ const SessionPage: React.FC = () => {
         setTimeout(() => pageScrollTo({ selector: `#ex-${first.key}`, duration: 300 }), 200);
       }
     });
-  };
-
-  /** 看完心得评分后，保存并跳到训练记录 */
-  const handleSaveAndView = () => {
-    const finished = finishActive();
-    if (!finished) return;
-    redirectTo({ url: `/pages/record-detail/index?id=${finished.id}` });
   };
 
   const handleDiscard = () => {
@@ -392,7 +461,6 @@ const SessionPage: React.FC = () => {
             maxlength={20}
             onInput={(event) => renameActive(event.detail.value)}
           />
-          <Text className={styles.editHint}>✎</Text>
         </View>
         <View className={styles.summaryMetaRow}>
           <Text className={styles.summaryMeta}>
@@ -434,9 +502,7 @@ const SessionPage: React.FC = () => {
                 </Text>
               </View>
               <View className={styles.summaryStat}>
-                <Text className={styles.summaryStatLabel}>
-                  消耗热量 <Text className={styles.statEditIcon}>✎</Text>
-                </Text>
+                <Text className={styles.summaryStatLabel}>消耗热量</Text>
                 <Input
                   className={styles.statInput}
                   type="number"
@@ -449,9 +515,7 @@ const SessionPage: React.FC = () => {
                 />
               </View>
               <View className={styles.summaryStat}>
-                <Text className={styles.summaryStatLabel}>
-                  平均心率 <Text className={styles.statEditIcon}>✎</Text>
-                </Text>
+                <Text className={styles.summaryStatLabel}>平均心率</Text>
                 <Input
                   className={styles.statInput}
                   type="number"
@@ -504,6 +568,17 @@ const SessionPage: React.FC = () => {
           const addedMode = hasAddedLoad(exercise.variants);
           const muscleTag = info ? exerciseMuscleTag(info, exercise.variants) : undefined;
           const badges = variantBadges(info ? info.name : '已下架', exercise.variants);
+          /** 组编号：普通组 1、2；递减组 2-1 递减 / 2-2 递减 */
+          const labels = setLabels(exercise.sets);
+          // 名字 / 标签可点开修改
+          const variantGroups = variantGroupsOf(info ? info.name : '', exercise.variants);
+          const editableTags =
+            variantGroups.length > 0 || supportsEquipmentName(info ? info.name : '');
+          // 杠铃类动作固定按「杆+总杠铃片」记重，杆重按杠铃 / 小直杠 区分
+          const baseVariants = exercise.variants ?? {};
+          const barbellLoad = barbellBarWeight(info ? info.name : '', baseVariants);
+          // 哑铃类动作按单只哑铃记重
+          const dumbbellLoad = isDumbbellExercise(info ? info.name : '', baseVariants);
           // 当前动作不显示摘要文案（下面就是组表头，避免卡片太挤）；其余显示进度
           const metaText = isCardio
             ? feelOption
@@ -522,19 +597,30 @@ const SessionPage: React.FC = () => {
                 styles.exerciseCard,
                 isCurrent ? styles.exerciseCardActive : styles.exerciseCardCollapsed
               )}
+              onClick={() => {
+                // 收起状态：点卡片任意地方都能展开
+                if (!isCurrent) setFocusKey(exercise.key);
+              }}
             >
-              <View
-                className={styles.exerciseHeader}
-                onClick={() => {
-                  if (!isCurrent) setFocusKey(exercise.key);
-                }}
-              >
+              <View className={styles.exerciseHeader}>
                 <View className={styles.orderBadge}>
                   <Text className={styles.orderBadgeText}>{index + 1}</Text>
                 </View>
                 <View className={styles.exerciseTitleWrap}>
                   <View className={styles.exerciseNameRow}>
-                    <Text className={styles.exerciseName}>{info ? info.name : '已下架'}</Text>
+                    <Text
+                      className={styles.exerciseName}
+                      onClick={(event) => {
+                        // 折叠状态：先展开这个动作的配置，不直接进标签编辑
+                        if (!isCurrent) return;
+                        if (!editableTags) return;
+                        event.stopPropagation();
+                        openVariantEditor(exercise);
+                      }}
+                    >
+                      {info ? info.name : '已下架'}
+                      {exercise.equipmentName ? `（${exercise.equipmentName}）` : ''}
+                    </Text>
                     {muscleTag ? (
                       <MuscleTag
                         muscle={muscleTag.muscle}
@@ -543,17 +629,30 @@ const SessionPage: React.FC = () => {
                       />
                     ) : null}
                   </View>
-                  <View className={styles.exerciseMeta}>
-                    {badges.map((badge, badgeIndex) => (
-                      <Text
-                        key={badge.label}
-                        className={
-                          badge.locked ? styles.exerciseVariantLocked : styles.exerciseVariant
-                        }
-                      >
-                        {badgeIndex > 0 ? ` · ${badge.label}` : badge.label}
-                      </Text>
-                    ))}
+                  <View
+                    className={styles.exerciseMeta}
+                    onClick={(event) => {
+                      // 折叠状态：先展开这个动作的配置，不直接进标签编辑
+                      if (!isCurrent) return;
+                      if (!editableTags) return;
+                      event.stopPropagation();
+                      openVariantEditor(exercise);
+                    }}
+                  >
+                    {badges.length ? (
+                      <View className={styles.exerciseTags}>
+                        {badges.map((badge) => (
+                          <Text
+                            key={badge.label}
+                            className={
+                              badge.locked ? styles.exerciseTagLocked : styles.exerciseTag
+                            }
+                          >
+                            {badge.label}
+                          </Text>
+                        ))}
+                      </View>
+                    ) : null}
                     {metaText ? <Text className={styles.exerciseMetaText}>{metaText}</Text> : null}
                   </View>
                 </View>
@@ -579,29 +678,6 @@ const SessionPage: React.FC = () => {
                       </Text>
                     </View>
                     <View
-                      className={classnames(styles.iconBtn, index === 0 && styles.iconBtnDisabled)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (index > 0) moveExerciseInActive(exercise.key, -1);
-                      }}
-                    >
-                      <Text className={styles.iconBtnText}>↑</Text>
-                    </View>
-                    <View
-                      className={classnames(
-                        styles.iconBtn,
-                        index === active.exercises.length - 1 && styles.iconBtnDisabled
-                      )}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (index < active.exercises.length - 1) {
-                          moveExerciseInActive(exercise.key, 1);
-                        }
-                      }}
-                    >
-                      <Text className={styles.iconBtnText}>↓</Text>
-                    </View>
-                    <View
                       className={styles.iconBtn}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -609,6 +685,7 @@ const SessionPage: React.FC = () => {
                           exercise.key,
                           info ? info.name : '该动作',
                           exercise.restSeconds,
+                          index,
                           isCardio
                         );
                       }}
@@ -708,7 +785,13 @@ const SessionPage: React.FC = () => {
                   <View className={styles.setHead}>
                     <Text className={styles.headIndex}>组</Text>
                     <Text className={styles.headWeight}>
-                      {addedMode ? '自重+负重(kg)' : '重量(kg)'}
+                      {barbellLoad
+                        ? `重量（杆${barbellLoad}kg+总杠铃片）`
+                        : dumbbellLoad
+                          ? '重量（单只）'
+                          : addedMode
+                            ? '自重+负重(kg)'
+                            : '重量(kg)'}
                     </Text>
                     <Text className={styles.headTimes} />
                     <Text className={styles.headReps}>
@@ -721,7 +804,7 @@ const SessionPage: React.FC = () => {
                   {exercise.sets.map((set, setIndex) => (
                     <SetRow
                       key={set.id}
-                      index={setIndex + 1}
+                      label={labels[setIndex]}
                       set={set}
                       assist={assist}
                       addedMode={addedMode}
@@ -749,22 +832,33 @@ const SessionPage: React.FC = () => {
                     {exercise.feel ? '这次感觉怎么样？（可修改）' : '这个动作练完了，感觉如何？'}
                   </Text>
                   <View className={styles.feelRow}>
-                    {FEEL_OPTIONS.map((option) => (
-                      <View
-                        key={option.value}
-                        className={classnames(
-                          styles.feelChip,
-                          exercise.feel === option.value && styles.feelChipActive
-                        )}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleFeel(exercise.key, option.value);
-                        }}
-                      >
-                        <Text className={styles.feelEmoji}>{option.emoji}</Text>
-                        <Text className={styles.feelLabel}>{option.label}</Text>
-                      </View>
-                    ))}
+                    {FEEL_OPTIONS.map((option) => {
+                      const on = exercise.feel === option.value;
+                      return (
+                        <View
+                          key={option.value}
+                          className={styles.feelItem}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleFeel(exercise.key, option.value);
+                          }}
+                        >
+                          <View
+                            className={styles.feelDot}
+                            style={{
+                              borderColor: option.color,
+                              backgroundColor: on ? option.color : 'transparent'
+                            }}
+                          />
+                          <Text
+                            className={styles.feelLabel}
+                            style={on ? { color: option.color } : undefined}
+                          >
+                            {option.label}
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
                   {isCardio ? (
                     <Text
@@ -793,10 +887,6 @@ const SessionPage: React.FC = () => {
           />
         </View>
       )}
-
-      <View className={styles.addExercise} onClick={() => setPickerVisible(true)}>
-        <Text className={styles.addExerciseText}>+ 添加动作</Text>
-      </View>
 
       <View className={styles.giveUp} onClick={handleDiscard}>
         <Text className={styles.giveUpText}>放弃本次训练</Text>
@@ -891,11 +981,103 @@ const SessionPage: React.FC = () => {
         onConfirm={(items) => {
           const picked = items[0];
           if (replaceKey && picked) {
-            replaceExerciseInActive(replaceKey, picked.exerciseId, picked.variants);
+            replaceExerciseInActive(
+              replaceKey,
+              picked.exerciseId,
+              picked.variants,
+              picked.equipmentName
+            );
           }
           setReplaceKey(null);
         }}
       />
+
+      {/* 标签编辑器：点动作名或标签打开，改变式 / 器械名称 */}
+      {variantEditExercise ? (
+        <View className={styles.variantMask} onClick={() => setVariantEditKey(null)}>
+          <View className={styles.variantSheet} onClick={(event) => event.stopPropagation()}>
+            <View className={styles.variantHead}>
+              <View className={styles.variantHeadMain}>
+                <Text className={styles.variantTitle}>{variantEditName}</Text>
+                {supportsEquipmentName(variantEditName) ? (
+                  <Input
+                    className={styles.variantHeadInput}
+                    value={equipmentDraft}
+                    maxlength={12}
+                    placeholder="选填具体名称。例如鹦鹉螺、海豹划船"
+                    placeholderStyle="color:#4a4a55"
+                    onInput={(event) => setEquipmentDraft(event.detail.value)}
+                  />
+                ) : null}
+              </View>
+              <View className={styles.variantClose} onClick={() => setVariantEditKey(null)}>
+                <Text className={styles.variantCloseText}>✕</Text>
+              </View>
+            </View>
+
+            <View className={styles.variantBody}>
+              {variantEditGroups.map((group) => (
+                <View key={group.key} className={styles.variantRow}>
+                  <Text className={styles.variantLabel}>{group.label}</Text>
+                  <View className={styles.variantOptions}>
+                    {variantOptionsOf(variantEditName, group.key, variantDraft).map((option) => {
+                      const active = variantDraft[group.key] === option.key;
+                      return (
+                        <View
+                          key={option.key}
+                          className={classnames(
+                            styles.variantChip,
+                            active && styles.variantChipActive
+                          )}
+                          onClick={() =>
+                            setVariantDraft((prev) =>
+                              reconcileVariants(variantEditName, {
+                                ...prev,
+                                [group.key]: option.key
+                              })
+                            )
+                          }
+                        >
+                          <Text
+                            className={classnames(
+                              styles.variantChipText,
+                              active && styles.variantChipTextActive
+                            )}
+                          >
+                            {option.label}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+
+              {/* 写死的变式：灰着显示，只是让用户看 */}
+              {lockedVariantsOf(variantEditName, variantDraft).map((locked) => (
+                <View key={locked.groupKey} className={styles.variantRow}>
+                  <Text className={styles.variantLabel}>{locked.groupLabel}</Text>
+                  <View className={styles.variantOptions}>
+                    <View className={classnames(styles.variantChip, styles.variantChipLocked)}>
+                      <Text
+                        className={classnames(styles.variantChipText, styles.variantChipTextLocked)}
+                      >
+                        {locked.optionLabel}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <View className={styles.variantActions}>
+              <View className={styles.variantConfirm} onClick={saveVariantEditor}>
+                <Text className={styles.variantConfirmText}>确定</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {/* 10 分钟没有任何操作：确认是否还在训练，避免忘了结束一直计时 */}
       {idleAlert ? (
@@ -984,29 +1166,6 @@ const SessionPage: React.FC = () => {
                 还没有「{historyInfo ? historyInfo.name : '该动作'}」的历史记录
               </Text>
             )}
-          </View>
-        </View>
-      ) : null}
-
-      {/* 结束训练后的训练心得评分 */}
-      {feelResult ? (
-        <View className={styles.resultMask}>
-          <View className={styles.resultCard}>
-            <Text className={styles.resultTitle}>训练心得</Text>
-            {feelResult.score !== null ? (
-              <>
-                <View className={styles.resultScoreRow}>
-                  <Text className={styles.resultScore}>{feelResult.score}</Text>
-                  <Text className={styles.resultScoreUnit}>/ 10 分</Text>
-                </View>
-                <Text className={styles.resultMessage}>{feelResult.message}</Text>
-              </>
-            ) : (
-              <Text className={styles.resultMessage}>{feelResult.message}</Text>
-            )}
-            <View className={styles.resultBtn} onClick={handleSaveAndView}>
-              <Text className={styles.resultBtnText}>保存并查看记录</Text>
-            </View>
           </View>
         </View>
       ) : null}

@@ -1,0 +1,323 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-sm $page-padding 60rpx;
+  box-sizing: border-box;
+  background: $color-bg-page;
+}
+
+/* 顶部：日期 + 单位切换 */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-xs 0;
+}
+
+.dateBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.dateText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+.dateHint {
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.unitSwitch {
+  display: flex;
+  padding: 4rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+}
+
+.unitItem {
+  height: 52rpx;
+  padding: 0 26rpx;
+  border-radius: $radius-round;
+  @include flex-center;
+}
+
+.unitItemActive {
+  background: $color-primary-soft;
+}
+
+.unitText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.unitTextActive {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+/* 数据 / 图表 / 日历 */
+.tabs {
+  display: flex;
+  padding: 6rpx;
+  margin-top: $spacing-xs;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+}
+
+.tab {
+  flex: 1;
+  height: 60rpx;
+  border-radius: $radius-round;
+  @include flex-center;
+}
+
+.tabActive {
+  background: $color-primary-soft;
+}
+
+.tabText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.tabTextActive {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+/* 三张数据卡 */
+.stats {
+  display: flex;
+  margin-top: $spacing-md;
+}
+
+.statCard {
+  flex: 1;
+  min-width: 0;
+  padding: $spacing-md $spacing-sm;
+  margin-right: $spacing-sm;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+
+  &:last-child {
+    margin-right: 0;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.statLabel {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statValueRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 10rpx;
+}
+
+.statValue {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: 1.1;
+}
+
+.statUnit {
+  margin-left: 4rpx;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-secondary;
+}
+
+.statEdit {
+  display: flex;
+  align-items: baseline;
+  margin-top: 10rpx;
+}
+
+.statInput {
+  flex: 1;
+  min-width: 0;
+  height: 46rpx;
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+/* 剪影 + 四周的围度标签 */
+.figureWrap {
+  position: relative;
+  height: 850rpx;
+  margin-top: $spacing-lg;
+}
+
+.figure {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 340rpx;
+  height: 850rpx;
+  transform: translateX(-50%);
+  opacity: 0.92;
+}
+
+.mark {
+  position: absolute;
+  width: 156rpx;
+}
+
+.markLeft {
+  right: calc(50% + 182rpx);
+}
+
+.markRight {
+  left: calc(50% + 182rpx);
+}
+
+.markHead {
+  display: flex;
+  align-items: center;
+  height: 56rpx;
+}
+
+.markLeft .markHead {
+  justify-content: flex-end;
+}
+
+.markRight .markHead {
+  justify-content: flex-start;
+}
+
+.markLabel {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+/* 成对围度的名字后面留出和输入框等宽的空位，保证各名称上下对齐 */
+.inputSlot {
+  width: 84rpx;
+  height: 56rpx;
+  margin-left: 6rpx;
+}
+
+/* 标签 → 身体圆点 的水平引线 */
+.line {
+  position: absolute;
+  height: 0;
+  border-top: 2rpx solid rgba(255, 255, 255, 0.22);
+  transform: translateY(-50%);
+}
+
+/* 身体上的标记圆点 */
+.dot {
+  position: absolute;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: $color-primary;
+  box-shadow: 0 0 12rpx rgba(255, 138, 42, 0.9);
+  transform: translate(-50%, -50%);
+}
+
+/* 胸围 / 腰围：直接标在身体上 */
+.bodyMark {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  padding: 0 10rpx;
+  border-radius: $radius-round;
+  background: rgba(12, 12, 16, 0.82);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  transform: translateX(-50%);
+}
+
+.bodyMarkLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+.bodyInput {
+  width: 62rpx;
+  height: 56rpx;
+  margin: 0 4rpx;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  text-align: center;
+}
+
+.markInput {
+  width: 84rpx;
+  height: 56rpx;
+  margin-left: 6rpx;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.markLeft .markInput {
+  text-align: right;
+}
+
+.markPair {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 56rpx;
+}
+
+.markRight .markPair {
+  justify-content: flex-start;
+}
+
+.pairTag {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.hint {
+  display: block;
+  margin-top: $spacing-lg;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  text-align: center;
+}
+
+/* 图表 / 日历占位 */
+.placeholder {
+  margin-top: $spacing-lg;
+  padding: 80rpx $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  text-align: center;
+}
+
+.placeholderTitle {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+.placeholderDesc {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1.6;
+}

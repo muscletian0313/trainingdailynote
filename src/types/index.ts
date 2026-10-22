@@ -51,6 +51,8 @@ export interface WorkoutSet {
   resistance?: string;
   /** 有氧动作：自定义强度（老数据，如「中速」） */
   intensity?: string;
+  /** 递减组：属于上一组，展示成「2-1 递减 / 2-2 递减」 */
+  drop?: boolean;
 }
 
 /**
@@ -66,6 +68,8 @@ export interface SessionExercise {
   exerciseId: string;
   /** 变式选择（握法/握距这类），没选就没有 */
   variants?: ExerciseVariants;
+  /** 器械名称（选填）：显示成「器械划船（鹦鹉螺）」 */
+  equipmentName?: string;
   sets: WorkoutSet[];
   /** 目标组数 */
   targetSets: number;
@@ -92,8 +96,12 @@ export interface Session {
   calories?: number;
   /** 有氧训练：平均心率 bpm（玩家手填） */
   avgHeartRate?: number;
-  /** 训练心得评分（1-10，结束训练时由各动作感受换算而来） */
+  /** 训练心得评分（结束训练时自动计算；新记录为 0-100，老记录是 1-10） */
   feelScore?: number;
+  /** 评分满分：新记录为 100；老记录没有这个字段，按 10 处理 */
+  feelScoreMax?: number;
+  /** 自我评价（结束训练后可填，选填） */
+  selfNote?: string;
 }
 
 /** 计划里的一组（支持每组不同重量/次数，例如递减组） */
@@ -105,6 +113,8 @@ export interface PlanSet {
   addedWeight?: number;
   /** 目标次数 */
   reps: number;
+  /** 递减组：属于上一组，展示成「2-1 递减 / 2-2 递减」 */
+  drop?: boolean;
 }
 
 /** 计划中的一个动作（模板） */
@@ -118,6 +128,8 @@ export interface PlanExercise {
   restSeconds: number;
   /** 有氧动作：目标时长（分钟） */
   targetDurationMin?: number;
+  /** 器械名称（选填）：显示成「器械划船（鹦鹉螺）」 */
+  equipmentName?: string;
 }
 
 /** 训练计划 */
@@ -171,4 +183,32 @@ export interface UserProfile {
   trainingMonths?: number;
   /** 每周训练频次（次/周） */
   trainingFrequency?: number;
+}
+
+/**
+ * 体重 & 维度记录：同一天只有一条（再填就是覆盖）。
+ * 体重单位统一存 kg，页面上的「斤」只是展示换算（1kg = 2 斤）。
+ */
+export interface BodyRecord {
+  id: string;
+  /** 日期 YYYY-MM-DD */
+  date: string;
+  /** 体重（kg） */
+  weight?: number;
+  /** 体脂率（%） */
+  bodyFat?: number;
+  /** 以下围度单位都是 cm */
+  neck?: number;
+  shoulder?: number;
+  chest?: number;
+  waist?: number;
+  hip?: number;
+  thighLeft?: number;
+  thighRight?: number;
+  armLeft?: number;
+  armRight?: number;
+  forearmLeft?: number;
+  forearmRight?: number;
+  calfLeft?: number;
+  calfRight?: number;
 }

@@ -30,16 +30,6 @@
   color: $color-text-primary;
 }
 
-.editHint {
-  flex-shrink: 0;
-  /* 镜像成「右手拿笔」 */
-  display: inline-block;
-  transform: scaleX(-1);
-  font-size: $font-size-sm;
-  color: $color-text-tertiary;
-  margin-left: $spacing-sm;
-}
-
 .summaryMeta {
   display: block;
   margin-top: 8rpx;
@@ -150,15 +140,6 @@
   font-size: $font-size-lg;
   font-weight: $font-weight-semibold;
   color: $color-text-primary;
-}
-
-/* 手填项的小铅笔提示 */
-.statEditIcon {
-  /* 镜像成「右手拿笔」 */
-  display: inline-block;
-  transform: scaleX(-1);
-  font-size: $font-size-xs;
-  color: $color-primary;
 }
 
 .progressTrack {
@@ -277,24 +258,28 @@
   margin-left: $spacing-sm;
 }
 
-/* 动作名 + 细分部位标签同一行（标签紧跟名字右边） */
+/* 动作名 + 细分部位标签同一行（标签紧跟名字右边；名字太长就换行，不省略） */
 .exerciseNameRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  /* 部位标签固定和动作名同一行，名字太长就自己换行 */
+  flex-wrap: nowrap;
 }
 
 .exerciseName {
-  flex-shrink: 1;
+  flex: 1;
   min-width: 0;
   font-size: $font-size-lg;
   font-weight: $font-weight-semibold;
+  line-height: 1.3;
   color: $color-text-primary;
-  @include text-ellipsis;
+  word-break: break-all;
 }
 
 .exerciseNameTag {
   flex-shrink: 0;
   margin-left: $spacing-sm;
+  margin-top: 2rpx;
 }
 
 .exerciseMeta {
@@ -303,25 +288,43 @@
   margin-top: 6rpx;
 }
 
-.exerciseMetaText {
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-  margin-left: $spacing-sm;
-  @include text-ellipsis;
+/* 变式标签：和计划详情一致的胶囊样式，放不下自动换行、最多两行 */
+.exerciseTags {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 100rpx;
+  overflow: hidden;
 }
 
-/* 变式标注：对握 · 窄距 */
-.exerciseVariant {
-  font-size: $font-size-xs;
+.exerciseTag {
+  margin: 0 8rpx 6rpx 0;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.12);
+  font-size: $font-size-sm;
   color: $color-primary;
-  @include text-ellipsis;
+  line-height: 1.6;
 }
 
 /* 写死的变式：灰色，只用于展示 */
-.exerciseVariantLocked {
+.exerciseTagLocked {
+  margin: 0 8rpx 6rpx 0;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  line-height: 1.6;
+}
+
+.exerciseMetaText {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
   font-size: $font-size-xs;
   color: $color-text-tertiary;
-  @include text-ellipsis;
+  white-space: nowrap;
 }
 
 .exerciseActions {
@@ -332,15 +335,19 @@
 }
 
 .iconBtn {
-  width: 52rpx;
-  height: 52rpx;
+  width: 56rpx;
+  height: 56rpx;
   margin-left: 6rpx;
-  border-radius: $radius-sm;
-  background: $color-bg-hover;
+  border-radius: 14rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #32323c 0%, #24242c 100%);
+  box-shadow:
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.06),
+    0 4rpx 10rpx rgba(0, 0, 0, 0.28);
   @include flex-center;
 
   &:active {
-    background: $color-border;
+    background: #3a3a46;
   }
 }
 
@@ -349,15 +356,17 @@
 }
 
 .iconBtnText {
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
+  font-size: 29rpx;
+  font-weight: $font-weight-bold;
+  letter-spacing: 1rpx;
+  color: #d5d5df;
   line-height: 1;
 }
 
 /* 历史日训入口 */
 .historyBtn {
   flex-shrink: 0;
-  height: 52rpx;
+  height: 56rpx;
   padding: 0 14rpx;
   margin-left: 6rpx;
   border-radius: $radius-sm;
@@ -514,7 +523,7 @@
 }
 
 .headIndex {
-  width: 52rpx;
+  width: 104rpx;
   flex-shrink: 0;
   text-align: center;
   font-size: $font-size-xs;
@@ -575,26 +584,6 @@
 .addSetText {
   font-size: $font-size-sm;
   color: $color-text-secondary;
-}
-
-/* 添加动作 */
-.addExercise {
-  margin-top: $spacing-md;
-  height: 108rpx;
-  border-radius: $radius-lg;
-  border: 2rpx dashed rgba(255, 107, 44, 0.5);
-  background: rgba(255, 107, 44, 0.06);
-  @include flex-center;
-
-  &:active {
-    background: rgba(255, 107, 44, 0.12);
-  }
-}
-
-.addExerciseText {
-  font-size: $font-size-md;
-  font-weight: $font-weight-medium;
-  color: $color-primary;
 }
 
 /* 放弃训练 */
@@ -963,48 +952,35 @@
   text-align: right;
 }
 
-.feelChip {
+/* 红绿灯三选一：未选中是彩色圆环，选中是实心圆 */
+.feelItem {
   flex: 1;
   min-width: 0;
-  padding: 12rpx 2rpx;
-  margin-left: 8rpx;
-  border-radius: $radius-sm;
-  border: 2rpx solid transparent;
-  background: $color-bg-hover;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: all $transition-fast;
-
-  &:first-child {
-    margin-left: 0;
-  }
+  padding: 8rpx 0;
 
   &:active {
-    transform: scale(0.96);
+    opacity: 0.8;
   }
 }
 
-.feelChipActive {
-  border-color: $color-primary;
-  background: rgba(255, 107, 44, 0.2);
-
-  .feelLabel {
-    color: $color-primary;
-  }
-}
-
-.feelEmoji {
-  font-size: 34rpx;
-  line-height: 1.1;
+.feelDot {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 4rpx solid transparent;
+  box-sizing: border-box;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
 
 .feelLabel {
-  margin-top: 4rpx;
-  font-size: 20rpx;
+  margin-left: 12rpx;
+  font-size: $font-size-sm;
   color: $color-text-tertiary;
   white-space: nowrap;
+  transition: color 0.18s ease;
 }
 
 /* 结束训练：训练心得评分弹窗 */
@@ -1081,5 +1057,179 @@
 .resultBtnText {
   font-size: $font-size-md;
   font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+/* 标签编辑器：底部弹层（改变式 / 器械名称） */
+.variantMask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.62);
+  display: flex;
+  align-items: flex-end;
+}
+
+.variantSheet {
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  border-radius: $radius-lg $radius-lg 0 0;
+  background: $color-bg-card;
+  animation: variantSlideUp 0.22s ease-out;
+}
+
+@keyframes variantSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.variantHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg $page-padding $spacing-md;
+  background: $color-bg-card;
+}
+
+.variantBody {
+  padding: 0 $page-padding;
+  box-sizing: border-box;
+}
+
+/* 标题 + 器械名称并排：器械名称吃掉剩余宽度，紧贴在动作名右边 */
+.variantHeadMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  margin-right: $spacing-sm;
+}
+
+.variantTitle {
+  flex-shrink: 0;
+  max-width: 50%;
+  font-size: 37rpx;
+  line-height: 1.2;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.variantHeadInput {
+  flex: 1;
+  min-width: 0;
+  height: 60rpx;
+  margin-left: $spacing-md;
+  padding: 0 $spacing-sm;
+  box-sizing: border-box;
+  align-self: center;
+  border-radius: $radius-sm;
+  background: $color-bg-input;
+  font-size: $font-size-xs;
+  color: $color-text-primary;
+}
+
+.variantClose {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  @include flex-center;
+}
+
+.variantCloseText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.variantRow {
+  margin-bottom: $spacing-md;
+}
+
+.variantLabel {
+  display: block;
+  margin-bottom: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.variantOptions {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.variantChip {
+  height: 64rpx;
+  padding: 0 28rpx;
+  margin: 0 $spacing-sm $spacing-sm 0;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-border;
+  @include flex-center;
+  transition: all $transition-fast;
+}
+
+.variantChipActive {
+  border-color: $color-primary;
+  background: $color-primary-soft;
+}
+
+.variantChipText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+.variantChipTextActive {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.variantChipLocked {
+  border-style: dashed;
+  background: $color-bg-hover;
+}
+
+.variantChipTextLocked {
+  color: $color-text-tertiary;
+}
+
+.variantActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: $spacing-md $page-padding calc(env(safe-area-inset-bottom) + 24rpx);
+  border-top: 2rpx solid $color-divider;
+  background: $color-bg-card;
+}
+
+.variantConfirm {
+  flex-shrink: 0;
+  min-width: 200rpx;
+  height: 80rpx;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  @include flex-center;
+}
+
+.variantConfirmText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
   color: $color-text-inverse;
 }

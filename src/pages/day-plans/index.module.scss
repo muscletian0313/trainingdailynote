@@ -1,0 +1,158 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 0 $page-padding;
+  background: linear-gradient(180deg, rgba(255, 107, 44, 0.08) 0%, $color-bg-page 240rpx);
+}
+
+.header {
+  flex-shrink: 0;
+  padding: $spacing-lg 0 $spacing-md;
+}
+
+.title {
+  display: block;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);
+  box-sizing: border-box;
+}
+
+.card {
+  margin-bottom: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+}
+
+.cardName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.doneBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: rgba(52, 211, 153, 0.16);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+  line-height: 1.6;
+}
+
+.runningBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.18);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  line-height: 1.6;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 12rpx;
+}
+
+.tag {
+  margin: 0 8rpx 8rpx 0;
+}
+
+.noMuscle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 2rpx solid $color-divider;
+}
+
+.statItem {
+  flex: 1;
+  min-width: 0;
+  @include flex-center;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: 1.2;
+}
+
+.statUnit {
+  margin-left: 4rpx;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+}
+
+.statLabel {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statDivider {
+  width: 2rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+  background: $color-divider;
+}
+
+.time {
+  display: block;
+  margin-top: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.empty {
+  margin-top: $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}

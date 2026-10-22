@@ -7,8 +7,6 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useExerciseStore } from '@/store/useExerciseStore';
-import { totalVolume } from '@/utils/workout';
-import { formatVolume } from '@/utils/format';
 import styles from './index.module.scss';
 
 const AVATARS = ['🏋️', '💪', '🔥', '🥇', '⚡', '🐯'];
@@ -111,20 +109,6 @@ const MinePage: React.FC = () => {
               onInput={(event) => updateProfile({ nickname: event.detail.value })}
             />
             <Text className={styles.nicknameHint}>点击昵称或头像可以修改</Text>
-          </View>
-        </View>
-
-        <View className={styles.profileStats}>
-          <View className={styles.profileStat}>
-            <Text className={styles.profileStatValue}>{sessions.length}</Text>
-            <Text className={styles.profileStatLabel}>累计训练(次)</Text>
-          </View>
-          <View className={styles.profileStatDivider} />
-          <View className={styles.profileStat}>
-            <Text className={classnames(styles.profileStatValue, styles.profileStatValueAccent)}>
-              {formatVolume(totalVolume(sessions))}
-            </Text>
-            <Text className={styles.profileStatLabel}>累计容量(kg)</Text>
           </View>
         </View>
       </View>

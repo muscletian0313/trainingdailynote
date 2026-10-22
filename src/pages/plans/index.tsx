@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, Button } from '@tarojs/components';
-import { useDidShow, useShareAppMessage } from '@tarojs/taro';
+import { showShareMenu, useDidShow, useShareAppMessage } from '@tarojs/taro';
 import { navigateTo, showActionSheet, showModal, showToast } from '@/utils/taro';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
@@ -15,7 +15,8 @@ import {
 } from '@/utils/workout';
 import { dayLabel, formatVolume, isDateToday, weekdayLabel } from '@/utils/format';
 import { clearPlanDraft, loadPlanDraft, type PlanDraft } from '@/utils/planDraft';
-import { draftToPlan, encodePlan } from '@/utils/planShare';
+import { loadJSON, removeKey, STORAGE_KEYS } from '@/utils/storage';
+import { draftToPlan, encodePlan, shareExercisesOf } from '@/utils/planShare';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import styles from './index.module.scss';
@@ -30,19 +31,41 @@ const PlansPage: React.FC = () => {
   const active = useSessionStore((state) => state.active);
   const startSession = useSessionStore((state) => state.startSession);
   const discardActive = useSessionStore((state) => state.discardActive);
+  const deleteSessionsByPlan = useSessionStore((state) => state.deleteSessionsByPlan);
 
   /** 新建计划没写完留下的草稿，单独一张卡 */
   const [draft, setDraft] = useState<PlanDraft | null>(() => loadPlanDraft());
+  /** 当前展开的卡片：默认展开置顶那一个，点其他卡片时手风琴切换 */
+  const [openKey, setOpenKey] = useState<string | null>(null);
   // 从制定计划页返回（或保存成正式计划）后要重新读一次
   useDidShow(() => {
     setDraft(loadPlanDraft());
+    // 普通「返回」保留原来的展开项；只有复制 / 分享后主动回来才重置到顶部
+    if (loadJSON<boolean>(STORAGE_KEYS.planResetExpand, false)) {
+      setOpenKey(null);
+      removeKey(STORAGE_KEYS.planResetExpand);
+    }
+    // 确保右上角「···」菜单里有「转发」入口
+    showShareMenu({ menus: ['shareAppMessage'] });
   });
 
   /** 草稿卡上的「分享」按钮被按下（右上角 ··· 转发不属于分享草稿） */
   const shareDraftRef = useRef(false);
+  /** 正式计划卡上的「分享」按钮被按下：记录要分享哪份计划 */
+  const sharePlanRef = useRef<Plan | null>(null);
 
   // 草稿也支持分享：对方点开即可保存成自己的计划
   useShareAppMessage(() => {
+    const sharedPlan = sharePlanRef.current;
+    if (sharedPlan) {
+      sharePlanRef.current = null;
+      // 页面上显示什么就分享什么：已练完的用实际记录，没练的用计划模板
+      const exercises = shareExercisesOf(sharedPlan, lastSessionByPlan.get(sharedPlan.id));
+      return {
+        title: `分享训练计划：${sharedPlan.name}`,
+        path: `/pages/plan-share/index?d=${encodePlan({ ...sharedPlan, exercises })}`
+      };
+    }
     if (shareDraftRef.current && draft && draft.exercises.length) {
       shareDraftRef.current = false;
       return {
@@ -135,14 +158,22 @@ const PlansPage: React.FC = () => {
   };
 
   const handleMore = (plan: Plan) => {
-    // 已完成的计划只能查看，不再提供「开始训练」与「编辑计划」
-    const itemList = isPlanFinished(sessions, plan.id)
+    const finished = isPlanFinished(sessions, plan.id);
+    const running = active?.planId === plan.id;
+    // 已完成的计划只能查看；正在训练中的给「继续训练」，避免再弹冲突提示
+    const itemList = finished
       ? ['删除计划']
-      : ['开始训练', '编辑计划', '删除计划'];
+      : running
+        ? ['继续训练', '编辑计划', '删除计划']
+        : ['开始训练', '编辑计划', '删除计划'];
     showActionSheet({
       itemList,
       success: (res) => {
         const action = itemList[res.tapIndex];
+        if (action === '继续训练') {
+          navigateTo({ url: '/pages/session/index' });
+          return;
+        }
         if (action === '开始训练') {
           if (!plan.exercises.length) {
             showToast({ title: '请先为计划添加动作', icon: 'none' });
@@ -155,13 +186,24 @@ const PlansPage: React.FC = () => {
           openEdit(plan.id);
           return;
         }
+        const inProgress = active?.planId === plan.id;
+        const recordCount = sessions.filter((session) => session.planId === plan.id).length;
+        // 删计划 = 彻底抹掉：这条计划的训练记录也一起删
+        const extra: string[] = [];
+        if (recordCount) extra.push(`该计划的 ${recordCount} 条训练记录`);
+        if (inProgress) extra.push('正在进行的训练');
         showModal({
           title: '删除计划',
-          content: `确定删除「${plan.name}」吗？`,
+          content: extra.length
+            ? `确定删除「${plan.name}」吗？${extra.join('和')}也会一起删除，且不可恢复。`
+            : `确定删除「${plan.name}」吗？`,
           confirmColor: '#f8736a',
           success: (modalRes) => {
             if (modalRes.confirm) {
               removePlan(plan.id);
+              deleteSessionsByPlan(plan.id);
+              // 计划删了就别再让这次训练挂在上方，否则首页会一直显示「进行中」
+              if (inProgress) discardActive();
               showToast({ title: '已删除', icon: 'none' });
             }
           }
@@ -178,6 +220,134 @@ const PlansPage: React.FC = () => {
       )
     : [];
 
+  /** 已完成的计划折叠展示（仍只统计近 7 天） */
+  const finishedPlans = recentPlans.filter((plan) => isPlanFinished(sessions, plan.id));
+  const pendingPlans = recentPlans.filter((plan) => !isPlanFinished(sessions, plan.id));
+
+  /** 列表顺序：待完成 → 草稿 → 已完成；默认展开置顶那一个 */
+  const DRAFT_KEY = '__draft__';
+  const orderedKeys = [
+    ...pendingPlans.map((plan) => plan.id),
+    ...(draft ? [DRAFT_KEY] : []),
+    ...finishedPlans.map((plan) => plan.id)
+  ];
+  const activeOpenKey =
+    openKey && orderedKeys.includes(openKey) ? openKey : orderedKeys[0] ?? null;
+
+  /** 待完成 / 已完成共用的计划卡片渲染 */
+  const renderPlanCard = (plan: Plan) => {
+    const isToday = isDateToday(plan.startDate);
+    const finished = isPlanFinished(sessions, plan.id);
+    const running = active?.planId === plan.id;
+    const ts = dayjs(plan.startDate).valueOf();
+    const last = lastSessionByPlan.get(plan.id);
+    const muscles = planMuscleTags(plan);
+    /** 手风琴：只有当前展开的一张卡显示详情 */
+    const expanded = activeOpenKey === plan.id;
+    return (
+      <View
+        key={plan.id}
+        className={classnames(styles.card, isToday && styles.cardToday)}
+        onClick={() => {
+          if (!expanded) {
+            setOpenKey(plan.id);
+            return;
+          }
+          openDetail(plan.id);
+        }}
+      >
+        <View className={styles.cardTop}>
+          <View className={styles.dateWrap}>
+            <Text className={styles.dateMain}>{dayjs(plan.startDate).format('M月D日')}</Text>
+            <Text className={styles.dateSub}>
+              {dayLabel(ts)} {weekdayLabel(ts)}
+            </Text>
+          </View>
+          <View className={styles.cardTopActions}>
+            {plan.exercises.length ? (
+              <Button
+                className={styles.draftShareBtn}
+                openType="share"
+                onClick={(event) => event.stopPropagation()}
+                onTouchStart={() => {
+                  sharePlanRef.current = plan;
+                }}
+              >
+                <Text className={styles.draftShareText}>分享</Text>
+              </Button>
+            ) : null}
+            <View
+              className={styles.moreBtn}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleMore(plan);
+              }}
+            >
+              <Text className={styles.moreText}>···</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className={styles.nameRow}>
+          <Text className={styles.cardName}>{plan.name}</Text>
+          {finished ? (
+            <Text className={styles.doneBadge}>已完成</Text>
+          ) : running ? (
+            <Text className={styles.runningBadge}>进行中</Text>
+          ) : (
+            <Text className={styles.pendingBadge}>待完成</Text>
+          )}
+          {isToday ? <Text className={styles.todayBadge}>今日</Text> : null}
+        </View>
+
+        {expanded ? (
+          <>
+            <View className={styles.tags}>
+              {plan.exercises.length ? (
+                muscles.map((muscle, index) => (
+                  <MuscleTag
+                    key={muscle}
+                    muscle={muscle}
+                    solid={index === 0}
+                    className={styles.tag}
+                  />
+                ))
+              ) : (
+                <Text className={styles.noMuscle}>还没有动作</Text>
+              )}
+            </View>
+
+            <View className={styles.statsRow}>
+              <View className={styles.statItem}>
+                <Text className={styles.statValue}>
+                  {last ? formatVolume(sessionTotalWeight(last)) : '—'}
+                  {last ? <Text className={styles.statUnit}>kg</Text> : null}
+                </Text>
+                <Text className={styles.statLabel}>总重量</Text>
+              </View>
+              <View className={styles.statDivider} />
+              <View className={styles.statItem}>
+                <Text className={styles.statValue}>
+                  {last ? sessionTotalSets(last) : '—'}
+                  {last ? <Text className={styles.statUnit}>组</Text> : null}
+                </Text>
+                <Text className={styles.statLabel}>总容量</Text>
+              </View>
+              <View className={styles.statDivider} />
+              <View className={styles.statItem}>
+                <Text className={styles.statValue}>
+                  {plan.exercises.length}
+                  <Text className={styles.statUnit}>个</Text>
+                </Text>
+                <Text className={styles.statLabel}>动作数</Text>
+              </View>
+            </View>
+          </>
+        ) : null}
+      </View>
+    );
+  };
+
   return (
     <View className={styles.page}>
       <View className={styles.header}>
@@ -192,163 +362,109 @@ const PlansPage: React.FC = () => {
         </View>
       </View>
 
-      {/* 没写完的新建计划：和正式计划卡一样，点击继续填，··· 删除 */}
-      {draft && draftDate ? (
-        <View className={styles.card} onClick={() => openEdit()}>
-          <View className={styles.cardTop}>
-            <View className={styles.dateWrap}>
-              <Text className={styles.dateMain}>{draftDate.format('M月D日')}</Text>
-              <Text className={styles.dateSub}>
-                {dayLabel(draftDate.valueOf())} {weekdayLabel(draftDate.valueOf())}
-              </Text>
-            </View>
-            <View className={styles.cardTopActions}>
-              {draft.exercises.length ? (
-                <Button
-                  className={styles.draftShareBtn}
-                  openType="share"
-                  onClick={(event) => event.stopPropagation()}
-                  onTouchStart={() => {
-                    shareDraftRef.current = true;
-                  }}
-                >
-                  <Text className={styles.draftShareText}>分享</Text>
-                </Button>
-              ) : null}
-              <View
-                className={styles.moreBtn}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleDraftDelete();
-                }}
-              >
-                <Text className={styles.moreText}>···</Text>
-              </View>
-            </View>
-          </View>
+      {recentPlans.length || draft ? (
+        <>
+          {pendingPlans.map(renderPlanCard)}
 
-          <View className={styles.nameRow}>
-            <Text className={styles.cardName}>{draft.name.trim() || '未命名计划'}</Text>
-            <Text className={styles.draftBadge}>草稿</Text>
-          </View>
-
-          <View className={styles.tags}>
-            {draftMuscles.length ? (
-              draftMuscles.map((muscle, index) => (
-                <MuscleTag
-                  key={muscle}
-                  muscle={muscle}
-                  solid={index === 0}
-                  className={styles.tag}
-                />
-              ))
-            ) : (
-              <Text className={styles.noMuscle}>还没有动作</Text>
-            )}
-          </View>
-
-          <View className={styles.statsRow}>
-            <View className={styles.statItem}>
-              <Text className={styles.statValue}>—</Text>
-              <Text className={styles.statLabel}>总重量</Text>
-            </View>
-            <View className={styles.statDivider} />
-            <View className={styles.statItem}>
-              <Text className={styles.statValue}>—</Text>
-              <Text className={styles.statLabel}>总容量</Text>
-            </View>
-            <View className={styles.statDivider} />
-            <View className={styles.statItem}>
-              <Text className={styles.statValue}>
-                {draft.exercises.length}
-                <Text className={styles.statUnit}>个</Text>
-              </Text>
-              <Text className={styles.statLabel}>动作数</Text>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {recentPlans.length ? (
-        recentPlans.map((plan) => {
-          const isToday = isDateToday(plan.startDate);
-          const finished = isPlanFinished(sessions, plan.id);
-          const ts = dayjs(plan.startDate).valueOf();
-          const last = lastSessionByPlan.get(plan.id);
-          const muscles = planMuscleTags(plan);
-          return (
+          {/* 草稿：排在待完成之后、已完成之前 */}
+          {draft && draftDate ? (
             <View
-              key={plan.id}
-              className={classnames(styles.card, isToday && styles.cardToday)}
-              onClick={() => openDetail(plan.id)}
+              className={styles.card}
+              onClick={() => {
+                if (activeOpenKey !== DRAFT_KEY) {
+                  setOpenKey(DRAFT_KEY);
+                  return;
+                }
+                openEdit();
+              }}
             >
               <View className={styles.cardTop}>
                 <View className={styles.dateWrap}>
-                  <Text className={styles.dateMain}>{dayjs(plan.startDate).format('M月D日')}</Text>
+                  <Text className={styles.dateMain}>{draftDate.format('M月D日')}</Text>
                   <Text className={styles.dateSub}>
-                    {dayLabel(ts)} {weekdayLabel(ts)}
+                    {dayLabel(draftDate.valueOf())} {weekdayLabel(draftDate.valueOf())}
                   </Text>
                 </View>
-                <View
-                  className={styles.moreBtn}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleMore(plan);
-                  }}
-                >
-                  <Text className={styles.moreText}>···</Text>
+                <View className={styles.cardTopActions}>
+                  {draft.exercises.length ? (
+                    <Button
+                      className={styles.draftShareBtn}
+                      openType="share"
+                      onClick={(event) => event.stopPropagation()}
+                      onTouchStart={() => {
+                        shareDraftRef.current = true;
+                      }}
+                    >
+                      <Text className={styles.draftShareText}>分享</Text>
+                    </Button>
+                  ) : null}
+                  <View
+                    className={styles.moreBtn}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDraftDelete();
+                    }}
+                  >
+                    <Text className={styles.moreText}>···</Text>
+                  </View>
                 </View>
               </View>
 
               <View className={styles.nameRow}>
-                <Text className={styles.cardName}>{plan.name}</Text>
-                {isToday ? <Text className={styles.todayBadge}>今日</Text> : null}
-                {finished ? <Text className={styles.doneBadge}>已完成</Text> : null}
+                <Text className={styles.cardName}>{draft.name.trim() || '未命名计划'}</Text>
+                <Text className={styles.draftBadge}>草稿</Text>
               </View>
 
-              <View className={styles.tags}>
-                {plan.exercises.length ? (
-                  muscles.map((muscle, index) => (
-                    <MuscleTag
-                      key={muscle}
-                      muscle={muscle}
-                      solid={index === 0}
-                      className={styles.tag}
-                    />
-                  ))
-                ) : (
-                  <Text className={styles.noMuscle}>还没有动作</Text>
-                )}
-              </View>
+              {activeOpenKey === DRAFT_KEY ? (
+                <>
+                  <View className={styles.tags}>
+                    {draftMuscles.length ? (
+                      draftMuscles.map((muscle, index) => (
+                        <MuscleTag
+                          key={muscle}
+                          muscle={muscle}
+                          solid={index === 0}
+                          className={styles.tag}
+                        />
+                      ))
+                    ) : (
+                      <Text className={styles.noMuscle}>还没有动作</Text>
+                    )}
+                  </View>
 
-              <View className={styles.statsRow}>
-                <View className={styles.statItem}>
-                  <Text className={styles.statValue}>
-                    {last ? formatVolume(sessionTotalWeight(last)) : '—'}
-                    {last ? <Text className={styles.statUnit}>kg</Text> : null}
-                  </Text>
-                  <Text className={styles.statLabel}>总重量</Text>
-                </View>
-                <View className={styles.statDivider} />
-                <View className={styles.statItem}>
-                  <Text className={styles.statValue}>
-                    {last ? sessionTotalSets(last) : '—'}
-                    {last ? <Text className={styles.statUnit}>组</Text> : null}
-                  </Text>
-                  <Text className={styles.statLabel}>总容量</Text>
-                </View>
-                <View className={styles.statDivider} />
-                <View className={styles.statItem}>
-                  <Text className={styles.statValue}>
-                    {plan.exercises.length}
-                    <Text className={styles.statUnit}>个</Text>
-                  </Text>
-                  <Text className={styles.statLabel}>动作数</Text>
-                </View>
-              </View>
+                  <View className={styles.statsRow}>
+                    <View className={styles.statItem}>
+                      <Text className={styles.statValue}>—</Text>
+                      <Text className={styles.statLabel}>总重量</Text>
+                    </View>
+                    <View className={styles.statDivider} />
+                    <View className={styles.statItem}>
+                      <Text className={styles.statValue}>—</Text>
+                      <Text className={styles.statLabel}>总容量</Text>
+                    </View>
+                    <View className={styles.statDivider} />
+                    <View className={styles.statItem}>
+                      <Text className={styles.statValue}>
+                        {draft.exercises.length}
+                        <Text className={styles.statUnit}>个</Text>
+                      </Text>
+                      <Text className={styles.statLabel}>动作数</Text>
+                    </View>
+                  </View>
+                </>
+              ) : null}
             </View>
-          );
-        })
+          ) : null}
+
+          {finishedPlans.length ? (
+            <>
+              <View className={styles.finishedHead}>
+                <Text className={styles.finishedTitle}>已完成 · {finishedPlans.length} 个</Text>
+              </View>
+              {finishedPlans.map(renderPlanCard)}
+            </>
+          ) : null}
+        </>
       ) : (
         <View className={styles.emptyWrap}>
           <EmptyState

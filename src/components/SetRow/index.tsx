@@ -6,7 +6,8 @@ import { useProfileStore } from '@/store/useProfileStore';
 import styles from './index.module.scss';
 
 interface SetRowProps {
-  index: number;
+  /** 组编号文案：普通组「2」，递减组「2-1 递减」 */
+  label: string;
   set: WorkoutSet;
   /** 辅助类动作（器械辅助引体向上）：重量记负数，输入框前面加「−」 */
   assist?: boolean;
@@ -20,7 +21,7 @@ interface SetRowProps {
 }
 
 const SetRow: React.FC<SetRowProps> = ({
-  index,
+  label,
   set,
   assist = false,
   addedMode = false,
@@ -63,8 +64,10 @@ const SetRow: React.FC<SetRowProps> = ({
   };
 
   return (
-    <View className={classnames(styles.row, set.done && styles.rowDone)}>
-      <Text className={styles.index}>{index}</Text>
+    <View
+      className={classnames(styles.row, set.done && styles.rowDone, set.drop && styles.rowDrop)}
+    >
+      <Text className={classnames(styles.index, set.drop && styles.indexDrop)}>{label}</Text>
 
       <View className={styles.weightField}>
         {assist || addedMode ? (

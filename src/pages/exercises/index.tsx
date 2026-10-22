@@ -5,6 +5,9 @@ import classnames from 'classnames';
 import type { MuscleGroup } from '@/types';
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from '@/constants';
 import { useAllExercises, useExerciseStore, matchesMuscleFilter } from '@/store/useExerciseStore';
+import { usePlanStore } from '@/store/usePlanStore';
+import { useSessionStore } from '@/store/useSessionStore';
+import { equipmentExercisesOf, isEquipmentExercise } from '@/utils/equipmentExercises';
 import MuscleTag from '@/components/MuscleTag';
 import styles from './index.module.scss';
 
@@ -14,6 +17,14 @@ const ExercisesPage: React.FC = () => {
   const exercises = useAllExercises();
   const addCustomExercise = useExerciseStore((state) => state.addCustomExercise);
   const removeCustomExercise = useExerciseStore((state) => state.removeCustomExercise);
+  const plans = usePlanStore((state) => state.plans);
+  const sessions = useSessionStore((state) => state.sessions);
+
+  /** 用户填过器械名的组合：器械划船（鹦鹉螺）这类，排在各自部位最前面 */
+  const equipmentRows = useMemo(
+    () => equipmentExercisesOf(plans, sessions, exercises),
+    [plans, sessions, exercises]
+  );
 
   const [keyword, setKeyword] = useState('');
   const [muscle, setMuscle] = useState<MuscleFilter>('all');
@@ -25,12 +36,18 @@ const ExercisesPage: React.FC = () => {
 
   const list = useMemo(() => {
     const text = keyword.trim();
-    return exercises.filter((item) => {
+    const filtered = exercises.filter((item) => {
       const matchMuscle = muscle === 'all' || matchesMuscleFilter(item, muscle);
       const matchText = !text || item.name.includes(text);
       return matchMuscle && matchText;
     });
-  }, [exercises, keyword, muscle]);
+    const rows = equipmentRows.filter((item) => {
+      const matchMuscle = muscle === 'all' || matchesMuscleFilter(item, muscle);
+      const matchText = !text || item.name.includes(text);
+      return matchMuscle && matchText;
+    });
+    return [...rows, ...filtered];
+  }, [exercises, equipmentRows, keyword, muscle]);
 
   const openDialog = () => {
     setDraftName('');
@@ -74,7 +91,7 @@ const ExercisesPage: React.FC = () => {
       <View className={styles.header}>
         <View>
           <Text className={styles.title}>动作库</Text>
-          <Text className={styles.subtitle}>共 {exercises.length} 个动作</Text>
+          <Text className={styles.subtitle}>共 {exercises.length + equipmentRows.length} 个动作</Text>
         </View>
         <View className={styles.createBtn} onClick={openDialog}>
           <Text className={styles.createBtnText}>+ 自定义动作</Text>
@@ -126,8 +143,12 @@ const ExercisesPage: React.FC = () => {
             <View
               key={item.id}
               className={classnames(styles.item, index !== list.length - 1 && styles.itemBorder)}
-              onClick={() => handleItemClick(item.id)}
-              onLongPress={() => handleItemLongPress(item.id, item.isCustom, item.name)}
+              onClick={() =>
+                handleItemClick(isEquipmentExercise(item) ? item.baseId : item.id)
+              }
+              onLongPress={() =>
+                handleItemLongPress(item.id, item.isCustom && !isEquipmentExercise(item), item.name)
+              }
             >
               <View className={styles.itemMain}>
                 <Text className={styles.itemName}>

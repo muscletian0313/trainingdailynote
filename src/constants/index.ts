@@ -1,5 +1,21 @@
 import type { MuscleGroup, TrainingLevel } from '@/types';
 
+/**
+ * 支持「选填器械名称」的动作：名字里带「器械」的都算（显示成「器械划船（鹦鹉螺）」）。
+ * 另外几个分器械的动作（哑铃/绳索的侧平举、前平举）也允许备注具体器械/品牌。
+ */
+const EQUIPMENT_NAME_EXTRAS = [
+  '哑铃侧平举',
+  '器械侧平举',
+  '绳索侧平举',
+  '哑铃前平举',
+  '绳索前平举'
+];
+
+export function supportsEquipmentName(name: string): boolean {
+  return name.includes('器械') || EQUIPMENT_NAME_EXTRAS.includes(name);
+}
+
 /** 肌群展示顺序 */
 export const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest',
@@ -136,25 +152,70 @@ export function restSoundSrc(id: string): string {
 
 /** 训练心得：单个动作做后的主观感受档位（1-5，5 最好） */
 export interface FeelOption {
-  /** 分值：1-5，5 最好 */
+  /** 分值：5=轻松 / 3=适中 / 1=困难（沿用 1-5 分制，方便算平均） */
   value: number;
+  /** 展示用的灯色圆点 */
   emoji: string;
   /** 卡片上显示的短文案（4 字以内，保证一行放得下） */
   label: string;
   /** 完整描述，用于详情页展示 */
   desc: string;
+  /** 红绿灯颜色：轻松绿 / 适中黄 / 困难红 */
+  color: string;
 }
 
-/** 画面顺序：从最好到最差 */
+/** 三档红绿灯：轻松 / 适中 / 困难 */
 export const FEEL_OPTIONS: FeelOption[] = [
-  { value: 5, emoji: '🔥', label: '状态爆棚', desc: '状态爆棚，还能再加' },
-  { value: 4, emoji: '💪', label: '强度刚好', desc: '强度刚好，练得爽' },
-  { value: 3, emoji: '🙂', label: '正常发挥', desc: '还行，正常发挥' },
-  { value: 2, emoji: '😐', label: '有点勉强', desc: '有点勉强，一般般' },
-  { value: 1, emoji: '😩', label: '很吃力', desc: '很吃力，状态不好' }
+  { value: 5, emoji: '🟢', label: '轻松', desc: '轻松，还有余力', color: '#4ade80' },
+  { value: 3, emoji: '🟡', label: '适中', desc: '强度适中，刚刚好', color: '#facc15' },
+  { value: 1, emoji: '🔴', label: '困难', desc: '很吃力，状态吃紧', color: '#f87171' }
 ];
 
-/** 按分值取感受档位 */
+/** 首页激励文案：每天固定一条，隔天自动换 */
+export const MOTIVATION_QUOTES: string[] = [
+  '今天多举一组，明天多一分底气。',
+  '状态不是等来的，是练出来的。',
+  '你不需要很厉害才开始，开始了才会很厉害。',
+  '重量不会变轻，但你会变强。',
+  '再坚持一组，就是今天和昨天的分界线。',
+  '想放弃的那一刻，正是训练开始的地方。',
+  '你练的不是动作，是以后那个更强的自己。',
+  '没有人替你举起来，也没有人替你变强。',
+  '肌肉记得你的每一次坚持。',
+  '训练很苦，但平庸更苦。',
+  '你离目标，只差下一组。',
+  '慢慢来，但别停下来。',
+  '把每一次力竭，都当成一次升级。',
+  '稳定地练下去，比偶尔拼命更有用。',
+  '今天偷的懒，都会变成明天的借口。',
+  '别和昨天的自己讲和。',
+  '汗水不会白流，它只是还没长成肌肉。',
+  '进步很慢，退步很快，所以今天也来。',
+  '健身房不会骗人，每一次发力都算数。',
+  '练下去，时间会给你答案。',
+  'Discipline beats motivation.',
+  'One more rep, one step closer.',
+  'Strength is built one set at a time.',
+  'Show up today, thank yourself tomorrow.',
+  'No shortcut, just reps.',
+  'Your only limit is you.'
+];
+
+/** 按日期取当天的一条激励文案：同一天不变，隔天自动换 */
+export function motivationOfDay(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  if (!year || !month || !day) return MOTIVATION_QUOTES[0];
+  const days = Math.floor(Date.UTC(year, month - 1, day) / 86400000);
+  const index = ((days % MOTIVATION_QUOTES.length) + MOTIVATION_QUOTES.length) % MOTIVATION_QUOTES.length;
+  return MOTIVATION_QUOTES[index];
+}
+
+/** 按分值取感受档位（兼容旧记录的 1-5 分：4-5 算轻松，1-2 算困难） */
 export function getFeelOption(value?: number): FeelOption | undefined {
-  return FEEL_OPTIONS.find((item) => item.value === value);
+  if (typeof value !== 'number') return undefined;
+  const hit = FEEL_OPTIONS.find((item) => item.value === value);
+  if (hit) return hit;
+  if (value >= 4) return FEEL_OPTIONS[0];
+  if (value === 3) return FEEL_OPTIONS[1];
+  return FEEL_OPTIONS[2];
 }

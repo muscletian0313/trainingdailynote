@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Input, Picker, Image } from '@tarojs/components';
+import { View, Text, Input, Picker, Image, ScrollView } from '@tarojs/components';
 import { useRouter, pageScrollTo, useUnload } from '@tarojs/taro';
 import dayjs from 'dayjs';
 import {
@@ -10,15 +10,17 @@ import {
   switchTab
 } from '@/utils/taro';
 import classnames from 'classnames';
-import type { MuscleGroup, PlanExercise, PlanSet } from '@/types';
+import type { ExerciseVariants, MuscleGroup, PlanExercise, PlanSet } from '@/types';
 import {
   DEFAULT_CARDIO_MIN,
   DEFAULT_REPS,
   DEFAULT_WEIGHT,
+  getFeelOption,
   MUSCLE_COLORS,
   MUSCLE_GROUPS,
   MUSCLE_LABELS,
-  REST_OPTIONS
+  REST_OPTIONS,
+  supportsEquipmentName
 } from '@/constants';
 import { getPlanById, usePlanStore } from '@/store/usePlanStore';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -31,12 +33,23 @@ import {
   isPlanFinished,
   isTimedExercise,
   planPrimaryMuscle,
-  recentPerformances
+  recentPerformances,
+  recentPerformancesByVariants,
+  setLabels
 } from '@/utils/workout';
 import { estimateStartWeight } from '@/utils/strengthEstimate';
-import { withAlpha } from '@/utils/format';
+import { withAlpha, formatSetWeight } from '@/utils/format';
 import { uid } from '@/utils/id';
-import { variantBadges, hasAddedLoad } from '@/data/exerciseVariants';
+import {
+  barbellBarWeight,
+  hasAddedLoad,
+  isDumbbellExercise,
+  lockedVariantsOf,
+  reconcileVariants,
+  variantBadges,
+  variantGroupsOf,
+  variantOptionsOf
+} from '@/data/exerciseVariants';
 import { clearPlanDraft, loadPlanDraft, savePlanDraft, type PlanDraft } from '@/utils/planDraft';
 import { MUSCLE_ART } from '@/assets/muscles/art';
 import Stepper from '@/components/Stepper';
@@ -85,7 +98,8 @@ const MuscleChip: React.FC<MuscleChipProps> = ({
 };
 
 interface PlanSetRowProps {
-  index: number;
+  /** 组编号文案：普通组「2」，递减组「2-1 递减」 */
+  label: string;
   set: PlanSet;
   /** 辅助类动作：重量记负数，输入框前面加「−」 */
   assist?: boolean;
@@ -99,7 +113,7 @@ interface PlanSetRowProps {
 
 /** 计划里的一行组：逐组填重量 / 次数，方便做递减组 */
 const PlanSetRow: React.FC<PlanSetRowProps> = ({
-  index,
+  label,
   set,
   assist = false,
   addedMode = false,
@@ -126,8 +140,10 @@ const PlanSetRow: React.FC<PlanSetRowProps> = ({
   }, [set.id]);
 
   return (
-    <View className={styles.setRow}>
-      <Text className={styles.setIndex}>{index}</Text>
+    <View className={classnames(styles.setRow, set.drop && styles.setRowDrop)}>
+      <Text className={classnames(styles.setIndex, set.drop && styles.setIndexDrop)}>
+        {label}
+      </Text>
 
       <View className={styles.setWeightField}>
         {assist || addedMode ? (
@@ -181,15 +197,27 @@ const PlanSetRow: React.FC<PlanSetRowProps> = ({
 /** 边填边存的防抖间隔 */
 const DRAFT_SAVE_DELAY = 600;
 
+/** 历史日训的日期显示：今天 / 昨天 / M月D日 */
+function formatHistoryDate(timestamp: number): string {
+  const day = dayjs(timestamp);
+  const today = dayjs();
+  if (day.isSame(today, 'day')) return '今天';
+  if (day.isSame(today.subtract(1, 'day'), 'day')) return '昨天';
+  return day.format('M月D日');
+}
+
 const PlanEditPage: React.FC = () => {
   const router = useRouter();
   const planId = router.params?.id;
+  /** 从计划详情点「复制计划」进来：带着原计划内容，保存后才落库 */
+  const copyFromId = router.params?.copyFrom;
   /** 从计划详情页点某个动作进来时，自动滚到那个动作 */
   const focusKey = router.params?.focusKey;
   const addPlan = usePlanStore((state) => state.addPlan);
   const updatePlan = usePlanStore((state) => state.updatePlan);
   const defaultRest = useProfileStore((state) => state.profile.defaultRest);
   const profile = useProfileStore((state) => state.profile);
+  const sessions = useSessionStore((state) => state.sessions);
 
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState(() => dayjs().format('YYYY-MM-DD'));
@@ -201,8 +229,18 @@ const PlanEditPage: React.FC = () => {
   /** 上一次自动填进去的名称：名称还是它（或空）时，换主训部位可以整体替换 */
   const autoNameRef = useRef('');
   const [pickerVisible, setPickerVisible] = useState(false);
+  /** 当前展开编辑的动作 key：其余动作自动折叠，避免一次性占满屏幕 */
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   /** 是否恢复了上次没写完的草稿（仅新建计划） */
   const [draftRestored, setDraftRestored] = useState(false);
+  /** 正在修改标签（变式 / 器械名称）的动作 key */
+  const [variantEditKey, setVariantEditKey] = useState<string | null>(null);
+  const [variantDraft, setVariantDraft] = useState<ExerciseVariants>({});
+  const [equipmentDraft, setEquipmentDraft] = useState('');
+  /** 正在替换的动作 key：打开选动作弹层，选完换掉这个动作 */
+  const [replaceKey, setReplaceKey] = useState<string | null>(null);
+  /** 正在看历史日训的动作 key */
+  const [historyKey, setHistoryKey] = useState<string | null>(null);
 
   /** 只有新建计划需要草稿：编辑已有计划时原始数据本来就在本地 */
   const isDraftMode = !planId;
@@ -267,12 +305,35 @@ const PlanEditPage: React.FC = () => {
 
   useEffect(() => {
     if (!planId) {
+      // 复制计划：把原计划内容带进来，当成新建计划；不保存就只会留下草稿
+      if (copyFromId) {
+        setNavigationBarTitle({ title: '复制计划' });
+        const source = getPlanById(copyFromId);
+        if (source) {
+          setName(source.name);
+          setStartDate(dayjs().format('YYYY-MM-DD'));
+          const copied = source.exercises.map((item) => ({
+            ...item,
+            key: uid('pe'),
+            variants: item.variants ? { ...item.variants } : undefined,
+            sets: item.sets.map((set) => ({ ...set, id: uid('ps') }))
+          }));
+          setExercises(copied);
+          setActiveKey(copied[0]?.key ?? null);
+          setPrimaryMuscle(source.primaryMuscle ?? planPrimaryMuscle(source));
+          setSecondaryMuscles(source.secondaryMuscles ?? []);
+        } else {
+          console.error('[PlanEdit] 复制的原计划不存在:', copyFromId);
+        }
+        return;
+      }
       setNavigationBarTitle({ title: '新建计划' });
       const draft = loadPlanDraft();
       if (draft) {
         setName(draft.name);
         setStartDate(draft.startDate || dayjs().format('YYYY-MM-DD'));
         setExercises(draft.exercises);
+        setActiveKey(draft.exercises[0]?.key ?? null);
         setPrimaryMuscle(draft.primaryMuscle);
         setSecondaryMuscles(draft.secondaryMuscles);
         setDraftRestored(true);
@@ -285,17 +346,19 @@ const PlanEditPage: React.FC = () => {
       setName(plan.name);
       setStartDate(plan.startDate || dayjs().format('YYYY-MM-DD'));
       setExercises(plan.exercises);
+      setActiveKey(plan.exercises[0]?.key ?? null);
       // 老计划没显式选过部位，用推断结果预填，玩家不用从零开始选
       setPrimaryMuscle(plan.primaryMuscle ?? planPrimaryMuscle(plan));
       setSecondaryMuscles(plan.secondaryMuscles ?? []);
     } else {
       console.error('[PlanEdit] 未找到计划:', planId);
     }
-  }, [planId]);
+  }, [planId, copyFromId]);
 
-  // 定位到指定动作：等列表渲染完再滚，否则量不到位置
+  // 定位到指定动作：先展开它，等列表渲染完再滚，否则量不到位置
   useEffect(() => {
     if (!focusKey) return;
+    setActiveKey(focusKey);
     const timer = setTimeout(() => {
       pageScrollTo({ selector: `#ex-${focusKey}`, duration: 300 });
     }, 350);
@@ -323,44 +386,85 @@ const PlanEditPage: React.FC = () => {
     });
   };
 
-  const addExercises = (items: PickedExercise[]) => {
+  /** 把一个选中的动作组装成计划里的一条：按历史 / 默认值预填重量与组数 */
+  const buildPlanExercise = ({ exerciseId, variants, equipmentName }: PickedExercise): PlanExercise => {
     const sessions = useSessionStore.getState().sessions;
-    const list: PlanExercise[] = items.map(({ exerciseId, variants }) => {
-      // 有氧动作只配时长，不涉及重量 / 组数 / 次数
-      const cardio = getExerciseById(exerciseId)?.muscle === 'cardio';
-      // 计时类动作（平板支撑）填的是秒数，默认给 60 秒
-      const repsDefault = isTimedExercise(exerciseId) ? DEFAULT_HOLD_SECONDS : DEFAULT_REPS;
-      // 没历史记录时的默认重量：
-      // 自重动作（引体 / 双杠）带出用户体重；其余按问卷预估一个起步重量
-      const fallbackWeight = isAddedWeightExercise(exerciseId)
-        ? profile.weight ?? 0
-        : estimateStartWeight(exerciseId, profile, { reps: DEFAULT_REPS, variants }) ??
-          (isAssistExercise(exerciseId) ? -DEFAULT_WEIGHT : DEFAULT_WEIGHT);
-      // 有历史记录：按最近一次训练逐组预填，用户微调即可；没有：默认 1 组自己加
-      const lastRecord = recentPerformances(sessions, exerciseId, 1)[0];
-      const sets: PlanSet[] = cardio
-        ? []
-        : lastRecord?.sets.length
-          ? lastRecord.sets.map((item) => ({
-              id: uid('ps'),
-              weight: item.weight,
-              reps: item.reps || repsDefault
-            }))
-          : [{ id: uid('ps'), weight: fallbackWeight, reps: repsDefault }];
-      return {
-        key: uid('pe'),
-        exerciseId,
-        variants,
-        sets,
-        restSeconds: defaultRest,
-        targetDurationMin: cardio ? DEFAULT_CARDIO_MIN : undefined
-      };
-    });
-    setExercises((prev) => [...prev, ...list]);
+    // 有氧动作只配时长，不涉及重量 / 组数 / 次数
+    const cardio = getExerciseById(exerciseId)?.muscle === 'cardio';
+    // 计时类动作（平板支撑）填的是秒数，默认给 60 秒
+    const repsDefault = isTimedExercise(exerciseId) ? DEFAULT_HOLD_SECONDS : DEFAULT_REPS;
+    // 没历史记录时的默认重量：
+    // 自重动作（引体 / 双杠）带出用户体重；其余按问卷预估一个起步重量
+    const fallbackWeight = isAddedWeightExercise(exerciseId)
+      ? profile.weight ?? 0
+      : estimateStartWeight(exerciseId, profile, { reps: DEFAULT_REPS, variants }) ??
+        (isAssistExercise(exerciseId) ? -DEFAULT_WEIGHT : DEFAULT_WEIGHT);
+    // 有历史记录：按最近一次训练逐组预填，用户微调即可；没有：默认 1 组自己加
+    const lastRecord = recentPerformances(sessions, exerciseId, 1)[0];
+    const sets: PlanSet[] = cardio
+      ? []
+      : lastRecord?.sets.length
+        ? lastRecord.sets.map((item) => ({
+            id: uid('ps'),
+            weight: item.weight,
+            reps: item.reps || repsDefault,
+            drop: item.drop
+          }))
+        : [{ id: uid('ps'), weight: fallbackWeight, reps: repsDefault }];
+    return {
+      key: uid('pe'),
+      exerciseId,
+      variants,
+      equipmentName,
+      sets,
+      restSeconds: defaultRest,
+      targetDurationMin: cardio ? DEFAULT_CARDIO_MIN : undefined
+    };
+  };
+
+  const addExercises = (items: PickedExercise[]) => {
+    const built = items.map(buildPlanExercise);
+    if (!built.length) return;
+    setExercises((prev) => [...prev, ...built]);
+    // 一次只加一个：新加的动作自动展开，其余动作折叠
+    const last = built[built.length - 1];
+    setActiveKey(last.key);
+    setTimeout(() => pageScrollTo({ selector: `#ex-${last.key}`, duration: 300 }), 250);
+  };
+
+  /** 替换某个动作：保持原位、保留原来设置的组间休息 */
+  const replaceItem = (key: string, picked: PickedExercise) => {
+    setExercises((prev) =>
+      prev.map((item) =>
+        item.key === key
+          ? { ...buildPlanExercise(picked), key, restSeconds: item.restSeconds }
+          : item
+      )
+    );
   };
 
   const updateItem = (key: string, patch: Partial<PlanExercise>) => {
     setExercises((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  };
+
+  /** 打开标签编辑器：变式 + 器械名称 */
+  const openVariantEditor = (item: PlanExercise) => {
+    const exerciseName = getExerciseById(item.exerciseId)?.name ?? '';
+    setVariantEditKey(item.key);
+    setVariantDraft(reconcileVariants(exerciseName, { ...(item.variants ?? {}) }));
+    setEquipmentDraft(item.equipmentName ?? '');
+  };
+
+  /** 标签编辑器里点「确定」：写回动作 */
+  const saveVariantEditor = () => {
+    const item = exercises.find((entry) => entry.key === variantEditKey);
+    if (!item) return;
+    const exerciseName = getExerciseById(item.exerciseId)?.name ?? '';
+    updateItem(item.key, {
+      variants: reconcileVariants(exerciseName, variantDraft),
+      equipmentName: equipmentDraft.trim() || undefined
+    });
+    setVariantEditKey(null);
   };
 
   /** 计划内某组的增删改（逐组配置，支持递减组） */
@@ -377,34 +481,47 @@ const PlanEditPage: React.FC = () => {
     );
   };
 
+  /**
+   * 添加一组：如果最后一组是递减链（1-1、1-2…），
+   * 就整条链复制一份（2-1、2-2…），重量次数原样带过来；
+   * 最后一组是普通组时，只加一个普通组。
+   */
   const addPlanSet = (key: string) => {
     setExercises((prev) =>
       prev.map((item) => {
         if (item.key !== key) return item;
-        const last = item.sets[item.sets.length - 1];
-        return {
-          ...item,
-          sets: [
-            ...item.sets,
-            {
-              id: uid('ps'),
-              // 沿用上一组的重量/次数，递减组时改一下重量即可
-              weight: last ? last.weight : 0,
-              reps: last ? last.reps : DEFAULT_REPS
-            }
-          ]
-        };
+        if (!item.sets.length) {
+          return { ...item, sets: [{ id: uid('ps'), weight: 0, reps: DEFAULT_REPS }] };
+        }
+        // 找到最后一组所在递减链的基础组
+        let chainStart = item.sets.length - 1;
+        while (chainStart > 0 && item.sets[chainStart].drop) chainStart -= 1;
+        const copies: PlanSet[] = item.sets.slice(chainStart).map((set) => ({
+          id: uid('ps'),
+          weight: set.weight,
+          addedWeight: set.addedWeight,
+          reps: set.reps,
+          drop: set.drop
+        }));
+        return { ...item, sets: [...item.sets, ...copies] };
       })
     );
   };
 
   const removePlanSet = (key: string, setId: string) => {
     setExercises((prev) =>
-      prev.map((item) =>
-        item.key === key && item.sets.length > 1
-          ? { ...item, sets: item.sets.filter((set) => set.id !== setId) }
-          : item
-      )
+      prev.map((item) => {
+        if (item.key !== key || item.sets.length <= 1) return item;
+        const index = item.sets.findIndex((set) => set.id === setId);
+        if (index < 0) return item;
+        // 删基础组时，跟着的递减组一起删
+        let end = index + 1;
+        if (!item.sets[index].drop) {
+          while (item.sets[end]?.drop) end += 1;
+        }
+        const sets = [...item.sets.slice(0, index), ...item.sets.slice(end)];
+        return sets.length ? { ...item, sets } : item;
+      })
     );
   };
 
@@ -425,7 +542,9 @@ const PlanEditPage: React.FC = () => {
       content: `确定从计划中移除「${exerciseName}」吗？`,
       confirmColor: '#f8736a',
       success: (res) => {
-        if (res.confirm) setExercises((prev) => prev.filter((item) => item.key !== key));
+        if (!res.confirm) return;
+        setExercises((prev) => prev.filter((item) => item.key !== key));
+        if (activeKey === key) setActiveKey(null);
       }
     });
   };
@@ -445,6 +564,76 @@ const PlanEditPage: React.FC = () => {
     showActionSheet({
       itemList,
       success: (res) => updateItem(key, { restSeconds: REST_OPTIONS[res.tapIndex] })
+    });
+  };
+
+  /** 添加递减组：直接在最后一行下面加一条，重量/次数沿用上一行 */
+  const addDropSet = (item: PlanExercise) => {
+    setExercises((prev) =>
+      prev.map((entry) => {
+        if (entry.key !== item.key) return entry;
+        const last = entry.sets[entry.sets.length - 1];
+        if (!last) return entry;
+        const dropSet: PlanSet = {
+          id: uid('ps'),
+          weight: last.weight,
+          addedWeight: last.addedWeight,
+          reps: last.reps,
+          drop: true
+        };
+        return { ...entry, sets: [...entry.sets, dropSet] };
+      })
+    );
+  };
+
+  /** 动作右上角的「···」：和开始训练后的菜单保持一致 */
+  const handleItemMore = (
+    item: PlanExercise,
+    index: number,
+    exerciseName: string,
+    isCardio: boolean
+  ) => {
+    // 有氧动作不设组间休息，也没有递减组
+    const itemList = isCardio
+      ? ['替换动作', '上移', '下移', '删除动作']
+      : ['替换动作', '上移', '下移', '设置组间休息', '添加递减组', '删除动作'];
+    showActionSheet({
+      itemList,
+      success: (res) => {
+        const action = itemList[res.tapIndex];
+        if (action === '替换动作') {
+          setActiveKey(item.key);
+          setReplaceKey(item.key);
+          return;
+        }
+        if (action === '上移') {
+          if (index === 0) {
+            showToast({ title: '已经是第一个动作', icon: 'none' });
+            return;
+          }
+          moveItem(index, -1);
+          return;
+        }
+        if (action === '下移') {
+          if (index === exercises.length - 1) {
+            showToast({ title: '已经是最后一个动作', icon: 'none' });
+            return;
+          }
+          moveItem(index, 1);
+          return;
+        }
+        if (action === '设置组间休息') {
+          setActiveKey(item.key);
+          selectRest(item.key, item.restSeconds);
+          return;
+        }
+        if (action === '添加递减组') {
+          setActiveKey(item.key);
+          addDropSet(item);
+          return;
+        }
+        removeItem(item.key, exerciseName);
+      }
     });
   };
 
@@ -499,9 +688,33 @@ const PlanEditPage: React.FC = () => {
     savedRef.current = true;
     if (isDraftMode) clearPlanDraft();
     showToast({ title: '已保存', icon: 'success' });
-    // 保存后一律直接回首页，不走上一页
-    setTimeout(() => switchTab({ url: '/pages/home/index' }), 400);
+    // 复制计划保存后回计划列表；其余保存后照旧回首页
+    setTimeout(
+      () => switchTab({ url: copyFromId ? '/pages/plans/index' : '/pages/home/index' }),
+      400
+    );
   };
+
+  // 标签编辑器：当前正在改的动作
+  const variantEditItem = variantEditKey
+    ? exercises.find((entry) => entry.key === variantEditKey)
+    : undefined;
+  const variantEditInfo = variantEditItem ? getExerciseById(variantEditItem.exerciseId) : undefined;
+  const variantEditName = variantEditInfo ? variantEditInfo.name : '';
+  const variantEditGroups = variantEditItem
+    ? variantGroupsOf(variantEditName, variantDraft)
+    : [];
+
+  // 替换动作：参照当前动作的肌群与练法做推荐
+  const replaceTarget = exercises.find((entry) => entry.key === replaceKey);
+  const replaceInfo = replaceTarget ? getExerciseById(replaceTarget.exerciseId) : undefined;
+
+  /** 历史日训：当前查看的动作 + 最近 4 次记录（时间倒序） */
+  const historyItem = exercises.find((item) => item.key === historyKey) ?? null;
+  const historyInfo = historyItem ? getExerciseById(historyItem.exerciseId) : undefined;
+  const historyRecords = historyItem
+    ? recentPerformancesByVariants(sessions, historyItem.exerciseId, historyItem.variants, 4)
+    : [];
 
   return (
     <View className={styles.page}>
@@ -611,18 +824,53 @@ const PlanEditPage: React.FC = () => {
         const exerciseName = info ? info.name : '已下架';
         const muscleTag = info ? exerciseMuscleTag(info, item.variants) : undefined;
         const badges = variantBadges(exerciseName, item.variants);
+        /** 组编号：普通组 1、2；递减组 2-1 递减 / 2-2 递减 */
+        const labels = setLabels(item.sets);
         const isCardio = info?.muscle === 'cardio';
         const assist = isAssistExercise(item.exerciseId);
         const addedMode = hasAddedLoad(item.variants);
+        // 杠铃类动作固定按「杆+总杠铃片」记重，杆重按杠铃 / 小直杠 区分
+        const barbellLoad = barbellBarWeight(exerciseName, item.variants);
+        // 哑铃类动作按单只哑铃记重
+        const dumbbellLoad = isDumbbellExercise(exerciseName, item.variants);
+        // 标签区可点开修改
+        const editableGroups = variantGroupsOf(exerciseName, item.variants);
+        const editableTags = editableGroups.length > 0 || supportsEquipmentName(exerciseName);
+        // 折叠状态：只留标题行，点一下展开（同时折叠其他动作）
+        const isOpen = activeKey === item.key;
         return (
-          <View key={item.key} id={`ex-${item.key}`} className={styles.exerciseCard}>
-            <View className={styles.exerciseHeader}>
+          <View
+            key={item.key}
+            id={`ex-${item.key}`}
+            className={classnames(styles.exerciseCard, !isOpen && styles.exerciseCardCollapsed)}
+          >
+            <View
+              className={styles.exerciseHeader}
+              onClick={() => setActiveKey(isOpen ? null : item.key)}
+            >
               <View className={styles.orderBadge}>
                 <Text className={styles.orderBadgeText}>{index + 1}</Text>
               </View>
               <View className={styles.exerciseTitleWrap}>
                 <View className={styles.exerciseNameRow}>
-                  <Text className={styles.exerciseName}>{exerciseName}</Text>
+                  <Text
+                    className={styles.exerciseName}
+                    onClick={
+                      editableTags
+                        ? (event) => {
+                            event.stopPropagation();
+                            if (!isOpen) {
+                              setActiveKey(item.key);
+                              return;
+                            }
+                            openVariantEditor(item);
+                          }
+                        : undefined
+                    }
+                  >
+                    {exerciseName}
+                    {item.equipmentName ? `（${item.equipmentName}）` : ''}
+                  </Text>
                   {muscleTag ? (
                     <MuscleTag
                       muscle={muscleTag.muscle}
@@ -631,47 +879,57 @@ const PlanEditPage: React.FC = () => {
                     />
                   ) : null}
                 </View>
-                {badges.length ? (
-                  <View className={styles.exerciseMeta}>
-                    {badges.map((badge, badgeIndex) => (
-                      <Text
-                        key={badge.label}
-                        className={
-                          badge.locked ? styles.exerciseVariantLocked : styles.exerciseVariant
-                        }
-                      >
-                        {badgeIndex > 0 ? ` · ${badge.label}` : badge.label}
-                      </Text>
-                    ))}
+                {editableTags ? (
+                  <View
+                    className={styles.exerciseMeta}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!isOpen) {
+                        setActiveKey(item.key);
+                        return;
+                      }
+                      openVariantEditor(item);
+                    }}
+                  >
+                    <View className={styles.exerciseTags}>
+                      {badges.map((badge) => (
+                        <Text
+                          key={badge.label}
+                          className={
+                            badge.locked ? styles.exerciseTagLocked : styles.exerciseTag
+                          }
+                        >
+                          {badge.label}
+                        </Text>
+                      ))}
+                    </View>
                   </View>
                 ) : null}
               </View>
               <View className={styles.exerciseActions}>
                 <View
-                  className={classnames(styles.iconBtn, index === 0 && styles.iconBtnDisabled)}
-                  onClick={() => index > 0 && moveItem(index, -1)}
+                  className={styles.historyBtn}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setHistoryKey(item.key);
+                  }}
                 >
-                  <Text className={styles.iconBtnText}>↑</Text>
+                  <Text className={styles.historyBtnText}>历史日训</Text>
                 </View>
                 <View
-                  className={classnames(
-                    styles.iconBtn,
-                    index === exercises.length - 1 && styles.iconBtnDisabled
-                  )}
-                  onClick={() => index < exercises.length - 1 && moveItem(index, 1)}
+                  className={styles.iconBtn}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleItemMore(item, index, exerciseName, isCardio);
+                  }}
                 >
-                  <Text className={styles.iconBtnText}>↓</Text>
-                </View>
-                <View
-                  className={classnames(styles.iconBtn, styles.iconBtnDanger)}
-                  onClick={() => removeItem(item.key, exerciseName)}
-                >
-                  <Text className={styles.iconBtnText}>✕</Text>
+                  <Text className={styles.iconBtnText}>···</Text>
                 </View>
               </View>
             </View>
 
-            {isCardio ? (
+            {isOpen ? (
+              isCardio ? (
               <View className={styles.configRow}>
                 <Text className={styles.configLabel}>时长</Text>
                 <Stepper
@@ -689,7 +947,13 @@ const PlanEditPage: React.FC = () => {
                 <View className={styles.setHead}>
                   <Text className={styles.headIndex}>组</Text>
                   <Text className={styles.headWeight}>
-                    {addedMode ? '自重+负重(kg)' : '重量(kg)'}
+                    {barbellLoad
+                      ? `重量（杆${barbellLoad}kg+总杠铃片）`
+                      : dumbbellLoad
+                        ? '重量（单只）'
+                        : addedMode
+                          ? '自重+负重(kg)'
+                          : '重量(kg)'}
                   </Text>
                   <Text className={styles.headTimes} />
                   <Text className={styles.headReps}>
@@ -701,7 +965,7 @@ const PlanEditPage: React.FC = () => {
                 {item.sets.map((set, setIndex) => (
                   <PlanSetRow
                     key={set.id}
-                    index={setIndex + 1}
+                    label={labels[setIndex]}
                     set={set}
                     assist={assist}
                     addedMode={addedMode}
@@ -726,7 +990,8 @@ const PlanEditPage: React.FC = () => {
                   </View>
                 </View>
               </>
-            )}
+              )
+            ) : null}
           </View>
         );
       })}
@@ -737,23 +1002,189 @@ const PlanEditPage: React.FC = () => {
         </View>
       )}
 
-      <View className={styles.addExercise} onClick={() => setPickerVisible(true)}>
-        <Text className={styles.addExerciseText}>+ 添加动作</Text>
-      </View>
-
       <View className={styles.bottomBar}>
+        <View className={styles.addBtn} onClick={() => setPickerVisible(true)}>
+          <Text className={styles.addBtnText}>添加动作</Text>
+        </View>
         <View className={styles.saveBtn} onClick={handleSave}>
           <Text className={styles.saveBtnText}>保存计划</Text>
         </View>
       </View>
 
+      {/* 标签编辑器：点动作名下面的标签打开，改完点确定 */}
+      {variantEditItem ? (
+        <View className={styles.variantMask} onClick={() => setVariantEditKey(null)}>
+          <View className={styles.variantSheet} onClick={(event) => event.stopPropagation()}>
+            <View className={styles.variantHead}>
+              <View className={styles.variantHeadMain}>
+                <Text className={styles.variantTitle}>{variantEditName}</Text>
+                {supportsEquipmentName(variantEditName) ? (
+                  <Input
+                    className={styles.variantHeadInput}
+                    value={equipmentDraft}
+                    maxlength={12}
+                    placeholder="选填具体名称。例如鹦鹉螺、海豹划船"
+                    placeholderStyle="color:#4a4a55"
+                    onInput={(event) => setEquipmentDraft(event.detail.value)}
+                  />
+                ) : null}
+              </View>
+              <View className={styles.variantClose} onClick={() => setVariantEditKey(null)}>
+                <Text className={styles.variantCloseText}>✕</Text>
+              </View>
+            </View>
+
+            <View className={styles.variantBody}>
+              {variantEditGroups.map((group) => (
+              <View key={group.key} className={styles.variantRow}>
+                <Text className={styles.variantLabel}>{group.label}</Text>
+                <View className={styles.variantOptions}>
+                  {variantOptionsOf(variantEditName, group.key, variantDraft).map((option) => {
+                    const active = variantDraft[group.key] === option.key;
+                    return (
+                      <View
+                        key={option.key}
+                        className={classnames(
+                          styles.variantChip,
+                          active && styles.variantChipActive
+                        )}
+                        onClick={() =>
+                          setVariantDraft((prev) =>
+                            reconcileVariants(variantEditName, {
+                              ...prev,
+                              [group.key]: option.key
+                            })
+                          )
+                        }
+                      >
+                        <Text
+                          className={classnames(
+                            styles.variantChipText,
+                            active && styles.variantChipTextActive
+                          )}
+                        >
+                          {option.label}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+
+            {/* 写死的变式：灰着显示，只是让用户看 */}
+            {lockedVariantsOf(variantEditName, variantDraft).map((locked) => (
+              <View key={locked.groupKey} className={styles.variantRow}>
+                <Text className={styles.variantLabel}>{locked.groupLabel}</Text>
+                <View className={styles.variantOptions}>
+                  <View className={classnames(styles.variantChip, styles.variantChipLocked)}>
+                    <Text
+                      className={classnames(
+                        styles.variantChipText,
+                        styles.variantChipTextLocked
+                      )}
+                    >
+                      {locked.optionLabel}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+            </View>
+
+            {/* 底部固定行：确定在最右边 */}
+            <View className={styles.variantActions}>
+              <View className={styles.variantConfirm} onClick={saveVariantEditor}>
+                <Text className={styles.variantConfirmText}>确定</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {/* 历史日训：该动作最近 4 次记录（时间倒序），带当次动作心得 */}
+      {historyItem ? (
+        <View className={styles.historyMask} onClick={() => setHistoryKey(null)}>
+          <View className={styles.historyCard} onClick={(event) => event.stopPropagation()}>
+            <View className={styles.historyHead}>
+              <View className={styles.historyHeadMain}>
+                <Text className={styles.historyCardTitle}>历史日训</Text>
+                <Text className={styles.historyCardSub}>
+                  {historyInfo ? historyInfo.name : '已下架'}
+                  {historyRecords.length ? ` · 近 ${historyRecords.length} 次` : ''}
+                </Text>
+              </View>
+              <View className={styles.historyClose} onClick={() => setHistoryKey(null)}>
+                <Text className={styles.historyCloseText}>✕</Text>
+              </View>
+            </View>
+
+            {historyRecords.length ? (
+              <ScrollView scrollY className={styles.historyList}>
+                {historyRecords.map((record) => {
+                  const feel = getFeelOption(record.feel);
+                  return (
+                    <View key={record.sessionId} className={styles.historyItem}>
+                      <View className={styles.historyItemTop}>
+                        <Text className={styles.historyItemDate}>
+                          {formatHistoryDate(record.startedAt)}
+                        </Text>
+                        {feel ? (
+                          <Text className={styles.historyItemFeel}>
+                            {feel.emoji} {feel.label}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text className={styles.historyItemSets}>
+                        {record.cardioMin
+                          ? `${record.cardioMin} 分钟`
+                          : record.sets
+                              .map(
+                                (set) =>
+                                  `${formatSetWeight(set)}kg×${set.reps}${
+                                    historyInfo && isTimedExercise(historyInfo.id) ? '秒' : ''
+                                  }`
+                              )
+                              .join(' · ')}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text className={styles.historyEmpty}>
+                还没有「{historyInfo ? historyInfo.name : '该动作'}」的历史记录
+              </Text>
+            )}
+          </View>
+        </View>
+      ) : null}
+
       <ExercisePicker
         visible={pickerVisible}
+        single
+        singleHint="点一下即可添加，一次加一个"
+        singleConfirmText="添加"
         title={primaryMuscle ? `添加动作 · ${MUSCLE_LABELS[primaryMuscle]}` : '添加动作'}
         confirmText="添加"
         defaultMuscle={primaryMuscle}
         onClose={() => setPickerVisible(false)}
         onConfirm={addExercises}
+      />
+
+      {/* 替换动作：默认同部位 + 相近动作排前面，点一下即替换 */}
+      <ExercisePicker
+        visible={!!replaceKey}
+        single
+        title="替换动作"
+        defaultMuscle={replaceInfo?.muscle ?? null}
+        similarToId={replaceTarget?.exerciseId}
+        onClose={() => setReplaceKey(null)}
+        onConfirm={(items) => {
+          const picked = items[0];
+          if (replaceKey && picked) replaceItem(replaceKey, picked);
+          setReplaceKey(null);
+        }}
       />
     </View>
   );

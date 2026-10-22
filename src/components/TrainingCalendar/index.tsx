@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text } from '@tarojs/components';
-import { showActionSheet } from '@/utils/taro';
+import { navigateTo } from '@/utils/taro';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
 import type { MuscleGroup, Session } from '@/types';
@@ -40,21 +40,17 @@ const MAX_MARKS = 3;
 
 interface TrainingCalendarProps {
   sessions: Session[];
-  onPickSession: (sessionId: string) => void;
-  /** 某天用过的计划：点开直接进计划详情（可复制成今天的新计划） */
-  onPickPlan: (planId: string) => void;
+  /** 点某一天：跳到计划页，只看这一天的计划 */
+  onPickDate: (date: string) => void;
 }
 
-const TrainingCalendar: React.FC<TrainingCalendarProps> = ({
-  sessions,
-  onPickSession,
-  onPickPlan
-}) => {
+const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ sessions, onPickDate }) => {
   const [month, setMonth] = useState(() => dayjs().startOf('month'));
   const [tab, setTab] = useState<CalendarTab>('training');
   const plans = usePlanStore((state) => state.plans);
 
-  const byDate = useMemo(() => groupSessionsByDate(sessions), [sessions]);
+  // 有计划按计划设定日期展示，自由训练按实际训练日期展示
+  const byDate = useMemo(() => groupSessionsByDate(sessions, plans), [sessions, plans]);
   const todayKey = dayjs().format('YYYY-MM-DD');
 
   /** 每天练到的部位（按部位表的固定顺序，颜色跟着部位走） */
@@ -92,47 +88,9 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({
     setMonth((prev) => prev.add(offset, 'month'));
   };
 
-  const handleDayPress = (daySessions: Session[]) => {
-    if (!daySessions.length) return;
-    // 当天用到的计划（计划可能已被删除，删了就不给入口）
-    const dayPlans = Array.from(
-      new Set(daySessions.map((item) => item.planId).filter(Boolean) as string[])
-    )
-      .map((id) => plans.find((item) => item.id === id))
-      .filter((item): item is (typeof plans)[number] => Boolean(item));
-
-    // 只有一条记录、也没有计划可看：直接进记录详情
-    if (daySessions.length === 1 && !dayPlans.length) {
-      onPickSession(daySessions[0].id);
-      return;
-    }
-
-    const actions: { label: string; run: () => void }[] = [];
-    daySessions.slice(0, 6).forEach((item) => {
-      actions.push({
-        label: `训练记录 · ${item.name}`,
-        run: () => onPickSession(item.id)
-      });
-    });
-    dayPlans.forEach((plan) => {
-      actions.push({
-        label: `查看计划 · ${plan.name}`,
-        run: () => onPickPlan(plan.id)
-      });
-    });
-
-    showActionSheet({
-      itemList: actions.map((item) => item.label),
-      success: (res) => {
-        const picked = actions[res.tapIndex];
-        if (picked) picked.run();
-      }
-    });
-  };
-
   return (
     <View className={styles.calendar}>
-      {/* 训练 / 饮食 / 体重&维度：后两个先把入口留出来 */}
+      {/* 训练 / 饮食 / 体重&维度：体重&维度点进去是独立的记录页 */}
       <View className={styles.tabs}>
         {TABS.map((item) => {
           const active = tab === item.key;
@@ -140,7 +98,13 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({
             <View
               key={item.key}
               className={classnames(styles.tab, active && styles.tabActive)}
-              onClick={() => setTab(item.key)}
+              onClick={() => {
+                if (item.key === 'body') {
+                  navigateTo({ url: '/pages/body/index' });
+                  return;
+                }
+                setTab(item.key);
+              }}
             >
               <Text className={classnames(styles.tabText, active && styles.tabTextActive)}>
                 {item.label}
@@ -199,7 +163,8 @@ const TrainingCalendar: React.FC<TrainingCalendarProps> = ({
                   isToday && hasTraining && styles.dayBoxTodayActive
                 )}
                 onClick={() => {
-                  if (tab === 'training') handleDayPress(daySessions);
+                  // 点日期直接去计划页看当天的计划
+                  if (tab === 'training') onPickDate(dateKey);
                 }}
               >
                 <Text

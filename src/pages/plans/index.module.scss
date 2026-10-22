@@ -8,7 +8,8 @@
 
 .header {
   display: flex;
-  align-items: flex-end;
+  /* 「新建计划」按钮与左侧标题块上下居中 */
+  align-items: center;
   justify-content: space-between;
   padding: $spacing-lg 0 $spacing-md;
 }
@@ -44,6 +45,7 @@
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
   color: $color-text-inverse;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -58,6 +60,21 @@
   font-weight: $font-weight-semibold;
   color: $color-primary;
   line-height: 1.6;
+}
+
+/* 已完成计划：折叠区标题（默认收起） */
+.finishedHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: $spacing-md 0 $spacing-sm;
+  padding: 0 4rpx;
+}
+
+.finishedTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
 }
 
 .card {
@@ -195,6 +212,32 @@
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
   color: $color-success;
+  line-height: 1.6;
+}
+
+/* 正在训练中的计划 */
+.runningBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.18);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  line-height: 1.6;
+}
+
+/* 已创建、还没开始练 */
+.pendingBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-round;
+  background: rgba(251, 191, 36, 0.16);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-warning;
   line-height: 1.6;
 }
 

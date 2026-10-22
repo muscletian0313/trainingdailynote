@@ -99,7 +99,7 @@ export const VARIANT_GROUPS: Record<string, VariantGroup> = {
       { key: 'smith', label: '史密斯架' }
     ]
   },
-  /** 杠铃 / 哑铃 / 绳索 三种器材（前平举、颈后臂屈伸） */
+  /** 杠铃 / 哑铃 / 绳索 三种器材（颈后臂屈伸） */
   equipRaise: {
     key: 'equipRaise',
     label: '器材',
@@ -107,6 +107,19 @@ export const VARIANT_GROUPS: Record<string, VariantGroup> = {
       { key: 'barbell', label: '杠铃' },
       { key: 'dumbbell', label: '哑铃' },
       { key: 'cable', label: '绳索' }
+    ]
+  },
+  /** 绳索前平举的握把：羊角杠 / 直杆只能双手 */
+  equipFrontCable: {
+    key: 'equipFrontCable',
+    label: '握把',
+    defaultKey: 'handle',
+    options: [
+      { key: 'none', label: '无握把' },
+      { key: 'handle', label: '握把' },
+      { key: 'rope', label: '绳索' },
+      { key: 'ez', label: '羊角杠' },
+      { key: 'straight', label: '直杆' }
     ]
   },
   /** 侧平举 / 俯身飞鸟的器材 */
@@ -148,24 +161,25 @@ export const VARIANT_GROUPS: Record<string, VariantGroup> = {
       { key: 'seated', label: '坐姿' }
     ]
   },
+  /** 杆型：标准杠铃 20kg，小直杠 / 小曲杠 10kg（决定重量口径） */
+  barType: {
+    key: 'barType',
+    label: '杠铃',
+    defaultKey: 'barbell',
+    options: [
+      { key: 'barbell', label: '杠铃' },
+      { key: 'straight', label: '小直杠' },
+      { key: 'ez', label: '小曲杠' }
+    ]
+  },
   /** 哑铃动作：一次做一边还是两边同时做（决定重量是单只还是一对） */
   side: {
     key: 'side',
-    label: '单双侧',
+    label: '单双手',
     defaultKey: 'double',
     options: [
-      { key: 'single', label: '单边' },
-      { key: 'double', label: '双边' }
-    ]
-  },
-  /** 杠铃动作：填的重量算不算上杠的重量 */
-  barLoad: {
-    key: 'barLoad',
-    label: '杠铃负重',
-    defaultKey: 'withBar',
-    options: [
-      { key: 'withBar', label: '含杠' },
-      { key: 'withoutBar', label: '不含杠' }
+      { key: 'single', label: '单手' },
+      { key: 'double', label: '双手' }
     ]
   },
   legMode: {
@@ -286,9 +300,9 @@ export const VARIANT_GROUPS: Record<string, VariantGroup> = {
  */
 export const EXERCISE_VARIANTS: Record<string, string[]> = {
   // 胸：角度决定上胸/中胸/下胸
-  杠铃卧推: ['angle', 'width', 'elbow', 'barLoad'],
-  史密斯架卧推: ['angle', 'width', 'elbow'],
-  器械推胸: ['angle', 'width', 'elbow'],
+  杠铃卧推: ['angle', 'width', 'elbow'],
+  史密斯架卧推: ['angle', 'width', 'elbow', 'side'],
+  器械推胸: ['angle', 'width', 'elbow', 'side'],
   哑铃卧推: ['angle', 'dbGrip', 'side'],
   哑铃飞鸟: ['angle', 'side'],
   双杠臂屈伸: ['torso', 'elbow', 'load'],
@@ -301,37 +315,45 @@ export const EXERCISE_VARIANTS: Record<string, string[]> = {
   绳索高位下拉: ['armMode', 'grip', 'gripWidth', 'torso', 'lean'],
   器械划船: ['armMode', 'grip', 'gripWidth', 'pullHeight', 'torso', 'lean'],
   绳索划船: ['armMode', 'grip', 'gripWidth', 'pullHeight', 'torso', 'lean'],
-  杠铃俯身划船: ['gripSimple', 'gripWidth', 'torso', 'barLoad'],
+  杠铃俯身划船: ['gripSimple', 'gripWidth', 'torso'],
   哑铃俯身划船: ['side', 'torso'],
   器械俯身划船: ['armMode', 'grip', 'gripWidth', 'torso'],
   // 臀腿
-  杠铃深蹲: ['barLoad'],
-  箭步蹲: ['equip', 'barLoad'],
-  保加利亚蹲: ['equip', 'barLoad', 'leanSimple'],
+  杠铃深蹲: [],
+  史密斯深蹲: ['side'],
+  箭步蹲: ['equip'],
+  保加利亚蹲: ['equip', 'leanSimple'],
   器械腘绳肌: ['legMode'],
-  传统硬拉: ['equipSimple', 'barLoad'],
-  相扑硬拉: ['equipSimple', 'barLoad'],
-  罗马尼亚硬拉: ['equipSimple', 'barLoad'],
+  传统硬拉: ['equipSimple'],
+  相扑硬拉: ['equipSimple'],
+  罗马尼亚硬拉: ['equipSimple'],
   提踵: ['stance', 'equipCalf'],
   // 肩
-  杠铃推举: ['stance', 'elbow', 'barLoad'],
-  史密斯架推举: ['stance', 'elbow'],
-  哑铃推举: ['stance', 'elbow', 'side'],
-  器械推举: ['stance', 'elbow'],
-  前平举: ['equipRaise', 'armMode'],
-  侧平举: ['equipFly', 'armMode'],
+  杠铃推肩: ['stance', 'elbow'],
+  史密斯架推肩: ['stance', 'elbow', 'side'],
+  哑铃推肩: ['stance', 'elbow', 'side'],
+  器械推肩: ['stance', 'elbow', 'side'],
+  // 前平举拆成器械 / 哑铃 / 绳索三个独立动作；杠铃版只有杆型可选
+  杠铃前平举: ['barType'],
+  器械前平举: ['stance', 'armMode'],
+  哑铃前平举: ['stance', 'grip', 'armMode'],
+  绳索前平举: ['equipFrontCable', 'grip', 'armMode'],
+  哑铃侧平举: ['stance', 'armMode'],
+  器械侧平举: ['stance', 'armMode'],
+  绳索侧平举: ['armMode'],
   俯身飞鸟: ['equipFly', 'armMode'],
   龙门架反向飞鸟: ['armMode', 'torsoSimple'],
-  绳索面拉: ['stance'],
+  绳索面拉: ['stance', 'armMode'],
   // 肱二头肌
-  杠铃二头弯举: ['barLoad'],
+  杠铃二头弯举: ['barType'],
   哑铃二头弯举: ['stance', 'gripCurl', 'side'],
   绳索二头弯举: ['stance', 'equipCurl', 'gripCurl'],
   器械二头弯举: ['armMode'],
   // 肱三头肌
   绳索下压: ['equipCurl'],
+  器械三头下压: ['armMode'],
   颈后臂屈伸: ['stance', 'equipRaise', 'armMode'],
-  仰卧杠铃臂屈伸: ['barLoad'],
+  仰卧杠铃臂屈伸: ['barType'],
   // 核心：自重为主，默认按「负重」记（体重 + 额外负重）
   卷腹: ['load'],
   仰卧举腿: ['load'],
@@ -342,11 +364,9 @@ export const EXERCISE_VARIANTS: Record<string, string[]> = {
 
 /**
  * 固定变式：写死的选项，不给用户选，只在界面上灰着显示。
- * 例：双杠臂屈伸是夹肘，用户改不了。
+ * 目前没有需要写死的动作（双杠臂屈伸的肘部改为可选：夹肘练三头、开肘练胸）。
  */
-export const FIXED_VARIANTS: Record<string, ExerciseVariants> = {
-  双杠臂屈伸: { elbow: 'tuck' }
-};
+export const FIXED_VARIANTS: Record<string, ExerciseVariants> = {};
 
 /**
  * 条件固定：满足条件时某组写死成某个选项（灰色不可改）。
@@ -380,7 +400,21 @@ const VARIANT_DEFAULT_RULES: { exercise: string; group: string; option: string }
   { exercise: '仰卧举腿', group: 'load', option: 'added' },
   { exercise: '悬垂举腿', group: 'load', option: 'added' },
   { exercise: '平板支撑', group: 'load', option: 'added' },
-  { exercise: '侧平板支撑', group: 'load', option: 'added' }
+  { exercise: '侧平板支撑', group: 'load', option: 'added' },
+  // 哑铃动作默认按「单手重量」记（单只哑铃的重量）
+  { exercise: '哑铃卧推', group: 'side', option: 'single' },
+  { exercise: '哑铃飞鸟', group: 'side', option: 'single' },
+  { exercise: '哑铃俯身划船', group: 'side', option: 'single' },
+  { exercise: '哑铃推肩', group: 'side', option: 'single' },
+  { exercise: '哑铃二头弯举', group: 'side', option: 'single' },
+  { exercise: '哑铃前平举', group: 'armMode', option: 'single' },
+  { exercise: '器械前平举', group: 'armMode', option: 'single' },
+  { exercise: '绳索前平举', group: 'armMode', option: 'single' },
+  { exercise: '哑铃侧平举', group: 'armMode', option: 'single' },
+  { exercise: '器械侧平举', group: 'armMode', option: 'single' },
+  { exercise: '绳索侧平举', group: 'armMode', option: 'single' },
+  { exercise: '俯身飞鸟', group: 'armMode', option: 'single' },
+  { exercise: '颈后臂屈伸', group: 'armMode', option: 'single' }
 ];
 
 function preferredDefault(
@@ -449,20 +483,9 @@ const VARIANT_PRIORITY = ['angle', 'lean', 'leanSimple', 'chestRegion'];
 
 /**
  * 组级联动：条件不满足时整组不显示（when 里任意一条命中即显示）。
- * 例：箭步蹲 / 硬拉选了哑铃或史密斯架，就不该再问「含不含杠」；
- * 前平举只有哑铃、绳索才分单手 / 双手，杠铃是双手握死杠。
+ * 例：颈后臂屈伸只有哑铃、绳索才分单手 / 双手，杠铃是双手握死杠。
  */
 const VARIANT_GROUP_RULES: { exercise: string; group: string; when: ExerciseVariants[] }[] = [
-  { exercise: '箭步蹲', group: 'barLoad', when: [{ equip: 'barbell' }] },
-  { exercise: '保加利亚蹲', group: 'barLoad', when: [{ equip: 'barbell' }] },
-  { exercise: '传统硬拉', group: 'barLoad', when: [{ equipSimple: 'barbell' }] },
-  { exercise: '相扑硬拉', group: 'barLoad', when: [{ equipSimple: 'barbell' }] },
-  { exercise: '罗马尼亚硬拉', group: 'barLoad', when: [{ equipSimple: 'barbell' }] },
-  {
-    exercise: '前平举',
-    group: 'armMode',
-    when: [{ equipRaise: 'dumbbell' }, { equipRaise: 'cable' }]
-  },
   // 绳索二头弯举：只有「单手」没有握法可挑
   {
     exercise: '绳索二头弯举',
@@ -544,6 +567,19 @@ const VARIANT_OPTION_RULES: VariantOptionRule[] = [
     group: 'equipCurl',
     when: {},
     options: ['cable', 'straight', 'ez', 'vbar']
+  },
+  // 绳索前平举：羊角杠 / 直杆是双手握的，只能选双手
+  {
+    exercise: '绳索前平举',
+    group: 'armMode',
+    when: { equipFrontCable: 'ez' },
+    options: ['double']
+  },
+  {
+    exercise: '绳索前平举',
+    group: 'armMode',
+    when: { equipFrontCable: 'straight' },
+    options: ['double']
   }
 ];
 
@@ -595,6 +631,39 @@ export function hasVariants(name: string): boolean {
   return variantGroupsOf(name).length > 0;
 }
 
+/**
+ * 杠铃类动作：重量按「杆 + 总杠铃片」填，固定双手，
+ * 不再提供「含杠 / 不含杠」「单手 / 双手」标签。
+ * 带器材切换的动作（箭步蹲、硬拉等）只有当前选杠铃时才算。
+ */
+export function isBarbellExercise(name: string, variants?: ExerciseVariants): boolean {
+  if (name.includes('杠铃')) return true;
+  const source = { ...defaultVariants(name), ...(variants ?? {}) };
+  const equip = source.equip ?? source.equipSimple;
+  return equip === 'barbell';
+}
+
+/**
+ * 杠铃类动作的杆重（kg）：标准杠铃 20kg，小直杠 / 小曲杠 10kg。
+ * 不是杠铃类动作返回 null（界面上就不显示「杆 + 总杠铃片」）。
+ */
+export function barbellBarWeight(name: string, variants?: ExerciseVariants): number | null {
+  if (!isBarbellExercise(name, variants)) return null;
+  const source = { ...defaultVariants(name), ...(variants ?? {}) };
+  return source.barType === 'straight' || source.barType === 'ez' ? 10 : 20;
+}
+
+/**
+ * 哑铃类动作：重量按单只哑铃填（单手 / 双手都填单只重量）。
+ * 带器材切换的动作只有当前选哑铃时才算。
+ */
+export function isDumbbellExercise(name: string, variants?: ExerciseVariants): boolean {
+  if (name.includes('哑铃')) return true;
+  const source = { ...defaultVariants(name), ...(variants ?? {}) };
+  const equip = source.equip ?? source.equipSimple ?? source.equipRaise ?? source.equipFly;
+  return equip === 'dumbbell';
+}
+
 /** 某动作写死的变式：灰着显示、点不动，只用于展示 */
 export interface LockedVariant {
   groupKey: string;
@@ -641,14 +710,18 @@ export interface VariantBadge {
 
 /** 变式展示标签（按变式组顺序），写死的排在里面并标记 locked */
 export function variantBadges(name: string, variants?: ExerciseVariants): VariantBadge[] {
-  const locked = resolveFixed(name, variants);
+  // 老计划可能没存变式：用默认值补齐，避免动作名后面空着一片
+  const source = reconcileVariants(name, { ...defaultVariants(name), ...(variants ?? {}) });
+  // 承重（自重 / 负重）会影响重量算法，老数据没存就别臆造
+  if (!variants?.load) delete source.load;
+  const locked = resolveFixed(name, source);
   const badges: VariantBadge[] = [];
   (EXERCISE_VARIANTS[name] ?? []).forEach((groupKey) => {
     const group = VARIANT_GROUPS[groupKey];
     if (!group) return;
     // 联动后不该出现的组（例如换了哑铃就不显示含不含杠）直接不展示
-    if (!groupVisible(name, groupKey, variants)) return;
-    const picked = locked[groupKey] ?? variants?.[groupKey];
+    if (!groupVisible(name, groupKey, source)) return;
+    const picked = locked[groupKey] ?? source[groupKey];
     if (!picked) return;
     const option = group.options.find((item) => item.key === picked);
     if (option) badges.push({ label: option.label, locked: Boolean(locked[groupKey]) });

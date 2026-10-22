@@ -66,51 +66,6 @@
   color: $color-text-tertiary;
 }
 
-.profileStats {
-  display: flex;
-  margin-top: $spacing-lg;
-  padding-top: $spacing-md;
-  border-top: 2rpx solid $color-divider;
-}
-
-.profileStat {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.profileStatValue {
-  font-size: 40rpx;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-  line-height: 1.1;
-}
-
-.profileStatValueAccent {
-  color: $color-primary;
-}
-
-.profileStatUnit {
-  font-size: $font-size-xs;
-  font-weight: $font-weight-normal;
-  color: $color-text-tertiary;
-  margin-left: 4rpx;
-}
-
-.profileStatLabel {
-  margin-top: 6rpx;
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-}
-
-.profileStatDivider {
-  width: 2rpx;
-  background: $color-divider;
-  margin: 8rpx 0;
-}
-
 .sectionLabel {
   display: block;
   margin: $spacing-lg 0 $spacing-sm;

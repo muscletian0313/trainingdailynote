@@ -4,23 +4,25 @@ import { navigateTo } from '@/utils/taro';
 import classnames from 'classnames';
 import { MUSCLE_COLORS, MUSCLE_GROUPS, MUSCLE_LABELS } from '@/constants';
 import { useSessionStore } from '@/store/useSessionStore';
+import { usePlanStore } from '@/store/usePlanStore';
 import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
 import EmptyState from '@/components/EmptyState';
 import MuscleTag from '@/components/MuscleTag';
 import TrainingCalendar from '@/components/TrainingCalendar';
 import {
   computePrs,
+  planFromSession,
   recentDaysVolume,
   sessionDurationSec,
-  sessionVolume,
-  totalDurationSec,
-  totalVolume
+  sessionVolume
 } from '@/utils/workout';
 import { dayLabel, formatClock, formatDuration, formatVolume, formatWeight } from '@/utils/format';
 import styles from './index.module.scss';
 
 const StatsPage: React.FC = () => {
   const sessions = useSessionStore((state) => state.sessions);
+  const addPlan = usePlanStore((state) => state.addPlan);
+  const attachPlanToSession = useSessionStore((state) => state.attachPlanToSession);
 
   const days = useMemo(() => recentDaysVolume(sessions, 7), [sessions]);
   const maxVolume = Math.max(...days.map((item) => item.volume), 1);
@@ -43,54 +45,31 @@ const StatsPage: React.FC = () => {
 
   const maxMuscleSets = muscleStats.length ? muscleStats[0].sets : 1;
 
+  /** 历史训练：统一进「练完的计划详情」；老的自由训练记录现场补一个计划 */
   const openRecord = (id: string) => {
-    navigateTo({ url: `/pages/record-detail/index?id=${id}` });
+    const session = sessions.find((item) => item.id === id);
+    if (!session) return;
+    if (session.planId) {
+      navigateTo({ url: `/pages/plan-detail/index?id=${session.planId}` });
+      return;
+    }
+    const plan = planFromSession(session);
+    addPlan(plan);
+    attachPlanToSession(session.id, plan.id);
+    navigateTo({ url: `/pages/plan-detail/index?id=${plan.id}` });
   };
 
-  /** 从日历里点某天用过的计划 → 进计划详情（那里可以复制成今天的新计划） */
-  const openPlan = (id: string) => {
-    navigateTo({ url: `/pages/plan-detail/index?id=${id}` });
+  /** 点日历某天 → 打开「当天训练计划」独立页面（返回即回到数据页） */
+  const openDatePlans = (date: string) => {
+    navigateTo({ url: `/pages/day-plans/index?date=${date}` });
   };
 
   return (
     <View className={styles.page}>
-      <View className={styles.header}>
-        <Text className={styles.title}>训练数据</Text>
-        <Text className={styles.subtitle}>
-          {sessions.length ? `已累计 ${sessions.length} 次训练` : '记录你的每一次进步'}
-        </Text>
-      </View>
-
       {sessions.length ? (
         <>
-          <View className={styles.overview}>
-            <View className={styles.overviewItem}>
-              <Text className={styles.overviewValue}>{sessions.length}</Text>
-              <Text className={styles.overviewLabel}>训练次数</Text>
-            </View>
-            <View className={styles.overviewDivider} />
-            <View className={styles.overviewItem}>
-              <Text className={classnames(styles.overviewValue, styles.overviewValueAccent)}>
-                {formatVolume(totalVolume(sessions))}
-              </Text>
-              <Text className={styles.overviewLabel}>总容量(kg)</Text>
-            </View>
-            <View className={styles.overviewDivider} />
-            <View className={styles.overviewItem}>
-              <Text className={styles.overviewValue}>
-                {Math.round(totalDurationSec(sessions) / 60)}
-                <Text className={styles.overviewUnit}>分</Text>
-              </Text>
-              <Text className={styles.overviewLabel}>总时长</Text>
-            </View>
-          </View>
-
           <View className={styles.section}>
-            <TrainingCalendar
-              sessions={sessions}
-              onPickSession={openRecord}
-              onPickPlan={openPlan}
-            />
+            <TrainingCalendar sessions={sessions} onPickDate={openDatePlans} />
           </View>
 
           {prs.length ? (

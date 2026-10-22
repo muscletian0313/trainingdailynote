@@ -149,52 +149,23 @@
   color: $color-text-inverse;
 }
 
-/* 统计卡片 */
-.statCard {
-  display: flex;
-  padding: $spacing-lg $spacing-md;
-  border-radius: $radius-lg;
-  background: $color-bg-card;
-  box-shadow: $shadow-card;
+/* 激励文案卡片 */
+.quoteCard {
+  position: relative;
+  padding: $spacing-lg;
   margin-bottom: $spacing-md;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, rgba(255, 107, 44, 0.16) 0%, $color-bg-card 62%);
+  box-shadow: $shadow-card;
+  overflow: hidden;
 }
 
-.statItem {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.statValue {
-  font-size: 48rpx;
-  font-weight: $font-weight-bold;
+.quoteText {
+  display: block;
+  font-size: 30rpx;
+  font-weight: $font-weight-semibold;
+  line-height: 1.55;
   color: $color-text-primary;
-  line-height: 1.1;
-}
-
-.statValueAccent {
-  color: $color-primary;
-}
-
-.statUnit {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-normal;
-  color: $color-text-tertiary;
-  margin-left: 4rpx;
-}
-
-.statLabel {
-  margin-top: 8rpx;
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-}
-
-.statDivider {
-  width: 2rpx;
-  background: $color-divider;
-  margin: 8rpx 0;
 }
 
 /* 主按钮 */

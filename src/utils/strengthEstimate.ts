@@ -83,6 +83,9 @@ const ASSIST_RATIOS: Record<TrainingLevel, number> = {
 /** 杠铃最低就是空杠重量 */
 const BAR_WEIGHT = 20;
 
+/** 小直杠 / 小曲杠的空杆重量 */
+const SMALL_BAR_WEIGHT = 10;
+
 /** 哑铃一对的等效负荷约为杠铃的 80% */
 const DUMBBELL_PAIR_RATIO = 0.8;
 
@@ -175,6 +178,13 @@ export function estimateStartWeight(
     return roundTo(single ? perHand : perHand * 2, 1);
   }
 
-  if (equipment === '杠铃') return Math.max(BAR_WEIGHT, roundTo(total, 5));
+  if (equipment === '杠铃') {
+    // 小直杠 / 小曲杠按 10kg 空杆算
+    const barWeight =
+      options.variants?.barType === 'straight' || options.variants?.barType === 'ez'
+        ? SMALL_BAR_WEIGHT
+        : BAR_WEIGHT;
+    return Math.max(barWeight, roundTo(total, 5));
+  }
   return roundTo(total, 5);
 }

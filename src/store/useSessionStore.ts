@@ -43,24 +43,37 @@ interface SessionState {
   /** 修改训练名称 */
   renameActive: (name: string) => void;
   /** 更新当前训练的手填统计（有氧：消耗热量 / 平均心率）与训练心得评分 */
-  patchActiveMeta: (patch: { calories?: number; avgHeartRate?: number; feelScore?: number }) => void;
+  patchActiveMeta: (patch: {
+    calories?: number;
+    avgHeartRate?: number;
+    feelScore?: number;
+    feelScoreMax?: number;
+  }) => void;
   /** 添加动作 */
   addExerciseToActive: (
     exerciseId: string,
     targetSets?: number,
     restSeconds?: number,
-    variants?: ExerciseVariants
+    variants?: ExerciseVariants,
+    equipmentName?: string
   ) => void;
   /** 移除动作 */
   removeExerciseFromActive: (key: string) => void;
   /** 调整动作顺序 */
   moveExerciseInActive: (key: string, direction: -1 | 1) => void;
   /** 替换某个动作（换器械 / 身体不适临时换），保留位置与组间休息 */
-  replaceExerciseInActive: (key: string, exerciseId: string, variants?: ExerciseVariants) => void;
+  replaceExerciseInActive: (
+    key: string,
+    exerciseId: string,
+    variants?: ExerciseVariants,
+    equipmentName?: string
+  ) => void;
   /** 更新动作配置（目标组数 / 休息时间） */
   patchExerciseInActive: (key: string, patch: Partial<SessionExercise>) => void;
   /** 添加一组 */
   addSetToActive: (key: string) => void;
+  /** 在最后一行下面追加递减组（重量/次数沿用上一行） */
+  addDropSetToActive: (key: string) => void;
   /** 删除一组 */
   removeSetFromActive: (key: string, setId: string) => void;
   /** 更新某组数据 */
@@ -69,8 +82,14 @@ interface SessionState {
   toggleSetDone: (key: string, setId: string) => void;
   /** 更新历史记录的手填统计（有氧：消耗热量 / 平均心率） */
   updateSessionMeta: (id: string, patch: { calories?: number; avgHeartRate?: number }) => void;
+  /** 保存训练结束后的自我评价 */
+  setSessionNote: (id: string, note: string) => void;
+  /** 自由训练练完后补上关联的计划 id，让它也能在计划详情里回看 */
+  attachPlanToSession: (sessionId: string, planId: string) => void;
   /** 删除历史记录 */
   deleteSession: (id: string) => void;
+  /** 删除某个计划产生的全部训练记录（删计划时一起清掉） */
+  deleteSessionsByPlan: (planId: string) => void;
   /** 清空全部历史记录 */
   clearSessions: () => void;
 }
@@ -108,18 +127,38 @@ const ACTIVE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 /**
  * 读取本地的「进行中训练」，并清理无效残留：
  * 1. 空训练（从未添加动作）——只是状态污染，不算在训练；
- * 2. 开始时间超过 12 小时——视为忘记结束的僵尸训练。
+ * 2. 开始时间超过 12 小时——视为忘记结束的僵尸训练；
+ * 3. 关联的计划已经被删除——训练失去意义，直接清掉。
  */
 function loadActiveSession(): Session | null {
   const raw = loadJSON<Session | null>(STORAGE_KEYS.activeSession, null);
   if (!raw) return null;
   const empty = !raw.exercises || raw.exercises.length === 0;
   const expired = Date.now() - (raw.startedAt || 0) > ACTIVE_MAX_AGE_MS;
-  if (empty || expired) {
+  const plans = loadJSON<Plan[]>(STORAGE_KEYS.plans, []);
+  const planGone = Boolean(raw.planId) && !plans.some((plan) => plan.id === raw.planId);
+  if (empty || expired || planGone) {
     removeKey(STORAGE_KEYS.activeSession);
     return null;
   }
   return raw;
+}
+
+/**
+ * 读取训练记录，顺手清掉「关联计划已被删除」的记录：
+ * 删计划时已经会联动删记录，这里兜底老数据 / 异常残留，
+ * 保证训练页、数据、我的里的统计都不再包含已删计划的训练。
+ */
+function loadSessions(): Session[] {
+  const list = loadJSON<Session[]>(STORAGE_KEYS.sessions, []);
+  const plans = loadJSON<Plan[]>(STORAGE_KEYS.plans, []);
+  const planIds = new Set(plans.map((plan) => plan.id));
+  const alive = list.filter((item) => !item.planId || planIds.has(item.planId));
+  if (alive.length !== list.length) {
+    console.info('[Session] 清理已删计划的训练记录', list.length - alive.length, '条');
+    saveJSON(STORAGE_KEYS.sessions, alive);
+  }
+  return alive;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => {
@@ -150,7 +189,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
   };
 
   return {
-    sessions: sortByStartedAtDesc(loadJSON<Session[]>(STORAGE_KEYS.sessions, [])),
+    sessions: sortByStartedAtDesc(loadSessions()),
     active: loadActiveSession(),
 
     startSession: (options) => {
@@ -163,6 +202,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
             key: uid('se'),
             exerciseId: planExercise.exerciseId,
             variants: planExercise.variants,
+            equipmentName: planExercise.equipmentName,
             targetSets: 1,
             restSeconds: planExercise.restSeconds || DEFAULT_REST,
             sets: createCardioSets()
@@ -178,12 +218,14 @@ export const useSessionStore = create<SessionState>((set, get) => {
           id: uid('set'),
           weight: planSet.weight !== 0 ? planSet.weight : last ? last.weight : 0,
           reps: planSet.reps || (last ? last.reps : DEFAULT_REPS) || DEFAULT_REPS,
-          done: false
+          done: false,
+          drop: planSet.drop
         }));
         return {
           key: uid('se'),
           exerciseId: planExercise.exerciseId,
           variants: planExercise.variants,
+          equipmentName: planExercise.equipmentName,
           targetSets: sets.length,
           restSeconds: planExercise.restSeconds || DEFAULT_REST,
           sets
@@ -245,7 +287,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
       persistActive({ ...active, ...patch });
     },
 
-    addExerciseToActive: (exerciseId, targetSets = DEFAULT_SETS, restSeconds = DEFAULT_REST, variants) => {
+    addExerciseToActive: (exerciseId, targetSets = DEFAULT_SETS, restSeconds = DEFAULT_REST, variants, equipmentName) => {
       const active = get().active;
       if (!active) return;
       // 有氧动作：一条时长 + 强度记录
@@ -254,6 +296,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
           key: uid('se'),
           exerciseId,
           variants,
+          equipmentName,
           targetSets: 1,
           restSeconds,
           sets: createCardioSets()
@@ -266,6 +309,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
         key: uid('se'),
         exerciseId,
         variants,
+        equipmentName,
         targetSets,
         restSeconds,
         sets: createSets(
@@ -298,7 +342,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
       patchActiveExercise(key, (exercise) => ({ ...exercise, ...patch }));
     },
 
-    replaceExerciseInActive: (key, exerciseId, variants) => {
+    replaceExerciseInActive: (key, exerciseId, variants, equipmentName) => {
       const active = get().active;
       if (!active) return;
       const current = active.exercises.find((item) => item.key === key);
@@ -311,6 +355,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
           key,
           exerciseId,
           variants,
+          equipmentName,
           targetSets: 1,
           restSeconds,
           sets: createCardioSets()
@@ -323,13 +368,15 @@ export const useSessionStore = create<SessionState>((set, get) => {
               id: uid('set'),
               weight: item.weight,
               reps: item.reps || DEFAULT_REPS,
-              done: false
+              done: false,
+              drop: item.drop
             }))
           : [{ id: uid('set'), weight: initialWeight(exerciseId, variants), reps: DEFAULT_REPS, done: false }];
         next = {
           key,
           exerciseId,
           variants,
+          equipmentName,
           targetSets: sets.length,
           restSeconds,
           sets
@@ -342,27 +389,59 @@ export const useSessionStore = create<SessionState>((set, get) => {
       });
     },
 
+    /** 添加一组：最后一组是递减链就整条链复制一份（2-1、2-2…），重量次数不变 */
     addSetToActive: (key) => {
       patchActiveExercise(key, (exercise) => {
+        let copies: WorkoutSet[];
+        if (!exercise.sets.length) {
+          copies = [{ id: uid('set'), weight: 0, reps: DEFAULT_REPS, done: false }];
+        } else {
+          // 找到最后一组所在递减链的基础组
+          let chainStart = exercise.sets.length - 1;
+          while (chainStart > 0 && exercise.sets[chainStart].drop) chainStart -= 1;
+          copies = exercise.sets.slice(chainStart).map((set) => ({
+            id: uid('set'),
+            weight: set.weight,
+            addedWeight: set.addedWeight,
+            reps: set.reps,
+            done: false,
+            drop: set.drop
+          }));
+        }
+        const sets = [...exercise.sets, ...copies];
+        return { ...exercise, sets, targetSets: sets.length };
+      });
+    },
+
+    addDropSetToActive: (key) => {
+      patchActiveExercise(key, (exercise) => {
         const last = exercise.sets[exercise.sets.length - 1];
-        const newSet: WorkoutSet = {
+        if (!last) return exercise;
+        const dropSet: WorkoutSet = {
           id: uid('set'),
-          weight: last ? last.weight : 0,
-          reps: last ? last.reps : DEFAULT_REPS,
-          done: false
+          weight: last.weight,
+          addedWeight: last.addedWeight,
+          reps: last.reps,
+          done: false,
+          drop: true
         };
-        return {
-          ...exercise,
-          sets: [...exercise.sets, newSet],
-          targetSets: exercise.sets.length + 1
-        };
+        const sets = [...exercise.sets, dropSet];
+        return { ...exercise, sets, targetSets: sets.length };
       });
     },
 
     removeSetFromActive: (key, setId) => {
       patchActiveExercise(key, (exercise) => {
         if (exercise.sets.length <= 1) return exercise;
-        const sets = exercise.sets.filter((item) => item.id !== setId);
+        const index = exercise.sets.findIndex((item) => item.id === setId);
+        if (index < 0) return exercise;
+        // 删基础组时，跟着的递减组一起删
+        let end = index + 1;
+        if (!exercise.sets[index].drop) {
+          while (exercise.sets[end]?.drop) end += 1;
+        }
+        const sets = [...exercise.sets.slice(0, index), ...exercise.sets.slice(end)];
+        if (!sets.length) return exercise;
         return { ...exercise, sets, targetSets: sets.length };
       });
     },
@@ -389,8 +468,27 @@ export const useSessionStore = create<SessionState>((set, get) => {
       );
     },
 
+    setSessionNote: (id, note) => {
+      persistSessions(
+        get().sessions.map((item) =>
+          item.id === id ? { ...item, selfNote: note.trim() || undefined } : item
+        )
+      );
+    },
+
+    attachPlanToSession: (id, planId) => {
+      persistSessions(
+        get().sessions.map((item) => (item.id === id ? { ...item, planId } : item))
+      );
+    },
+
     deleteSession: (id) => {
       persistSessions(get().sessions.filter((item) => item.id !== id));
+    },
+
+    deleteSessionsByPlan: (planId) => {
+      const sessions = get().sessions.filter((item) => item.planId !== planId);
+      persistSessions(sessions);
     },
 
     clearSessions: () => {

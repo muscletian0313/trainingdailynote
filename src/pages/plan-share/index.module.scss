@@ -135,18 +135,39 @@
   margin-top: 6rpx;
 }
 
-.itemVariant {
-  font-size: $font-size-xs;
+/* 变式标签：和计划详情一致的胶囊样式 */
+.itemTags {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 100rpx;
+  overflow: hidden;
+}
+
+.itemTag {
+  margin: 0 8rpx 6rpx 0;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.12);
+  font-size: $font-size-sm;
   color: $color-primary;
+  line-height: 1.6;
 }
 
 /* 写死的变式：灰色，只用于展示 */
-.itemVariantLocked {
-  font-size: $font-size-xs;
+.itemTagLocked {
+  margin: 0 8rpx 6rpx 0;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  font-size: $font-size-sm;
   color: $color-text-tertiary;
+  line-height: 1.6;
 }
 
 .itemSets {
+  flex-shrink: 0;
   margin-left: $spacing-sm;
   font-size: $font-size-xs;
   color: $color-text-tertiary;

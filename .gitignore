@@ -23,3 +23,6 @@ yarn-error.log*
 
 # 本地临时文件
 *.local
+
+# 预览二维码（scripts/upload.js 生成）
+preview-qrcode.png

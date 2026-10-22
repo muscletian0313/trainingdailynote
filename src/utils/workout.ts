@@ -1,11 +1,74 @@
 import dayjs from 'dayjs';
-import type { MuscleGroup, Plan, Session, SessionExercise, WorkoutSet } from '@/types';
+import type {
+  ExerciseVariants,
+  MuscleGroup,
+  Plan,
+  PlanExercise,
+  Session,
+  SessionExercise,
+  WorkoutSet
+} from '@/types';
 import { getExerciseById } from '@/store/useExerciseStore';
 import { pad2 } from './format';
+import { uid } from './id';
+
+/**
+ * 自由训练：把一次训练转成一个「计划」。
+ * 这样练完也能落到计划详情里回看，和有计划的那次训练长得一样。
+ */
+export function planFromSession(session: Session): Plan {
+  const exercises: PlanExercise[] = session.exercises.map((item) => {
+    const cardioSet = item.sets.find((set) => typeof set.durationMin === 'number');
+    return {
+      key: uid('pe'),
+      exerciseId: item.exerciseId,
+      variants: item.variants,
+      equipmentName: item.equipmentName,
+      restSeconds: item.restSeconds,
+      targetDurationMin: cardioSet?.durationMin,
+      sets: item.sets.map((set) => ({
+        id: uid('ps'),
+        weight: set.weight,
+        reps: set.reps,
+        addedWeight: set.addedWeight,
+        drop: set.drop
+      }))
+    };
+  });
+  const now = Date.now();
+  return {
+    id: uid('plan'),
+    name: `自由训练 · ${dayjs(session.startedAt).format('M月D日')}`,
+    startDate: dayjs(session.startedAt).format('YYYY-MM-DD'),
+    exercises,
+    createdAt: now,
+    updatedAt: now
+  };
+}
 
 /** 单组容量（已完成才计入）；辅助类动作的重量记负数，取绝对值算 */
 export function setVolume(set: WorkoutSet): number {
   return set.done ? Math.abs(set.weight) * set.reps : 0;
+}
+
+/**
+ * 组的显示编号：普通组 1、2、3；
+ * 有递减组时显示成「2-1 递减 / 2-2 递减」（基础组也算第一条递减）。
+ */
+export function setLabels(sets: { drop?: boolean }[]): string[] {
+  let base = 0;
+  let sub = 0;
+  return sets.map((set, index) => {
+    // 递减组前面没有基础组（比如基础组被删了）：自己当普通组展示
+    if (!set.drop || base === 0) {
+      base += 1;
+      sub = 1;
+      const hasDrop = Boolean(sets[index + 1]?.drop);
+      return hasDrop ? `${base}-1 递减` : String(base);
+    }
+    sub += 1;
+    return `${base}-${sub} 递减`;
+  });
 }
 
 /** 单个动作的容量（计时类动作没有「重量 × 次数」的概念，不计容量） */
@@ -139,26 +202,81 @@ export function isTimedExercise(exerciseId: string): boolean {
 export const DEFAULT_HOLD_SECONDS = 60;
 
 /**
- * 训练心得评分（1-10）：把各动作的主观感受（1-5）取平均后换算。
- * 全部动作都没选感受时返回 null。
+ * 训练评分（0-100）：难度 + 完成度 + 相对强度。
+ * 单动作分 = 完成度 × (50 + 难度分 15/25/35 + 强度分 0-15)；
+ * 训练分 = 各动作按组数加权平均。
  */
-export function sessionFeelScore(session: Session): number | null {
-  const feels = session.exercises
-    .map((item) => item.feel)
-    .filter((value): value is number => typeof value === 'number');
-  if (!feels.length) return null;
-  const avg = feels.reduce((sum, value) => sum + value, 0) / feels.length;
-  return Math.max(1, Math.min(10, Math.round(((avg - 1) / 4) * 9 + 1)));
+export interface SessionRating {
+  score: number;
+  message: string;
 }
 
-/** 根据心得评分给出鼓励文案：差的时候给鼓励，好的时候给肯定，目的是保持训练热情 */
+/** 难度分：轻松 15 / 适中 25 / 困难 35（没选感受按适中算） */
+function feelPoints(feel?: number): number {
+  if (typeof feel !== 'number') return 25;
+  if (feel >= 4) return 15;
+  if (feel === 3) return 25;
+  return 35;
+}
+
+/** 某个动作已完成组里的最大负荷（自重动作算上额外负重） */
+function bestDoneLoad(item: SessionExercise): number {
+  return item.sets.reduce((best, set) => {
+    if (!set.done) return best;
+    return Math.max(best, Math.abs(set.weight ?? 0) + (set.addedWeight ?? 0));
+  }, 0);
+}
+
+export function sessionRating(session: Session, history: Session[] = []): SessionRating | null {
+  const items = session.exercises.filter((item) => item.sets.length > 0);
+  if (!items.length) return null;
+
+  let weighted = 0;
+  let totalWeight = 0;
+
+  items.forEach((item) => {
+    const done = item.sets.filter((set) => set.done).length;
+    const completion = done / item.sets.length;
+    const difficulty = feelPoints(item.feel);
+
+    // 强度分：本次最好重量 vs 历史最好重量（没历史 / 辅助 / 自重动作给中间值）
+    let strength = 7.5;
+    const current = bestDoneLoad(item);
+    if (current > 0 && !isAssistExercise(item.exerciseId)) {
+      const past = history.reduce((best, record) => {
+        const same = record.exercises.filter((entry) => entry.exerciseId === item.exerciseId);
+        return same.reduce((value, entry) => Math.max(value, bestDoneLoad(entry)), best);
+      }, 0);
+      if (past > 0) {
+        const ratio = Math.max(0.8, Math.min(1.2, current / past));
+        strength = ((ratio - 0.8) / 0.4) * 15;
+      }
+    }
+
+    const score = Math.max(0, Math.min(100, completion * (50 + difficulty + strength)));
+    const weight = item.sets.length;
+    weighted += score * weight;
+    totalWeight += weight;
+  });
+
+  const score = Math.round(weighted / totalWeight);
+  return { score, message: feelMessage(score) };
+}
+
+/** 根据评分给出鼓励文案（0-100）：低分给鼓励，高分给肯定，保持训练热情 */
 export function feelMessage(score: number): string {
-  if (score >= 9) return '进步明显！今天状态拉满、掌控全场，就照这个势头练下去 🏆';
-  if (score === 8) return '表现非常稳！力量和控制都在线，离突破只差一点点，下次可以试着加点重量 🚀';
-  if (score >= 6) return '状态火热！动作和节奏都在线，保持这个感觉，你正在稳步变强 🔥';
-  if (score === 5) return '平稳发挥，稳稳积累。健身是场长跑，坚持住，进步自然来 👏';
-  if (score >= 3) return '状态有起伏很正常，能坚持练完就是胜利。下次热身再充分点，感觉会更好 🙂';
-  return '今天状态不在线还坚持完成了，已经很棒！好好休息、吃好睡好，下一场一定能找回感觉 💪';
+  if (score >= 90) return '高强度完成，刺激拉满！记得补蛋白、睡够觉，明天别连着练同一部位 🏆';
+  if (score >= 75) return '完成度和强度都在线，这次练得很扎实，保持这个节奏 🚀';
+  if (score >= 60) return '训练完成得不错，稳步积累就是最快的进步 👏';
+  if (score >= 45) return '今天有几个动作没做完或状态一般，下次把节奏找回来 🙂';
+  return '今天状态不在线还坚持完成了，已经很棒！好好休息，下一场再来 💪';
+}
+
+/** 老记录存的是 1-10 分，新记录是 0-100：统一换算成百分制展示 */
+export function feelScoreOutOf100(session: Pick<Session, 'feelScore' | 'feelScoreMax'>): number | null {
+  if (session.feelScore === undefined) return null;
+  if ((session.feelScoreMax ?? 0) >= 100) return session.feelScore;
+  return Math.round(session.feelScore * 10);
 }
 
 /** 该计划是否已完成过：一个计划只允许完成一次，完成后仅可查看 */
@@ -191,10 +309,50 @@ export function recentPerformances(
   exerciseId: string,
   limit = 4
 ): PerformanceRecord[] {
+  return collectPerformances(sessions, exerciseId, limit, () => true);
+}
+
+/** 变式（标签）是否完全一致：有一个不同就算不同练法 */
+function sameVariants(a?: ExerciseVariants, b?: ExerciseVariants): boolean {
+  const norm = (value?: ExerciseVariants) =>
+    Object.entries(value ?? {})
+      .filter(([, option]) => Boolean(option))
+      .sort(([left], [right]) => left.localeCompare(right));
+  const left = norm(a);
+  const right = norm(b);
+  if (left.length !== right.length) return false;
+  return left.every(
+    ([key, option], index) => key === right[index][0] && option === right[index][1]
+  );
+}
+
+/** 取某动作最近 N 次「标签完全一致」的训练记录：练法不同就没有参考意义 */
+export function recentPerformancesByVariants(
+  sessions: Session[],
+  exerciseId: string,
+  variants?: ExerciseVariants,
+  limit = 4
+): PerformanceRecord[] {
+  return collectPerformances(
+    sessions,
+    exerciseId,
+    limit,
+    (target) => sameVariants(target.variants, variants)
+  );
+}
+
+function collectPerformances(
+  sessions: Session[],
+  exerciseId: string,
+  limit: number,
+  match: (target: SessionExercise) => boolean
+): PerformanceRecord[] {
   const ordered = [...sessions].sort((a, b) => b.startedAt - a.startedAt);
   const result: PerformanceRecord[] = [];
   for (const session of ordered) {
-    const target = session.exercises.find((item) => item.exerciseId === exerciseId);
+    const target = session.exercises.find(
+      (item) => item.exerciseId === exerciseId && match(item)
+    );
     if (!target) continue;
     const done = target.sets.filter((set) => set.done);
     if (!done.length) continue;
@@ -264,11 +422,23 @@ export function totalDurationSec(sessions: Session[]): number {
   return sessions.reduce((sum, session) => sum + sessionDurationSec(session), 0);
 }
 
-/** 按 YYYY-MM-DD 聚合训练记录，用于训练日历 */
-export function groupSessionsByDate(sessions: Session[]): Record<string, Session[]> {
+/**
+ * 训练记录在日历上归属的日期：
+ * 有计划 → 用计划设定的开始日期；自由训练 → 用实际开始时间。
+ */
+export function sessionDateKey(session: Session, plan?: Plan): string {
+  if (plan?.startDate) return dayjs(plan.startDate).format('YYYY-MM-DD');
+  return dayjs(session.startedAt).format('YYYY-MM-DD');
+}
+
+export function groupSessionsByDate(
+  sessions: Session[],
+  plans: Plan[] = []
+): Record<string, Session[]> {
+  const planById = new Map(plans.map((plan) => [plan.id, plan]));
   const map: Record<string, Session[]> = {};
   sessions.forEach((session) => {
-    const key = dayjs(session.startedAt).format('YYYY-MM-DD');
+    const key = sessionDateKey(session, session.planId ? planById.get(session.planId) : undefined);
     if (!map[key]) map[key] = [];
     map[key].push(session);
   });
@@ -342,6 +512,7 @@ const NAME_MUSCLE_KEYWORDS: { keyword: string; muscle: MuscleGroup }[] = (
   [
     { keyword: '侧平举', muscle: 'shoulders' },
     { keyword: '肩推', muscle: 'shoulders' },
+    { keyword: '推肩', muscle: 'shoulders' },
     { keyword: '推举', muscle: 'shoulders' },
     { keyword: '三角', muscle: 'shoulders' },
     { keyword: '卧推', muscle: 'chest' },

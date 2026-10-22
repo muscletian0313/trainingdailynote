@@ -1,4 +1,4 @@
-import type { MuscleGroup, Plan, PlanExercise, PlanSet } from '@/types';
+import type { MuscleGroup, Plan, PlanExercise, PlanSet, Session } from '@/types';
 import { uid } from './id';
 
 /**
@@ -40,11 +40,11 @@ function encodeExercise(item: PlanExercise): string {
     .join(ITEM);
 
   const sets = item.sets
-    .map((set) =>
-      typeof set.addedWeight === 'number'
-        ? `${set.weight}${KV}${set.reps}${KV}${set.addedWeight}`
-        : `${set.weight}${KV}${set.reps}`
-    )
+    .map((set) => {
+      const added = typeof set.addedWeight === 'number' ? String(set.addedWeight) : '';
+      // 第 4 段是递减组标记（老版本解析时会忽略）
+      return `${set.weight}${KV}${set.reps}${KV}${added}${KV}${set.drop ? '1' : ''}`;
+    })
     .join(ITEM);
 
   return [
@@ -54,6 +54,32 @@ function encodeExercise(item: PlanExercise): string {
     String(item.restSeconds ?? ''),
     typeof item.targetDurationMin === 'number' ? String(item.targetDurationMin) : ''
   ].join(SLOT);
+}
+
+/**
+ * 分享用的动作清单：页面上显示什么就打包什么。
+ * 已完成计划 → 用这次实际练的记录；没练过 → 用计划模板。
+ */
+export function shareExercisesOf(plan: Plan, record?: Session): PlanExercise[] {
+  const source = record ? record.exercises : plan.exercises;
+  return source.map((item) => {
+    const cardioSet = item.sets.find((set) => typeof set.durationMin === 'number');
+    return {
+      key: item.key,
+      exerciseId: item.exerciseId,
+      variants: item.variants,
+      equipmentName: item.equipmentName,
+      restSeconds: item.restSeconds,
+      targetDurationMin: cardioSet?.durationMin ?? (item as PlanExercise).targetDurationMin,
+      sets: item.sets.map((set) => ({
+        id: set.id,
+        weight: set.weight,
+        reps: set.reps,
+        addedWeight: set.addedWeight,
+        drop: set.drop
+      }))
+    };
+  });
 }
 
 /** 计划 → 分享串（已做 URI 编码，可直接拼进 path 的 query） */
@@ -82,7 +108,7 @@ function decodeExercise(text: string): PlanExercise | null {
 
   const sets: PlanSet[] = (setsText ? setsText.split(ITEM) : [])
     .map((chunk) => {
-      const [weight, reps, added] = chunk.split(KV);
+      const [weight, reps, added, drop] = chunk.split(KV);
       const weightNum = Number(weight);
       const repsNum = Number(reps);
       if (!Number.isFinite(weightNum) || !Number.isFinite(repsNum)) return null;
@@ -90,6 +116,7 @@ function decodeExercise(text: string): PlanExercise | null {
       if (added !== undefined && added !== '' && Number.isFinite(Number(added))) {
         set.addedWeight = Number(added);
       }
+      if (drop === '1') set.drop = true;
       return set;
     })
     .filter((set): set is PlanSet => Boolean(set));

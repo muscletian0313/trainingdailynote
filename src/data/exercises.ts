@@ -56,12 +56,12 @@ const CURATED: RawExercise[] = [
   ['罗马尼亚硬拉', 'fullbody', '杠铃'],
   ['提踵', 'legs', '器械'],
   // 肩
-  ['杠铃推举', 'shoulders', '杠铃'],
-  ['史密斯架推举', 'shoulders', '器械'],
-  ['哑铃推举', 'shoulders', '哑铃'],
-  ['器械推举', 'shoulders', '器械'],
-  ['前平举', 'shoulders', '杠铃'],
-  ['侧平举', 'shoulders', '哑铃'],
+  ['杠铃推肩', 'shoulders', '杠铃'],
+  ['史密斯架推肩', 'shoulders', '器械'],
+  ['哑铃推肩', 'shoulders', '哑铃'],
+  ['器械推肩', 'shoulders', '器械'],
+  ['杠铃前平举', 'shoulders', '杠铃'],
+  ['哑铃侧平举', 'shoulders', '哑铃'],
   ['俯身飞鸟', 'shoulders', '哑铃'],
   ['龙门架反向飞鸟', 'shoulders', '绳索'],
   ['绳索面拉', 'shoulders', '绳索'],
@@ -89,7 +89,13 @@ const CURATED: RawExercise[] = [
   ['椭圆机', 'cardio', '有氧'],
   ['动感单车', 'cardio', '有氧'],
   ['划船机', 'cardio', '有氧'],
-  ['跳绳', 'cardio', '有氧']
+  ['跳绳', 'cardio', '有氧'],
+  // 追加在末尾：中途插入会让后面动作的编号整体后移，老计划会指错动作
+  ['器械侧平举', 'shoulders', '器械'],
+  ['绳索侧平举', 'shoulders', '绳索'],
+  ['器械前平举', 'shoulders', '器械'],
+  ['哑铃前平举', 'shoulders', '哑铃'],
+  ['绳索前平举', 'shoulders', '绳索']
 ];
 
 /** 老动作库：ID 按数组下标生成，顺序和 ID 都不能动，否则老计划会指错动作 */

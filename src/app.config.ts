@@ -9,7 +9,8 @@ export default defineAppConfig({
     'pages/plan-edit/index',
     'pages/plan-detail/index',
     'pages/plan-share/index',
-    'pages/record-detail/index',
+    'pages/day-plans/index',
+    'pages/body/index',
     'pages/exercise-detail/index',
     'pages/onboarding/index'
   ],
@@ -48,7 +49,7 @@ export default defineAppConfig({
       },
       {
         pagePath: 'pages/stats/index',
-        text: '数据',
+        text: '日历',
         iconPath: 'assets/tabbar/stats.png',
         selectedIconPath: 'assets/tabbar/stats-selected.png'
       },

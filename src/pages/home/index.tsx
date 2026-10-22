@@ -10,11 +10,12 @@ import { useProfileStore } from '@/store/useProfileStore';
 import {
   isPlanFinished,
   isSessionPaused,
+  planFromSession,
   planMuscleTags,
-  recentDaysVolume,
   sessionDurationSec,
   sessionVolume
 } from '@/utils/workout';
+import { motivationOfDay } from '@/constants';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import {
@@ -36,6 +37,8 @@ const HomePage: React.FC = () => {
   const pauseActive = useSessionStore((state) => state.pauseActive);
   const resumeActive = useSessionStore((state) => state.resumeActive);
   const plans = usePlanStore((state) => state.plans);
+  const addPlan = usePlanStore((state) => state.addPlan);
+  const attachPlanToSession = useSessionStore((state) => state.attachPlanToSession);
   const profile = useProfileStore((state) => state.profile);
 
   /** 有进行中的训练（空训练也算，可能是刚点开的自由训练） */
@@ -61,9 +64,9 @@ const HomePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const days = recentDaysVolume(sessions, 7);
-  const weekCount = days.reduce((sum, item) => sum + item.sessionCount, 0);
-  const weekVolume = days.reduce((sum, item) => sum + item.volume, 0);
+  /** 每日一条激励文案：同一天保持不变，隔天自动换 */
+  const quote = motivationOfDay(dayjs().format('YYYY-MM-DD'));
+
   const recent = sessions.slice(0, 3);
 
   /** 今日计划排在最前，其余保持原顺序 */
@@ -129,8 +132,18 @@ const HomePage: React.FC = () => {
     navigateTo({ url: `/pages/plan-detail/index?id=${plan.id}` });
   };
 
+  /** 历史训练：统一进「练完的计划详情」；老的自由训练记录现场补一个计划 */
   const openRecord = (id: string) => {
-    navigateTo({ url: `/pages/record-detail/index?id=${id}` });
+    const session = sessions.find((item) => item.id === id);
+    if (!session) return;
+    if (session.planId) {
+      navigateTo({ url: `/pages/plan-detail/index?id=${session.planId}` });
+      return;
+    }
+    const plan = planFromSession(session);
+    addPlan(plan);
+    attachPlanToSession(session.id, plan.id);
+    navigateTo({ url: `/pages/plan-detail/index?id=${plan.id}` });
   };
 
   const goPlans = () => {
@@ -187,23 +200,8 @@ const HomePage: React.FC = () => {
         </View>
       ) : (
         <>
-          <View className={styles.statCard}>
-            <View className={styles.statItem}>
-              <Text className={styles.statValue}>{weekCount}</Text>
-              <Text className={styles.statLabel}>近 7 天训练</Text>
-            </View>
-            <View className={styles.statDivider} />
-            <View className={styles.statItem}>
-              <Text className={classnames(styles.statValue, styles.statValueAccent)}>
-                {formatVolume(weekVolume)}
-              </Text>
-              <Text className={styles.statLabel}>近 7 天容量(kg)</Text>
-            </View>
-            <View className={styles.statDivider} />
-            <View className={styles.statItem}>
-              <Text className={styles.statValue}>{sessions.length}</Text>
-              <Text className={styles.statLabel}>累计训练</Text>
-            </View>
+          <View className={styles.quoteCard}>
+            <Text className={styles.quoteText}>{quote}</Text>
           </View>
 
           <View className={styles.startBtn} onClick={handleStart}>

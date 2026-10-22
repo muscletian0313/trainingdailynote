@@ -139,12 +139,31 @@
   min-width: 0;
 }
 
+.itemNameRow {
+  display: flex;
+  align-items: center;
+}
+
 .itemName {
+  flex: 1;
+  min-width: 0;
   display: block;
   font-size: $font-size-md;
   font-weight: $font-weight-medium;
   color: $color-text-primary;
   @include text-ellipsis;
+}
+
+/* 用户自定义过名字的动作：标一个「常用」 */
+.customBadge {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: $color-primary-soft;
+  font-size: $font-size-xs;
+  color: $color-primary;
+  line-height: 1.6;
 }
 
 .itemMeta {
@@ -262,9 +281,38 @@
   margin-bottom: $spacing-md;
 }
 
+/* 标题 + 器械名称并排：器械名称吃掉剩余宽度，紧贴在动作名右边 */
+.variantHeadMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  margin-right: $spacing-sm;
+}
+
 .variantTitle {
-  font-size: $font-size-lg;
+  flex-shrink: 0;
+  max-width: 50%;
+  font-size: 37rpx;
+  line-height: 1.2;
   font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.variantHeadInput {
+  flex: 1;
+  min-width: 0;
+  height: 60rpx;
+  margin-left: $spacing-md;
+  padding: 0 $spacing-sm;
+  box-sizing: border-box;
+  align-self: center;
+  border-radius: $radius-sm;
+  background: $color-bg-input;
+  font-size: $font-size-xs;
   color: $color-text-primary;
 }
 
