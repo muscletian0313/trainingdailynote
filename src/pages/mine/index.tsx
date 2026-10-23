@@ -7,6 +7,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useExerciseStore } from '@/store/useExerciseStore';
+import ScrollLock from '@/components/ScrollLock';
 import styles from './index.module.scss';
 
 const AVATARS = ['🏋️', '💪', '🔥', '🥇', '⚡', '🐯'];
@@ -92,6 +93,8 @@ const MinePage: React.FC = () => {
 
   return (
     <View className={styles.page}>
+      {/* 提示音弹层打开时锁住页面滚动 */}
+      <ScrollLock lock={soundSheet} />
       <View className={styles.profile}>
         <View className={styles.profileTop}>
           <View className={styles.avatar} onClick={handleAvatar}>

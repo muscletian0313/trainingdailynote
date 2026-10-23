@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Input, ScrollView } from '@tarojs/components';
 import classnames from 'classnames';
 import type { Exercise, ExerciseVariants, MuscleGroup } from '@/types';
-import { MUSCLE_GROUPS, MUSCLE_LABELS, supportsEquipmentName } from '@/constants';
-import { matchesMuscleFilter, sortBySimilarity, useAllExercises, variantDefaultsFor } from '@/store/useExerciseStore';
+import { MUSCLE_GROUPS, MUSCLE_LABELS, equipmentNamePlaceholder, supportsEquipmentName } from '@/constants';
+import { matchesMuscleFilter, sortBySimilarity, sortFullbodyLast, useAllExercises, variantDefaultsFor } from '@/store/useExerciseStore';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { equipmentExercisesOf, isEquipmentExercise } from '@/utils/equipmentExercises';
@@ -75,6 +75,8 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   const sessions = useSessionStore((state) => state.sessions);
   const [keyword, setKeyword] = useState('');
   const [muscle, setMuscle] = useState<MuscleFilter>('all');
+  /** 常规 / 自定义：默认常规，自定义只放改过名称的动作 */
+  const [source, setSource] = useState<'regular' | 'custom'>('regular');
   const [picked, setPicked] = useState<PickedExercise[]>([]);
   /** 正在挑变式的动作；不为空时显示变式弹层 */
   const [variantTarget, setVariantTarget] = useState<Exercise | null>(null);
@@ -88,6 +90,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     if (visible) {
       setKeyword('');
       setMuscle(defaultMuscle ?? 'all');
+      setSource('regular');
       setPicked([]);
       setVariantTarget(null);
       setVariantKey('');
@@ -104,6 +107,11 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     () => equipmentExercisesOf(plans, sessions, exercises),
     [plans, sessions, exercises]
   );
+
+  /** 动作库原动作（常规） */
+  const presetExercises = useMemo(() => exercises.filter((item) => !item.isCustom), [exercises]);
+  /** 动作库里自己新建的动作（自定义） */
+  const selfCustomExercises = useMemo(() => exercises.filter((item) => item.isCustom), [exercises]);
 
   /**
    * 每条「动作 + 器械名」组合上次用过的标签：再次选中时直接带回，不用重选。
@@ -141,22 +149,39 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
 
   const list = useMemo(() => {
     const text = keyword.trim();
-    const filtered = exercises.filter((item) => {
-      const matchMuscle = muscle === 'all' || matchesMuscleFilter(item, muscle);
-      const matchText = !text || item.name.includes(text);
-      return matchMuscle && matchText;
-    });
+    const filter = (pool: Exercise[]) =>
+      pool.filter((item) => {
+        const matchMuscle = muscle === 'all' || matchesMuscleFilter(item, muscle);
+        const matchText = !text || item.name.includes(text);
+        return matchMuscle && matchText;
+      });
+    // 自定义：填过具体名称的组合 + 动作库里自己建的动作
+    // 常规：只留动作库原动作
+    const pool =
+      source === 'custom' ? [...equipmentRows, ...selfCustomExercises] : presetExercises;
+    const filtered = filter(pool);
     // 替换动作：把与原动作练法相近的排前面，方便快速找到平替
     const target = similarToId ? exercises.find((item) => item.id === similarToId) : undefined;
-    if (target) return sortBySimilarity(filtered, target);
-    // 添加动作：填过器械名的组合排在这类动作最前面，标「常用」
-    const rows = equipmentRows.filter((item) => {
-      const matchMuscle = muscle === 'all' || matchesMuscleFilter(item, muscle);
-      const matchText = !text || item.name.includes(text);
-      return matchMuscle && matchText;
-    });
-    return [...rows, ...filtered];
-  }, [exercises, equipmentRows, keyword, muscle, similarToId]);
+    return sortFullbodyLast(target ? sortBySimilarity(filtered, target) : filtered);
+  }, [
+    source,
+    exercises,
+    equipmentRows,
+    presetExercises,
+    selfCustomExercises,
+    keyword,
+    muscle,
+    similarToId
+  ]);
+
+  /** 自定义那一栏的角标数字（跟着肌群筛选走，搜索不缩） */
+  const customCount = useMemo(
+    () =>
+      [...equipmentRows, ...selfCustomExercises].filter(
+        (item) => muscle === 'all' || matchesMuscleFilter(item, muscle)
+      ).length,
+    [equipmentRows, selfCustomExercises, muscle]
+  );
 
   const toggleSelect = (item: Exercise) => {
     const equipmentRow = isEquipmentExercise(item);
@@ -287,6 +312,8 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
             placeholder="搜索动作名称"
             placeholderStyle="color:#6f6f7d"
             confirmType="search"
+            // 键盘弹起时不推动页面，避免把底层画布带着滚
+            adjustPosition={false}
             onInput={(event) => setKeyword(event.detail.value)}
           />
         </View>
@@ -315,6 +342,42 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
           ))}
         </View>
 
+        {/* 常规 / 自定义：改过名称的动作算自定义，只改标签不算 */}
+        <View className={styles.sourceSwitch}>
+          <View
+            className={classnames(
+              styles.sourceItem,
+              source === 'regular' && styles.sourceItemActive
+            )}
+            onClick={() => setSource('regular')}
+          >
+            <Text
+              className={classnames(
+                styles.sourceText,
+                source === 'regular' && styles.sourceTextActive
+              )}
+            >
+              常规
+            </Text>
+          </View>
+          <View
+            className={classnames(
+              styles.sourceItem,
+              source === 'custom' && styles.sourceItemActive
+            )}
+            onClick={() => setSource('custom')}
+          >
+            <Text
+              className={classnames(
+                styles.sourceText,
+                source === 'custom' && styles.sourceTextActive
+              )}
+            >
+              {`自定义 ${customCount}`}
+            </Text>
+          </View>
+        </View>
+
         <ScrollView scrollY className={styles.list}>
           {list.length ? (
             list.map((item) => {
@@ -335,7 +398,6 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
                   <View className={styles.itemMain}>
                     <View className={styles.itemNameRow}>
                       <Text className={styles.itemName}>{item.name}</Text>
-                      {item.isCustom ? <Text className={styles.customBadge}>常用</Text> : null}
                     </View>
                     <View className={styles.itemMeta}>
                       <MuscleTag muscle={tagMuscle} />
@@ -350,7 +412,11 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
             })
           ) : (
             <View className={styles.emptyTip}>
-              <Text className={styles.emptyText}>没有找到匹配的动作</Text>
+              <Text className={styles.emptyText}>
+                {source === 'custom' && !customCount
+                  ? '还没有自定义动作，添加时填个具体名称就会收进来'
+                  : '没有找到匹配的动作'}
+              </Text>
             </View>
           )}
         </ScrollView>
@@ -374,6 +440,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
         {variantTarget ? (
           <View className={styles.variantMask} onClick={() => setVariantTarget(null)}>
             <View className={styles.variantSheet} onClick={(event) => event.stopPropagation()}>
+              <ScrollView scrollY className={styles.variantScroll}>
               <View className={styles.variantHead}>
                 <View className={styles.variantHeadMain}>
                   <Text className={styles.variantTitle}>{variantTarget.name}</Text>
@@ -382,8 +449,9 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
                       className={styles.variantHeadInput}
                       value={equipmentName}
                       maxlength={12}
-                      placeholder="选填具体名称。例如鹦鹉螺、海豹划船"
+                      placeholder={equipmentNamePlaceholder(variantSheetName)}
                       placeholderStyle="color:#4a4a55"
+                      adjustPosition={false}
                       onInput={(event) => setEquipmentName(event.detail.value)}
                     />
                   ) : null}
@@ -458,6 +526,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
                   </Text>
                 </View>
               </View>
+              </ScrollView>
             </View>
           </View>
         ) : null}

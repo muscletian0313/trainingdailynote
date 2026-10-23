@@ -1,19 +1,40 @@
 import type { MuscleGroup, TrainingLevel } from '@/types';
+import { PRESET_EXERCISES } from '@/data/exercises';
 
 /**
- * 支持「选填器械名称」的动作：名字里带「器械」的都算（显示成「器械划船（鹦鹉螺）」）。
- * 另外几个分器械的动作（哑铃/绳索的侧平举、前平举）也允许备注具体器械/品牌。
+ * 支持「选填器械名称」的动作：
+ * - 动作库里器材是「器械」的全部动作（器械划船、器械深蹲…），
+ *   方便备注具体器械型号 / 变式，例如「鹦鹉螺」「正向哈克深蹲」
+ * - 另外几个非器械动作（侧平举、前平举、绳索划船、引体向上）也允许备注具体名称
  */
 const EQUIPMENT_NAME_EXTRAS = [
   '哑铃侧平举',
   '器械侧平举',
   '绳索侧平举',
   '哑铃前平举',
-  '绳索前平举'
+  '绳索前平举',
+  '绳索划船',
+  '引体向上'
 ];
 
+/** 器械类动作的名字集合（跟着动作库的器材字段走，新增器械动作会自动算进来；史密斯架不算） */
+const MACHINE_EXERCISE_NAMES = new Set(
+  PRESET_EXERCISES.filter(
+    (item) =>
+      !item.name.includes('史密斯') &&
+      (item.equipment === '器械' || item.name.includes('器械'))
+  ).map((item) => item.name)
+);
+
 export function supportsEquipmentName(name: string): boolean {
-  return name.includes('器械') || EQUIPMENT_NAME_EXTRAS.includes(name);
+  return MACHINE_EXERCISE_NAMES.has(name) || EQUIPMENT_NAME_EXTRAS.includes(name);
+}
+
+/** 「具体名称」输入框的提示文案：器械类动作按器械名称口径，其余按动作名称口径 */
+export function equipmentNamePlaceholder(name: string): string {
+  return name.includes('器械')
+    ? '器械名称自定义，例如鹦鹉螺、正向哈克深蹲'
+    : '动作名称自定义，例如窄握引体、直臂下压';
 }
 
 /** 肌群展示顺序 */
@@ -41,7 +62,7 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   core: '核心',
   cardio: '有氧',
   fullbody: '全身',
-  other: '自定义'
+  other: '其他'
 };
 
 /** 训练经验对应的默认昵称（问卷里选完经验后自动作为昵称） */

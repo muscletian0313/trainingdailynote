@@ -301,3 +301,11 @@ export function sortBySimilarity(list: Exercise[], target: Exercise): Exercise[]
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((entry) => entry.item);
 }
+
+/** 全身类动作（硬拉这些）排到相对靠后的位置，其余顺序不变 */
+export function sortFullbodyLast(list: Exercise[]): Exercise[] {
+  return [
+    ...list.filter((item) => item.muscle !== 'fullbody'),
+    ...list.filter((item) => item.muscle === 'fullbody')
+  ];
+}

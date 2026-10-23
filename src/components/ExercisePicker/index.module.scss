@@ -114,6 +114,40 @@
   font-weight: $font-weight-semibold;
 }
 
+/* 常规 / 自定义 分段切换 */
+.sourceSwitch {
+  display: flex;
+  gap: 4rpx;
+  margin: 0 $page-padding $spacing-sm;
+  padding: 6rpx;
+  border-radius: $radius-button;
+  background: $color-bg-card;
+  border: 2rpx solid $color-border;
+  flex-shrink: 0;
+}
+
+.sourceItem {
+  flex: 1;
+  height: 64rpx;
+  border-radius: $radius-button;
+  @include flex-center;
+  transition: all $transition-fast;
+}
+
+.sourceItemActive {
+  background: $color-primary;
+}
+
+.sourceText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.sourceTextActive {
+  color: $color-text-inverse;
+  font-weight: $font-weight-semibold;
+}
+
 .list {
   flex: 1;
   min-height: 0;
@@ -152,18 +186,6 @@
   font-weight: $font-weight-medium;
   color: $color-text-primary;
   @include text-ellipsis;
-}
-
-/* 用户自定义过名字的动作：标一个「常用」 */
-.customBadge {
-  flex-shrink: 0;
-  margin-left: $spacing-sm;
-  padding: 2rpx 12rpx;
-  border-radius: $radius-round;
-  background: $color-primary-soft;
-  font-size: $font-size-xs;
-  color: $color-primary;
-  line-height: 1.6;
 }
 
 .itemMeta {
@@ -267,11 +289,22 @@
 
 .variantSheet {
   width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   padding: $spacing-lg $page-padding calc(env(safe-area-inset-bottom) + 24rpx);
   background: $color-bg-card;
   border-radius: $radius-xl $radius-xl 0 0;
   animation: slideUp $transition-base;
+  overflow: hidden;
+}
+
+/* 选项多的时候在弹层内部滚动（小程序 view 的 overflow 不可靠，用 ScrollView） */
+.variantScroll {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .variantHead {

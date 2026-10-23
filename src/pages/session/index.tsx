@@ -18,6 +18,7 @@ import {
   FEEL_OPTIONS,
   REST_OPTIONS,
   cardioHasDistance,
+  equipmentNamePlaceholder,
   getFeelOption,
   restSoundSrc,
   supportsEquipmentName
@@ -29,6 +30,7 @@ import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
 import type { ExerciseVariants, SessionExercise } from '@/types';
 import SetRow from '@/components/SetRow';
 import ExercisePicker, { type PickedExercise } from '@/components/ExercisePicker';
+import ScrollLock from '@/components/ScrollLock';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
 import {
@@ -453,6 +455,17 @@ const SessionPage: React.FC = () => {
 
   return (
     <View className={styles.page} onTouchStart={markActive}>
+      {/* 任一浮层打开时锁住页面滚动，避免滑动遮罩/缝隙把底下的画布一起滚 */}
+      <ScrollLock
+        lock={
+          pickerVisible ||
+          !!replaceKey ||
+          !!variantEditKey ||
+          !!historyKey ||
+          idleAlert ||
+          (!!rest && !restMinimized)
+        }
+      />
       <View className={styles.summary}>
         <View className={styles.summaryTop}>
           <Input
@@ -621,13 +634,6 @@ const SessionPage: React.FC = () => {
                       {info ? info.name : '已下架'}
                       {exercise.equipmentName ? `（${exercise.equipmentName}）` : ''}
                     </Text>
-                    {muscleTag ? (
-                      <MuscleTag
-                        muscle={muscleTag.muscle}
-                        label={muscleTag.label}
-                        className={styles.exerciseNameTag}
-                      />
-                    ) : null}
                   </View>
                   <View
                     className={styles.exerciseMeta}
@@ -656,44 +662,54 @@ const SessionPage: React.FC = () => {
                     {metaText ? <Text className={styles.exerciseMetaText}>{metaText}</Text> : null}
                   </View>
                 </View>
-                {isCurrent ? (
-                  <View className={styles.exerciseActions}>
-                    <View
-                      className={classnames(
-                        styles.historyBtn,
-                        historyKey === exercise.key && styles.historyBtnActive
-                      )}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setHistoryKey((prev) => (prev === exercise.key ? null : exercise.key));
-                      }}
-                    >
-                      <Text
+                {/* 右侧竖排：训练部位在最上面，和「···」右边缘对齐 */}
+                <View className={styles.exerciseSide}>
+                  {muscleTag ? (
+                    <MuscleTag
+                      muscle={muscleTag.muscle}
+                      label={muscleTag.label}
+                      className={styles.exerciseSideTag}
+                    />
+                  ) : null}
+                  {isCurrent ? (
+                    <View className={styles.exerciseActions}>
+                      <View
                         className={classnames(
-                          styles.historyBtnText,
-                          historyKey === exercise.key && styles.historyBtnTextActive
+                          styles.historyBtn,
+                          historyKey === exercise.key && styles.historyBtnActive
                         )}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setHistoryKey((prev) => (prev === exercise.key ? null : exercise.key));
+                        }}
                       >
-                        历史日训
-                      </Text>
+                        <Text
+                          className={classnames(
+                            styles.historyBtnText,
+                            historyKey === exercise.key && styles.historyBtnTextActive
+                          )}
+                        >
+                          历史日训
+                        </Text>
+                      </View>
+                      <View
+                        className={styles.iconBtn}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleExerciseMore(
+                            exercise.key,
+                            info ? info.name : '该动作',
+                            exercise.restSeconds,
+                            index,
+                            isCardio
+                          );
+                        }}
+                      >
+                        <Text className={styles.iconBtnText}>···</Text>
+                      </View>
                     </View>
-                    <View
-                      className={styles.iconBtn}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleExerciseMore(
-                          exercise.key,
-                          info ? info.name : '该动作',
-                          exercise.restSeconds,
-                          index,
-                          isCardio
-                        );
-                      }}
-                    >
-                      <Text className={styles.iconBtnText}>···</Text>
-                    </View>
-                  </View>
-                ) : null}
+                  ) : null}
+                </View>
               </View>
 
               {!isCurrent ? null : (
@@ -996,6 +1012,7 @@ const SessionPage: React.FC = () => {
       {variantEditExercise ? (
         <View className={styles.variantMask} onClick={() => setVariantEditKey(null)}>
           <View className={styles.variantSheet} onClick={(event) => event.stopPropagation()}>
+            <ScrollView scrollY className={styles.variantScroll}>
             <View className={styles.variantHead}>
               <View className={styles.variantHeadMain}>
                 <Text className={styles.variantTitle}>{variantEditName}</Text>
@@ -1004,8 +1021,9 @@ const SessionPage: React.FC = () => {
                     className={styles.variantHeadInput}
                     value={equipmentDraft}
                     maxlength={12}
-                    placeholder="选填具体名称。例如鹦鹉螺、海豹划船"
+                    placeholder={equipmentNamePlaceholder(variantEditName)}
                     placeholderStyle="color:#4a4a55"
+                    adjustPosition={false}
                     onInput={(event) => setEquipmentDraft(event.detail.value)}
                   />
                 ) : null}
@@ -1075,6 +1093,7 @@ const SessionPage: React.FC = () => {
                 <Text className={styles.variantConfirmText}>确定</Text>
               </View>
             </View>
+            </ScrollView>
           </View>
         </View>
       ) : null}

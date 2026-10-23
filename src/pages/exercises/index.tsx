@@ -4,11 +4,12 @@ import { navigateTo, showModal, showToast } from '@/utils/taro';
 import classnames from 'classnames';
 import type { MuscleGroup } from '@/types';
 import { MUSCLE_GROUPS, MUSCLE_LABELS } from '@/constants';
-import { useAllExercises, useExerciseStore, matchesMuscleFilter } from '@/store/useExerciseStore';
+import { useAllExercises, useExerciseStore, matchesMuscleFilter, sortFullbodyLast } from '@/store/useExerciseStore';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { equipmentExercisesOf, isEquipmentExercise } from '@/utils/equipmentExercises';
 import MuscleTag from '@/components/MuscleTag';
+import ScrollLock from '@/components/ScrollLock';
 import styles from './index.module.scss';
 
 type MuscleFilter = 'all' | MuscleGroup;
@@ -46,7 +47,7 @@ const ExercisesPage: React.FC = () => {
       const matchText = !text || item.name.includes(text);
       return matchMuscle && matchText;
     });
-    return [...rows, ...filtered];
+    return sortFullbodyLast([...rows, ...filtered]);
   }, [exercises, equipmentRows, keyword, muscle]);
 
   const openDialog = () => {
@@ -88,6 +89,8 @@ const ExercisesPage: React.FC = () => {
 
   return (
     <View className={styles.page}>
+      {/* 新建动作弹窗打开时锁住页面滚动 */}
+      <ScrollLock lock={dialogVisible} />
       <View className={styles.header}>
         <View>
           <Text className={styles.title}>动作库</Text>

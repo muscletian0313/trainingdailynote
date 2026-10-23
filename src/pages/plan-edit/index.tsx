@@ -15,6 +15,7 @@ import {
   DEFAULT_CARDIO_MIN,
   DEFAULT_REPS,
   DEFAULT_WEIGHT,
+  equipmentNamePlaceholder,
   getFeelOption,
   MUSCLE_COLORS,
   MUSCLE_GROUPS,
@@ -51,8 +52,10 @@ import {
   variantOptionsOf
 } from '@/data/exerciseVariants';
 import { clearPlanDraft, loadPlanDraft, savePlanDraft, type PlanDraft } from '@/utils/planDraft';
+import { shareExercisesOf } from '@/utils/planShare';
 import { MUSCLE_ART } from '@/assets/muscles/art';
 import Stepper from '@/components/Stepper';
+import ScrollLock from '@/components/ScrollLock';
 import ExercisePicker, { type PickedExercise } from '@/components/ExercisePicker';
 import MuscleTag from '@/components/MuscleTag';
 import styles from './index.module.scss';
@@ -310,9 +313,12 @@ const PlanEditPage: React.FC = () => {
         setNavigationBarTitle({ title: '复制计划' });
         const source = getPlanById(copyFromId);
         if (source) {
+          // 已经执行过：按那次实际练的内容复制；没执行过：直接复制计划模板
+          const record = sessions.find((item) => item.planId === source.id);
+          const sourceExercises = record ? shareExercisesOf(source, record) : source.exercises;
           setName(source.name);
           setStartDate(dayjs().format('YYYY-MM-DD'));
-          const copied = source.exercises.map((item) => ({
+          const copied = sourceExercises.map((item) => ({
             ...item,
             key: uid('pe'),
             variants: item.variants ? { ...item.variants } : undefined,
@@ -718,6 +724,8 @@ const PlanEditPage: React.FC = () => {
 
   return (
     <View className={styles.page}>
+      {/* 任一浮层打开时锁住页面滚动，避免滑动遮罩/缝隙把底下的画布一起滚 */}
+      <ScrollLock lock={pickerVisible || !!replaceKey || !!variantEditKey || !!historyKey} />
       {draftRestored && (
         <View className={styles.draftBar}>
           <Text className={styles.draftBarText}>草稿已恢复，接着填就行</Text>
@@ -871,13 +879,6 @@ const PlanEditPage: React.FC = () => {
                     {exerciseName}
                     {item.equipmentName ? `（${item.equipmentName}）` : ''}
                   </Text>
-                  {muscleTag ? (
-                    <MuscleTag
-                      muscle={muscleTag.muscle}
-                      label={muscleTag.label}
-                      className={styles.exerciseNameTag}
-                    />
-                  ) : null}
                 </View>
                 {editableTags ? (
                   <View
@@ -906,24 +907,34 @@ const PlanEditPage: React.FC = () => {
                   </View>
                 ) : null}
               </View>
-              <View className={styles.exerciseActions}>
-                <View
-                  className={styles.historyBtn}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setHistoryKey(item.key);
-                  }}
-                >
-                  <Text className={styles.historyBtnText}>历史日训</Text>
-                </View>
-                <View
-                  className={styles.iconBtn}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleItemMore(item, index, exerciseName, isCardio);
-                  }}
-                >
-                  <Text className={styles.iconBtnText}>···</Text>
+              {/* 右侧竖排：训练部位在最上面，和「···」右边缘对齐 */}
+              <View className={styles.exerciseSide}>
+                {muscleTag ? (
+                  <MuscleTag
+                    muscle={muscleTag.muscle}
+                    label={muscleTag.label}
+                    className={styles.exerciseSideTag}
+                  />
+                ) : null}
+                <View className={styles.exerciseActions}>
+                  <View
+                    className={styles.historyBtn}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setHistoryKey(item.key);
+                    }}
+                  >
+                    <Text className={styles.historyBtnText}>历史日训</Text>
+                  </View>
+                  <View
+                    className={styles.iconBtn}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleItemMore(item, index, exerciseName, isCardio);
+                    }}
+                  >
+                    <Text className={styles.iconBtnText}>···</Text>
+                  </View>
                 </View>
               </View>
             </View>
@@ -1015,6 +1026,7 @@ const PlanEditPage: React.FC = () => {
       {variantEditItem ? (
         <View className={styles.variantMask} onClick={() => setVariantEditKey(null)}>
           <View className={styles.variantSheet} onClick={(event) => event.stopPropagation()}>
+            <ScrollView scrollY className={styles.variantScroll}>
             <View className={styles.variantHead}>
               <View className={styles.variantHeadMain}>
                 <Text className={styles.variantTitle}>{variantEditName}</Text>
@@ -1023,8 +1035,9 @@ const PlanEditPage: React.FC = () => {
                     className={styles.variantHeadInput}
                     value={equipmentDraft}
                     maxlength={12}
-                    placeholder="选填具体名称。例如鹦鹉螺、海豹划船"
+                    placeholder={equipmentNamePlaceholder(variantEditName)}
                     placeholderStyle="color:#4a4a55"
+                    adjustPosition={false}
                     onInput={(event) => setEquipmentDraft(event.detail.value)}
                   />
                 ) : null}
@@ -1098,6 +1111,7 @@ const PlanEditPage: React.FC = () => {
                 <Text className={styles.variantConfirmText}>确定</Text>
               </View>
             </View>
+            </ScrollView>
           </View>
         </View>
       ) : null}

@@ -15,6 +15,7 @@ import { variantBadges } from '@/data/exerciseVariants';
 import { decodePlan, encodePlan, shareExercisesOf, toLocalPlan } from '@/utils/planShare';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
+import ScrollLock from '@/components/ScrollLock';
 import {
   feelMessage,
   feelScoreOutOf100,
@@ -225,6 +226,8 @@ const PlanDetailPage: React.FC = () => {
 
   return (
     <View className={styles.page}>
+      {/* 结果弹层打开时锁住页面滚动 */}
+      <ScrollLock lock={!!justFinishedSession} />
       <View className={styles.head}>
         <View className={styles.headBody} onClick={openPlanEdit}>
           <View className={styles.headNameRow}>
@@ -440,7 +443,7 @@ const PlanDetailPage: React.FC = () => {
             </>
           ) : (
             <>
-              {plan.exercises.length ? (
+              {listExercises.length ? (
                 <View
                   className={classnames(styles.bottomBtn, styles.bottomBtnGhost)}
                   onClick={copyPlan}
