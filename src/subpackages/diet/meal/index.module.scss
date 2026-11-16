@@ -1,0 +1,267 @@
+@use '@/styles/variables.scss' as *;
+
+/* ============ 单餐页（图2） ============ */
+.page {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  background: $color-bg-page;
+}
+
+.pageHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top) + #{$spacing-sm}) $page-padding $spacing-sm;
+}
+
+.pageBack {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 52rpx;
+  text-align: center;
+  font-size: 40rpx;
+  color: $color-text-primary;
+}
+
+.pageTitle {
+  flex: 1;
+  text-align: center;
+  font-size: $font-size-lg;
+  font-weight: 800;
+  letter-spacing: 1rpx;
+  color: $color-text-primary;
+}
+
+.pageHeadSpace {
+  width: 56rpx;
+  flex-shrink: 0;
+}
+
+.pageBody {
+  flex: 1;
+  min-height: 0;
+  padding: 0 $page-padding;
+}
+
+.summaryCard {
+  padding: $spacing-md $spacing-lg;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.summaryRing {
+  position: relative;
+  width: 220rpx;
+  height: 220rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  @include flex-center;
+}
+
+.summaryRingHole {
+  width: 172rpx;
+  height: 172rpx;
+  border-radius: 50%;
+  background: $color-bg-card;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.summaryRingValue {
+  font-size: 44rpx;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1rpx;
+  color: $color-text-primary;
+  line-height: 1.1;
+}
+
+.summaryRingUnit {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.summaryMain {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  height: 220rpx;
+}
+
+.summaryMacroCol {
+  flex: 1;
+  min-width: 0;
+  margin-right: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.summaryMacroRow {
+  display: flex;
+  align-items: center;
+  height: 40rpx;
+}
+
+.summaryMacroLabel {
+  flex: 1;
+  min-width: 0;
+  margin-left: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.summaryMacroValue {
+  width: 150rpx;
+  text-align: right;
+  font-size: $font-size-xs;
+  color: $color-text-primary;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 8rpx;
+  border-radius: $radius-round;
+}
+
+.dotCarb {
+  background: $color-success;
+}
+
+.dotProtein {
+  background: $color-error;
+}
+
+.dotFat {
+  background: $color-warning;
+}
+
+.dotFiber {
+  background: $color-info;
+}
+
+.dotSodium {
+  background: $color-macro-sodium;
+}
+
+.foodCard {
+  margin-top: $spacing-md;
+  padding: $spacing-md $spacing-md $spacing-sm;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+}
+
+.foodCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: $spacing-sm;
+}
+
+.foodCardTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.foodCardGrams {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.foodCardEmpty {
+  display: block;
+  padding: $spacing-lg 0;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.dietRow {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-top: 1px solid $color-surface-soft;
+}
+
+.dietRowImg,
+.dietRowIcon {
+  width: 96rpx;
+  height: 96rpx;
+  flex-shrink: 0;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+  overflow: hidden;
+}
+
+.dietRowIcon {
+  @include flex-center;
+}
+
+.dietRowIconImg {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.dietRowMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+}
+
+.dietRowName {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.dietRowGrams {
+  display: block;
+  margin-top: 2rpx;
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.dietRowKcal {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.dietRowRemove {
+  flex-shrink: 0;
+  margin-left: 8rpx;
+  padding: 4rpx 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-disabled;
+}
+
+.pageFooter {
+  flex-shrink: 0;
+  padding: $spacing-sm $page-padding calc(env(safe-area-inset-bottom) + #{$spacing-sm});
+}
+
+.addFoodBtn {
+  height: 88rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+}
+
+.addFoodText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}

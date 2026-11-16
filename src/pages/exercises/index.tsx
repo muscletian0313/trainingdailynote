@@ -10,11 +10,13 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { equipmentExercisesOf, isEquipmentExercise } from '@/utils/equipmentExercises';
 import MuscleTag from '@/components/MuscleTag';
 import ScrollLock from '@/components/ScrollLock';
+import { usePageTheme } from '@/hooks/usePageTheme';
 import styles from './index.module.scss';
 
 type MuscleFilter = 'all' | MuscleGroup;
 
 const ExercisesPage: React.FC = () => {
+  const themeClass = usePageTheme();
   const exercises = useAllExercises();
   const addCustomExercise = useExerciseStore((state) => state.addCustomExercise);
   const removeCustomExercise = useExerciseStore((state) => state.removeCustomExercise);
@@ -69,7 +71,7 @@ const ExercisesPage: React.FC = () => {
   };
 
   const handleItemClick = (id: string) => {
-    navigateTo({ url: `/pages/exercise-detail/index?id=${id}` });
+    navigateTo({ url: `/subpackages/misc/exercise-detail/index?id=${id}` });
   };
 
   const handleItemLongPress = (id: string, isCustom?: boolean, name?: string) => {
@@ -88,7 +90,7 @@ const ExercisesPage: React.FC = () => {
   };
 
   return (
-    <View className={styles.page}>
+    <View className={classnames(styles.page, themeClass)}>
       {/* 新建动作弹窗打开时锁住页面滚动 */}
       <ScrollLock lock={dialogVisible} />
       <View className={styles.header}>

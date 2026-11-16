@@ -4,35 +4,91 @@
   width: 100%;
 }
 
-/* 训练 / 饮食 / 体重&维度 切换 */
+/* 类名交替即可重播，不需要 key 重挂整月格子 */
+.motionA {
+  animation: calendarEnterA 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.motionB {
+  animation: calendarEnterB 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes calendarEnterA {
+  from {
+    opacity: 0.35;
+    transform: translateY(8rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes calendarEnterB {
+  from {
+    opacity: 0.35;
+    transform: translateY(8rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 训练 / 饮食 / 体重&维度：保留下划线，用一根指示器滑动衔接选中态 */
 .tabs {
+  position: relative;
   display: flex;
-  padding: 6rpx;
   margin-bottom: $spacing-md;
-  border-radius: $radius-round;
-  background: $color-bg-hover;
+  border-bottom: 2rpx solid $color-divider;
 }
 
 .tab {
   flex: 1;
-  height: 60rpx;
-  border-radius: $radius-round;
+  height: 76rpx;
+  transition: background-color $transition-base;
   @include flex-center;
-  transition: all $transition-fast;
+
+  &:active {
+    background: $color-surface-weak;
+  }
 }
 
-.tabActive {
-  background: $color-primary-soft;
+.tabIndicator {
+  position: absolute;
+  left: 0;
+  bottom: -2rpx;
+  width: 33.3333%;
+  height: 4rpx;
+  pointer-events: none;
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 56rpx;
+    height: 4rpx;
+    border-radius: 4rpx;
+    background: linear-gradient(90deg, $color-primary-dark, $color-primary-light);
+    box-shadow: 0 -2rpx 12rpx rgba(255, 107, 44, 0.24);
+    transform: translateX(-50%);
+  }
 }
 
 .tabText {
   font-size: $font-size-sm;
+  font-weight: 600;
   color: $color-text-tertiary;
+  transform: translateY(0);
+  transition: color $transition-base, transform $transition-base;
 }
 
 .tabTextActive {
-  color: $color-primary;
-  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  font-weight: 800;
+  transform: translateY(-2rpx);
 }
 
 .head {
@@ -46,18 +102,26 @@
   width: 64rpx;
   height: 64rpx;
   border-radius: $radius-round;
-  background: $color-bg-hover;
+  border: 2rpx solid $color-border;
+  background: $color-surface-weak;
+  box-shadow: inset 0 2rpx 0 $color-surface-soft;
+  transition: transform $transition-base, background-color $transition-base,
+    border-color $transition-base;
   @include flex-center;
 
   &:active {
-    background: $color-border;
+    background: $color-surface-mid;
+    border-color: $color-text-disabled;
+    transform: scale(0.9);
   }
 }
 
 .navText {
-  font-size: $font-size-xl;
+  font-size: 34rpx;
+  font-weight: 300;
   color: $color-text-secondary;
   line-height: 1;
+  margin-top: -4rpx;
 }
 
 .headCenter {
@@ -70,7 +134,9 @@
 
 .monthText {
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5rpx;
   color: $color-text-primary;
 }
 
@@ -89,7 +155,9 @@
   flex: 1;
   text-align: center;
   font-size: $font-size-xs;
-  color: $color-text-disabled;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: $color-text-tertiary;
 }
 
 .grid {
@@ -97,9 +165,59 @@
   flex-wrap: wrap;
 }
 
+/* 周视图：只有一行，格子略矮一点，别把首屏占满 */
+.gridWeek .cell {
+  height: 142rpx;
+}
+
+/* 整周没有记录/计划：只留日期，不占部位的位置 */
+.gridWeek .cellCompact {
+  height: 96rpx;
+}
+
+/* 展开 / 收起整月：只留文字和箭头，不做按钮框 */
+.expandBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 68rpx;
+  margin-top: $spacing-xs;
+  @include flex-center;
+
+  &:active {
+    opacity: 0.65;
+  }
+}
+
+.expandText {
+  font-size: $font-size-xs;
+  font-weight: 700;
+  color: $color-text-tertiary;
+  transition: color $transition-base;
+}
+
+.expandArrow {
+  display: inline-block;
+  margin-left: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1;
+  transform-origin: center;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), color $transition-base;
+}
+
+.expandArrowOpen {
+  transform: rotate(180deg);
+}
+
+.expandBtn:active .expandText,
+.expandBtn:active .expandArrow {
+  color: $color-primary;
+}
+
 .cell {
   width: 14.2857%;
-  height: 148rpx;
+  height: 152rpx;
   padding-top: 6rpx;
   box-sizing: border-box;
   display: flex;
@@ -107,72 +225,199 @@
   align-items: center;
 }
 
+.cellCompact {
+  height: 90rpx;
+}
+
+/* 周视图里不显示的行：保留节点、只隐藏，避免反复增删节点导致真机事件丢失 */
+.cellHidden {
+  display: none;
+}
+
 .dayBox {
-  width: 60rpx;
-  height: 60rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: $radius-round;
   border: 2rpx solid transparent;
   box-sizing: border-box;
   @include flex-center;
-  transition: all $transition-fast;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color $transition-base, border-color $transition-base, box-shadow $transition-base;
 
   &:active {
-    transform: scale(0.94);
+    transform: scale(0.9);
   }
 }
 
-/* 当天的训练部位：颜色跟着肌群走，一眼看出这天练了什么 */
+.cell:active .dayBox {
+  transform: scale(0.9);
+}
+
+/* 已练：力量主部位 + 独立有氧；未练计划仍保留最多两个部位和 +N */
 .marks {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
+  margin-top: 6rpx;
+}
+
+/* 饮食 / 体重：日期下面标记的位置 */
+.dietMarks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28rpx;
   margin-top: 4rpx;
 }
 
+/* 饮食：日期下面只显示「还可以吃」的热量数字 */
+.dietKcal {
+  font-size: 20rpx;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: $color-primary;
+}
+
+/* 吃超了：负数用红色 */
+.dietKcalOver {
+  color: $color-error;
+}
+
+/* 体重：日期下面显示当天记录的体重，没记就空着 */
+.bodyValue {
+  font-size: 20rpx;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-primary;
+}
+
 .mark {
-  min-width: 44rpx;
-  height: 24rpx;
-  margin-top: 2rpx;
-  padding: 0 6rpx;
+  height: 26rpx;
+  margin-top: 3rpx;
+  padding: 0 8rpx;
   box-sizing: border-box;
+  border: 1rpx solid transparent;
   border-radius: 6rpx;
+  transition: transform $transition-base, background-color $transition-base;
   @include flex-center;
+}
+
+/* 计划中（还没练）：透明底 + 部位色描边 */
+.markPlanned {
+  background: transparent;
+  border: 2rpx solid;
 }
 
 .markText {
   font-size: 18rpx;
   line-height: 1;
-  color: $color-text-inverse;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.markTextChest { color: $color-muscle-chest; }
+.markTextBack { color: $color-muscle-back; }
+.markTextLegs { color: $color-muscle-legs; }
+.markTextShoulders { color: $color-muscle-shoulders; }
+.markTextBiceps { color: $color-muscle-biceps; }
+.markTextTriceps { color: $color-muscle-triceps; }
+.markTextCore { color: $color-muscle-core; }
+.markTextCardio { color: $color-muscle-cardio; }
+.markTextFullbody { color: #a3e635; }
+.markTextOther { color: $color-muscle-other; }
+
+/* 浅底上压深文字，保留色相但提高可读性 */
+:global(.theme-light) .markTextChest { color: #e11d48; }
+:global(.theme-light) .markTextBack { color: #2563eb; }
+:global(.theme-light) .markTextLegs { color: #059669; }
+:global(.theme-light) .markTextShoulders { color: #b45309; }
+:global(.theme-light) .markTextBiceps { color: #7c3aed; }
+:global(.theme-light) .markTextTriceps { color: #4f46e5; }
+:global(.theme-light) .markTextCore { color: #0891b2; }
+:global(.theme-light) .markTextCardio { color: #db2777; }
+:global(.theme-light) .markTextFullbody { color: #4d7c0f; }
+:global(.theme-light) .markTextOther { color: #64748b; }
+
+/* 超过两个部位时补一个 +N */
+.markMore {
+  margin-top: 2rpx;
+  font-size: 16rpx;
+  line-height: 1;
+  color: $color-text-tertiary;
 }
 
 .dayBoxActive {
-  background: $color-primary-soft;
+  border-color: rgba(255, 107, 44, 0.16);
+  background: linear-gradient(145deg, rgba(255, 143, 92, 0.2), rgba(255, 107, 44, 0.08));
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.04), 0 4rpx 14rpx rgba(255, 107, 44, 0.06);
 }
 
-.dayBoxToday {
-  border-color: $color-primary;
+/* 只有排期、还没练：橙色虚线圆，和已练的实心圆区分 */
+.dayBoxPlanned {
+  border: 2rpx dashed rgba(255, 107, 44, 0.46);
+  background: rgba(255, 107, 44, 0.035);
 }
 
+/* 今天：细腻橙渐变 + 内高光 + 双层外光晕 */
+.dayBoxToday,
 .dayBoxTodayActive {
-  background: $color-primary;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(145deg, $color-primary-light 0%, $color-primary 58%, $color-primary-dark 120%);
+  box-shadow: 0 0 0 6rpx rgba(255, 107, 44, 0.13), 0 8rpx 20rpx rgba(255, 107, 44, 0.22),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.22);
+}
+
+:global(.theme-light) .dayBoxToday,
+:global(.theme-light) .dayBoxTodayActive {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 6rpx rgba(255, 107, 44, 0.1), 0 8rpx 18rpx rgba(232, 85, 26, 0.18),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.35);
 }
 
 .dayText {
   font-size: $font-size-sm;
   color: $color-text-secondary;
+  transition: color $transition-base;
 }
 
+/* 练过的日期：字和圆底一个色系，深色主题下提亮一档 */
 .dayTextActive {
-  color: $color-primary;
-  font-weight: $font-weight-semibold;
+  color: $color-primary-light;
+  font-weight: $font-weight-bold;
+}
+
+:global(.theme-light) .dayTextActive {
+  color: $color-primary-dark;
+}
+
+/* 有计划但还没练：日期也跟着亮一点 */
+.dayTextPlanned {
+  color: $color-text-primary;
+  font-weight: 700;
+}
+
+/* 补位的相邻月份日期：灰色，不抢当前月的主次 */
+.dayTextOutside {
+  color: $color-text-disabled;
+  font-weight: $font-weight-normal;
 }
 
 .dayTextToday {
-  color: $color-primary;
+  color: $color-text-inverse;
+  font-weight: $font-weight-bold;
 }
 
 .dayTextTodayActive {
+  color: $color-text-inverse;
+  font-weight: $font-weight-bold;
+}
+
+/* 浅色主题的练过字色会盖住今天的深色字，这里用同特异性再声明一次 */
+:global(.theme-light) .dayTextToday,
+:global(.theme-light) .dayTextTodayActive {
   color: $color-text-inverse;
   font-weight: $font-weight-bold;
 }

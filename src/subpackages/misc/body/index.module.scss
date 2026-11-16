@@ -1,0 +1,202 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-sm $page-padding 60rpx;
+  box-sizing: border-box;
+  background: $color-bg-page;
+}
+
+/* 顶部：日期 + 单位切换 */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-xs 0;
+}
+
+.dateBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.dateText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+.dateHint {
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.unitSwitch {
+  display: flex;
+  padding: 4rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+}
+
+.unitItem {
+  height: 52rpx;
+  padding: 0 26rpx;
+  border-radius: $radius-round;
+  @include flex-center;
+}
+
+.unitItemActive {
+  background: $color-primary-soft;
+}
+
+.unitText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.unitTextActive {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+/* 数据 / 图表 / 日历 */
+.tabs {
+  display: flex;
+  padding: 6rpx;
+  margin-top: $spacing-xs;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+}
+
+.tab {
+  flex: 1;
+  height: 60rpx;
+  border-radius: $radius-round;
+  @include flex-center;
+}
+
+.tabActive {
+  background: $color-primary-soft;
+}
+
+.tabText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.tabTextActive {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+/* 图表 / 日历占位 */
+.placeholder {
+  margin-top: $spacing-lg;
+  padding: 80rpx $spacing-lg;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  text-align: center;
+}
+
+.placeholderTitle {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+.placeholderDesc {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1.6;
+}
+
+/* 设置页（齿轮点进来的独立页） */
+.settingsTitle {
+  display: block;
+  margin: $spacing-sm 0 $spacing-md;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.groupTitle {
+  display: block;
+  margin-top: $spacing-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+.groupDesc {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.unitRow {
+  display: flex;
+  margin-top: $spacing-sm;
+  padding: 4rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+
+  .unitItem {
+    flex: 1;
+  }
+}
+
+/* 围度开关列表 */
+.marksList {
+  margin-top: $spacing-sm;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  padding: 0 $spacing-md;
+}
+
+.markRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 96rpx;
+  border-bottom: 1rpx solid $color-surface;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.markRowLabel {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.switch {
+  width: 84rpx;
+  height: 48rpx;
+  padding: 4rpx;
+  border-radius: 48rpx;
+  background: $color-bg-hover;
+  box-sizing: border-box;
+  transition: background 0.2s;
+}
+
+.switchOn {
+  background: $color-primary;
+}
+
+.switchDot {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: $color-text-white;
+  transition: transform 0.2s;
+}
+
+.switchDotOn {
+  transform: translateX(36rpx);
+}

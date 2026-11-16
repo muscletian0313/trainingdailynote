@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
-import { navigateTo, redirectTo, showModal, showToast, switchTab } from '@/utils/taro';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, Image } from '@tarojs/components';
+import { navigateTo, redirectTo, showModal, showToast } from '@/utils/taro';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
 import type { Plan } from '@/types';
@@ -8,28 +8,36 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import {
+  displayPlanName,
+  estimateCaloriesBurned,
+  isCardioPlan,
+  isExerciseFinished,
   isPlanFinished,
   isSessionPaused,
-  planFromSession,
+  isTimedExercise,
+  planCardioTargetMin,
   planMuscleTags,
+  sessionCardioDistanceKm,
+  sessionCardioMin,
+  sessionDoneSets,
   sessionDurationSec,
+  sessionTotalSets,
+  sessionTotalWeight,
   sessionVolume
 } from '@/utils/workout';
 import { motivationOfDay } from '@/constants';
 import MuscleTag from '@/components/MuscleTag';
-import EmptyState from '@/components/EmptyState';
-import {
-  dayLabel,
-  formatClock,
-  formatDuration,
-  formatTimer,
-  formatVolume,
-  isDateToday,
-  weekdayLabel
-} from '@/utils/format';
+import { formatClock, formatTimer, formatVolume, isDateToday, weekdayLabel } from '@/utils/format';
+import { muscleImageOf } from '@/utils/muscleImage';
+import { cloudFile } from '@/utils/cloudAsset';
+import { usePageTheme } from '@/hooks/usePageTheme';
 import styles from './index.module.scss';
 
+/** 「没有计划」空卡片的背景壁画 */
+const EMPTY_BG = cloudFile('muscle/mural.jpg');
+
 const HomePage: React.FC = () => {
+  const themeClass = usePageTheme();
   const sessions = useSessionStore((state) => state.sessions);
   const active = useSessionStore((state) => state.active);
   const startSession = useSessionStore((state) => state.startSession);
@@ -37,13 +45,48 @@ const HomePage: React.FC = () => {
   const pauseActive = useSessionStore((state) => state.pauseActive);
   const resumeActive = useSessionStore((state) => state.resumeActive);
   const plans = usePlanStore((state) => state.plans);
-  const addPlan = usePlanStore((state) => state.addPlan);
-  const attachPlanToSession = useSessionStore((state) => state.attachPlanToSession);
   const profile = useProfileStore((state) => state.profile);
 
   /** 有进行中的训练（空训练也算，可能是刚点开的自由训练） */
   const hasActive = !!active;
   const activePaused = isSessionPaused(active);
+
+  /** 训练中卡片：计划预设按所有组算（含还没做的组），已完成只算做过的组 */
+  const activeDoneSets = active ? sessionDoneSets(active) : 0;
+  const activeTotalSets = active ? sessionTotalSets(active) : 0;
+  const activeProgress = activeTotalSets
+    ? Math.round((activeDoneSets / activeTotalSets) * 100)
+    : 0;
+  const activePlanWeight = active
+    ? active.exercises.reduce(
+        (sum, item) => sum + item.sets.reduce((acc, set) => acc + Math.abs(set.weight), 0),
+        0
+      )
+    : 0;
+  const activePlanVolume = active
+    ? active.exercises.reduce(
+        (sum, item) =>
+          sum +
+          (isTimedExercise(item.exerciseId)
+            ? 0
+            : item.sets.reduce((acc, set) => acc + Math.abs(set.weight) * set.reps, 0)),
+        0
+      )
+    : 0;
+  const activeDoneExercises = active
+    ? active.exercises.filter(isExerciseFinished).length
+    : 0;
+
+  /** 「当天已完成 / 计划预设」：计划过千就换成 t，三格才放得下 */
+  const pairOf = (done: number, plan: number) => {
+    if (plan >= 1000) {
+      const one = (value: number) => String(Math.round(value / 100) / 10);
+      return { done: one(done), plan: one(plan), unit: 't' };
+    }
+    return { done: String(Math.round(done)), plan: String(Math.round(plan)), unit: 'kg' };
+  };
+  const activeWeightPair = pairOf(active ? sessionTotalWeight(active) : 0, activePlanWeight);
+  const activeVolumePair = pairOf(active ? sessionVolume(active) : 0, activePlanVolume);
 
   // 秒级刷新，保证「已用时」实时跳动
   const [, setTick] = useState(0);
@@ -58,7 +101,7 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const isNewUser = !profile.onboardedAt && !plans.length && !sessions.length;
     if (isNewUser) {
-      redirectTo({ url: '/pages/onboarding/index' });
+      redirectTo({ url: '/subpackages/misc/onboarding/index' });
     }
     // 只在首次挂载时判断一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,16 +110,37 @@ const HomePage: React.FC = () => {
   /** 每日一条激励文案：同一天保持不变，隔天自动换 */
   const quote = motivationOfDay(dayjs().format('YYYY-MM-DD'));
 
-  const recent = sessions.slice(0, 3);
-
-  /** 今日计划排在最前，其余保持原顺序 */
-  const sortedPlans = [...plans].sort(
-    (a, b) => Number(isDateToday(b.startDate)) - Number(isDateToday(a.startDate))
-  );
-
   const hour = dayjs().hour();
   const greeting =
     hour < 6 ? '凌晨好' : hour < 11 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好';
+
+  /** 首页只展示「今日 + 待完成」：今日置顶，其余按日期从近到远 */
+  const pendingPlans = useMemo(
+    () =>
+      plans
+        .filter((plan) => !isPlanFinished(sessions, plan.id))
+        .sort(
+          (a, b) =>
+            Number(isDateToday(b.startDate)) - Number(isDateToday(a.startDate)) ||
+            dayjs(a.startDate).valueOf() - dayjs(b.startDate).valueOf() ||
+            b.createdAt - a.createdAt
+        ),
+    [plans, sessions]
+  );
+
+  /** 今天已经练过的计划：跟随在待完成后面，让当天的训练有记录可回看 */
+  const doneTodayPlans = useMemo(() => {
+    const lastTimeByPlan = new Map<string, number>();
+    sessions.forEach((session) => {
+      if (!session.planId) return;
+      if (!dayjs(session.startedAt).isSame(dayjs(), 'day')) return;
+      const prev = lastTimeByPlan.get(session.planId) ?? 0;
+      lastTimeByPlan.set(session.planId, Math.max(prev, dayjs(session.startedAt).valueOf()));
+    });
+    return plans
+      .filter((plan) => lastTimeByPlan.has(plan.id))
+      .sort((a, b) => (lastTimeByPlan.get(b.id) ?? 0) - (lastTimeByPlan.get(a.id) ?? 0));
+  }, [plans, sessions]);
 
   const goSession = () => {
     navigateTo({ url: '/pages/session/index' });
@@ -109,49 +173,197 @@ const HomePage: React.FC = () => {
     go();
   };
 
-  /** 大按钮指向的计划：我的计划里最近的一个未完成计划 */
-  const nextPlan = sortedPlans.find(
-    (plan) => plan.exercises.length > 0 && !isPlanFinished(sessions, plan.id)
-  );
-
+  /** 自由训练：不挑计划，直接开一场边练边记的训练 */
   const handleStart = () => {
     if (hasActive) {
       goSession();
       return;
     }
-    if (nextPlan) {
-      startPlanNow(nextPlan);
-      return;
-    }
-    // 没有可用计划 → 自由训练
     startSession();
     goSession();
   };
 
+  /** 进行中的计划点整卡直接回到训练，其他计划进详情 */
   const openPlan = (plan: Plan) => {
-    navigateTo({ url: `/pages/plan-detail/index?id=${plan.id}` });
-  };
-
-  /** 历史训练：统一进「练完的计划详情」；老的自由训练记录现场补一个计划 */
-  const openRecord = (id: string) => {
-    const session = sessions.find((item) => item.id === id);
-    if (!session) return;
-    if (session.planId) {
-      navigateTo({ url: `/pages/plan-detail/index?id=${session.planId}` });
+    if (active?.planId === plan.id) {
+      goSession();
       return;
     }
-    const plan = planFromSession(session);
-    addPlan(plan);
-    attachPlanToSession(session.id, plan.id);
     navigateTo({ url: `/pages/plan-detail/index?id=${plan.id}` });
   };
 
-  const goPlans = () => {
-    switchTab({ url: '/pages/plans/index' });
+  const createPlan = () => {
+    navigateTo({ url: '/pages/plan-edit/index' });
+  };
+
+  /** 计划卡：与计划页一致的四指标，常驻展示（首页不做折叠） */
+  const renderPlanCard = (plan: Plan) => {
+    const isToday = isDateToday(plan.startDate);
+    /** 开始日期在今天之后：还没到练的日子 */
+    const isFuture = dayjs(plan.startDate).startOf('day').isAfter(dayjs().startOf('day'));
+    const running = active?.planId === plan.id;
+    /** 今天已经练过这个计划：徽标和开始按钮都据此切换 */
+    const doneToday = sessions.some(
+      (session) => session.planId === plan.id && dayjs(session.startedAt).isSame(dayjs(), 'day')
+    );
+    /** 最近一次训练：sessions 已是时间倒序，首次命中即为最近一次 */
+    const last = sessions.find((item) => item.planId === plan.id);
+    /** 消耗：用户自己填过的优先，没填用预估值（前面加 ≈ 区分），没练过显示 — */
+    const burnFilled = last?.calories && last.calories > 0 ? last.calories : null;
+    const burnKcal = last
+      ? burnFilled ?? (estimateCaloriesBurned(last, profile.weight ?? 0, profile.gender) || null)
+      : null;
+    const muscles = planMuscleTags(plan);
+    /** 纯有氧计划：总重量 / 总容量没意义，换成总时长 / 总距离（排版位置不变） */
+    const cardioOnly = isCardioPlan(plan.exercises);
+    /** 总时长：练过按实际时长，没练过按计划目标时长；为 0 显示 — */
+    const cardioMin = last ? sessionCardioMin(last) : planCardioTargetMin(plan.exercises);
+    /** 总距离：只有练过且有距离数据（跑步机自动算 / 划船机手填）才显示 */
+    const cardioKm = last ? sessionCardioDistanceKm(last) : null;
+    /** 计划主肌群决定卡片背景器械图，没有对应图就保持纯色卡 */
+    const bgImage = muscleImageOf(muscles[0]);
+
+    return (
+      <View
+        key={plan.id}
+        className={classnames(
+          styles.planCard,
+          isToday && styles.planCardToday,
+          bgImage && styles.planCardWithImage
+        )}
+        onClick={() => openPlan(plan)}
+      >
+        {bgImage ? (
+          <>
+            <Image className={styles.cardImage} src={bgImage} mode="aspectFill" />
+            <View className={styles.cardScrim} />
+          </>
+        ) : null}
+
+        <View className={styles.planCardBody}>
+          <View className={styles.planTop}>
+            <Text className={styles.planDate}>
+              {dayjs(plan.startDate).format('M月D日')}
+              {isToday ? '（今日）' : isFuture ? '（未来）' : ''}
+            </Text>
+            {running ? (
+              <Text className={styles.runningBadge}>进行中</Text>
+            ) : doneToday ? (
+              <Text className={styles.doneBadge}>已完成</Text>
+            ) : (
+              <Text className={styles.pendingBadge}>待完成</Text>
+            )}
+          </View>
+
+          <View className={styles.planNameRow}>
+            <Text className={styles.planCardName}>{displayPlanName(plan)}</Text>
+          </View>
+
+          <View className={styles.planCardTags}>
+            {plan.exercises.length ? (
+              muscles.map((muscle, index) => (
+                <MuscleTag
+                  key={muscle}
+                  muscle={muscle}
+                  solid={index === 0}
+                  className={styles.planTag}
+                />
+              ))
+            ) : (
+              <Text className={styles.noMuscle}>还没有动作</Text>
+            )}
+          </View>
+
+        <View className={styles.statsRow}>
+          <View className={styles.statItem}>
+            <Text className={styles.statValue}>
+              {cardioOnly ? (
+                cardioMin ? (
+                  <>
+                    {cardioMin}
+                    <Text className={styles.statUnit}>min</Text>
+                  </>
+                ) : (
+                  '—'
+                )
+              ) : (
+                <>
+                  {last ? formatVolume(sessionTotalWeight(last)) : '—'}
+                  {last ? <Text className={styles.statUnit}>kg</Text> : null}
+                </>
+              )}
+            </Text>
+            <Text className={styles.statLabel}>{cardioOnly ? '总时长' : '总重量'}</Text>
+          </View>
+          <View className={styles.statDivider} />
+          <View className={styles.statItem}>
+            <Text className={styles.statValue}>
+              {cardioOnly ? (
+                cardioKm !== null ? (
+                  <>
+                    {cardioKm}
+                    <Text className={styles.statUnit}>km</Text>
+                  </>
+                ) : (
+                  '—'
+                )
+              ) : (
+                <>
+                  {last ? sessionTotalSets(last) : '—'}
+                  {last ? <Text className={styles.statUnit}>组</Text> : null}
+                </>
+              )}
+            </Text>
+            <Text className={styles.statLabel}>{cardioOnly ? '总距离' : '总容量'}</Text>
+          </View>
+          <View className={styles.statDivider} />
+          <View className={styles.statItem}>
+            <Text className={styles.statValue}>
+              {/* 与详情页保持一致：有过训练记录时按那次实际练的动作数 */}
+              {last ? last.exercises.length : plan.exercises.length}
+              <Text className={styles.statUnit}>个</Text>
+            </Text>
+            <Text className={styles.statLabel}>动作数</Text>
+          </View>
+          <View className={styles.statDivider} />
+          <View className={styles.statItem}>
+            <Text className={styles.statValue}>
+              {burnKcal ? (
+                <>
+                  {burnFilled ? null : <Text className={styles.statEstimate}>≈</Text>}
+                  {burnKcal}
+                  <Text className={styles.statUnit}>kcal</Text>
+                </>
+              ) : (
+                '—'
+              )}
+            </Text>
+            <Text className={styles.statLabel}>消耗</Text>
+          </View>
+        </View>
+
+        {isToday && plan.exercises.length && !doneToday ? (
+          <View
+            className={styles.planStartBtn}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (running) {
+                goSession();
+                return;
+              }
+              startPlanNow(plan);
+            }}
+          >
+            <Text className={styles.planStartBtnText}>{running ? '继续训练' : '开始训练'}</Text>
+          </View>
+        ) : null}
+        </View>
+      </View>
+    );
   };
 
   return (
-    <View className={styles.page}>
+    <View className={classnames(styles.page, themeClass)}>
       <View className={styles.header}>
         <Text className={styles.greeting}>
           {greeting}，{profile.nickname}
@@ -162,39 +374,71 @@ const HomePage: React.FC = () => {
       </View>
 
       {active ? (
-        <View className={styles.activeCard}>
+        <View
+          className={styles.activeCard}
+          onClick={() => {
+            // 点整卡回训练页，顺带把暂停的计时恢复
+            resumeActive();
+            goSession();
+          }}
+        >
           <View className={styles.activeTop}>
+            <Text className={styles.activeName} numberOfLines={1}>
+              {active.name}
+            </Text>
             <View
-              className={classnames(styles.activeBadge, activePaused && styles.activeBadgePaused)}
-            >
-              <Text className={styles.activeBadgeText}>
-                {activePaused ? '已暂停' : '进行中'}
-              </Text>
-            </View>
-            <Text className={styles.activeMeta}>{formatClock(active.startedAt)} 开始</Text>
-          </View>
-          <Text className={styles.activeName}>{active.name}</Text>
-          <Text className={styles.activeMeta}>
-            已用 {formatTimer(sessionDurationSec(active))} · {active.exercises.length} 个动作 ·{' '}
-            {formatVolume(sessionVolume(active))} kg
-          </Text>
-          <View className={styles.activeActions}>
-            <View
-              className={classnames(styles.activeAction, styles.activeActionPrimary)}
-              onClick={() => {
-                resumeActive();
-                goSession();
+              className={classnames(
+                styles.activePauseBtn,
+                activePaused && styles.activePauseBtnActive
+              )}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (activePaused) {
+                  resumeActive();
+                  return;
+                }
+                pauseActive();
               }}
             >
-              <Text className={styles.activeActionPrimaryText}>继续训练</Text>
+              <Text className={styles.activePauseText}>{activePaused ? '继续' : '暂停'}</Text>
             </View>
-            {activePaused ? null : (
-              <View className={styles.activeAction} onClick={() => pauseActive()}>
-                <Text className={styles.activeActionText}>暂停</Text>
-              </View>
-            )}
-            <View className={styles.activeAction} onClick={goSession}>
-              <Text className={styles.activeActionText}>结束训练</Text>
+          </View>
+          <Text className={styles.activeMeta}>
+            {formatClock(active.startedAt)} 开始 · 已用时 {formatTimer(sessionDurationSec(active))}
+          </Text>
+          <View className={styles.activeProgressTrack}>
+            <View
+              className={styles.activeProgressFill}
+              style={{ width: `${activeProgress}%` }}
+            />
+          </View>
+          <View className={styles.activeStats}>
+            <View className={styles.activeStat}>
+              <Text className={styles.activeStatLabel}>总重量</Text>
+              <Text className={styles.activeStatValue}>
+                {activeWeightPair.done}
+                <Text className={styles.activeStatUnit}>
+                  /{activeWeightPair.plan}
+                  {activeWeightPair.unit}
+                </Text>
+              </Text>
+            </View>
+            <View className={styles.activeStat}>
+              <Text className={styles.activeStatLabel}>总容量</Text>
+              <Text className={classnames(styles.activeStatValue, styles.activeStatAccent)}>
+                {activeVolumePair.done}
+                <Text className={styles.activeStatUnit}>
+                  /{activeVolumePair.plan}
+                  {activeVolumePair.unit}
+                </Text>
+              </Text>
+            </View>
+            <View className={styles.activeStat}>
+              <Text className={styles.activeStatLabel}>总动作数</Text>
+              <Text className={styles.activeStatValue}>
+                {activeDoneExercises}
+                <Text className={styles.activeStatUnit}>/{active.exercises.length}</Text>
+              </Text>
             </View>
           </View>
         </View>
@@ -206,7 +450,7 @@ const HomePage: React.FC = () => {
 
           <View className={styles.startBtn} onClick={handleStart}>
             <Text className={styles.startBtnText}>
-              {nextPlan ? '开始训练' : '自由训练'}
+              {doneTodayPlans.length ? '没练爽，继续干' : '边练边记'}
             </Text>
           </View>
         </>
@@ -214,122 +458,24 @@ const HomePage: React.FC = () => {
 
       <View className={styles.sectionHeader}>
         <Text className={styles.sectionTitle}>我的计划</Text>
-        <Text className={styles.sectionAction} onClick={goPlans}>
-          管理 ›
-        </Text>
+        <View className={styles.createBtn} onClick={createPlan}>
+          <Text className={styles.createBtnText}>+ 新建计划</Text>
+        </View>
       </View>
 
-      {sortedPlans.length ? (
-        <ScrollView scrollX className={styles.planScroll}>
-          {sortedPlans.map((plan) => {
-            const isToday = isDateToday(plan.startDate);
-            const finished = isPlanFinished(sessions, plan.id);
-            const isRunning = hasActive && active?.planId === plan.id;
-            return (
-              <View
-                key={plan.id}
-                className={classnames(styles.planCard, isToday && styles.planCardToday)}
-              >
-                <View onClick={() => openPlan(plan)}>
-                  <View className={styles.planCardNameRow}>
-                    <Text className={styles.planCardName}>{plan.name}</Text>
-                    {isToday ? <Text className={styles.planTodayBadge}>今日</Text> : null}
-                  </View>
-                  <Text className={styles.planCardCount}>
-                    {plan.exercises.length} 个动作 ·{' '}
-                    {plan.exercises.reduce((sum, item) => sum + item.sets.length, 0)} 组
-                  </Text>
-                  <View className={styles.planCardTags}>
-                    {planMuscleTags(plan).map((muscle, index) => (
-                      <MuscleTag
-                        key={muscle}
-                        muscle={muscle}
-                        solid={index === 0}
-                        className={styles.planTag}
-                      />
-                    ))}
-                  </View>
-                </View>
-                {isRunning ? (
-                  <View className={styles.activeBtn} onClick={goSession}>
-                    <Text className={styles.activeBtnText}>进行中</Text>
-                  </View>
-                ) : finished ? (
-                  <View
-                    className={classnames(styles.activeBtn, styles.planDoneBtn)}
-                    onClick={() => openPlan(plan)}
-                  >
-                    <Text className={classnames(styles.activeBtnText, styles.planDoneBtnText)}>
-                      已完成
-                    </Text>
-                  </View>
-                ) : isToday && plan.exercises.length ? (
-                  <View className={styles.activeBtn} onClick={() => startPlanNow(plan)}>
-                    <Text className={styles.activeBtnText}>开始训练</Text>
-                  </View>
-                ) : (
-                  <View className={styles.activeBtn} onClick={() => openPlan(plan)}>
-                    <Text className={styles.activeBtnText}>查看</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+      {pendingPlans.length || doneTodayPlans.length ? (
+        <>
+          {pendingPlans.map(renderPlanCard)}
+          {doneTodayPlans.map(renderPlanCard)}
+        </>
       ) : (
-        <View className={styles.recentList}>
-          <EmptyState
-            glyph="📋"
-            title="还没有训练计划"
-            desc="创建一个计划，让每次训练更有条理"
-            actionText="去创建计划"
-            onAction={goPlans}
-          />
-        </View>
-      )}
-
-      <View className={styles.sectionHeader}>
-        <Text className={styles.sectionTitle}>最近训练</Text>
-      </View>
-
-      {recent.length ? (
-        <View className={styles.recentList}>
-          {recent.map((session, index) => (
-            <View
-              key={session.id}
-              className={classnames(
-                styles.recentItem,
-                index !== recent.length - 1 && styles.recentItemBorder
-              )}
-              onClick={() => openRecord(session.id)}
-            >
-              <View className={styles.recentDot} />
-              <View className={styles.recentMain}>
-                <Text className={styles.recentName}>{session.name}</Text>
-                <Text className={styles.recentMeta}>
-                  {dayLabel(session.startedAt)} {formatClock(session.startedAt)} ·{' '}
-                  {formatDuration(sessionDurationSec(session))} · {session.exercises.length} 个动作
-                </Text>
-              </View>
-              <View className={styles.recentRight}>
-                <Text className={styles.recentVolume}>
-                  {formatVolume(sessionVolume(session))}
-                  <Text className={styles.recentVolumeUnit}>kg</Text>
-                </Text>
-                <Text className={styles.recentArrow}>›</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <View className={styles.recentList}>
-          <EmptyState
-            glyph="🏋️"
-            title="还没有训练记录"
-            desc="点击下方制定训练计划，记录你的第一场训练"
-            actionText="制定训练计划"
-            onAction={goPlans}
-          />
+        <View className={classnames(styles.emptyWrap, styles.emptyCard)}>
+          <Image className={styles.cardImage} src={EMPTY_BG} mode='aspectFill' />
+          <View className={styles.emptyScrim} />
+          <View className={styles.emptyBody}>
+            <Text className={styles.emptyTitle}>制定一个计划，练得更有方向</Text>
+            <Text className={styles.emptyDesc}>计划定好，进馆就干。</Text>
+          </View>
         </View>
       )}
     </View>

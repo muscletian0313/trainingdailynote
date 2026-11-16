@@ -7,12 +7,23 @@ export default defineAppConfig({
     'pages/mine/index',
     'pages/session/index',
     'pages/plan-edit/index',
-    'pages/plan-detail/index',
-    'pages/plan-share/index',
-    'pages/day-plans/index',
-    'pages/body/index',
-    'pages/exercise-detail/index',
-    'pages/onboarding/index'
+    'pages/plan-detail/index'
+  ],
+  subPackages: [
+    {
+      root: 'subpackages/diet',
+      pages: ['meal/index', 'food-picker/index', 'diet-day/index', 'day-plans/index']
+    },
+    {
+      root: 'subpackages/misc',
+      pages: [
+        'body/index',
+        'exercise-detail/index',
+        'plan-share/index',
+        'onboarding/index',
+        'session-result/index'
+      ]
+    }
   ],
   window: {
     backgroundTextStyle: 'light',
@@ -34,12 +45,6 @@ export default defineAppConfig({
         text: '训练',
         iconPath: 'assets/tabbar/workout.png',
         selectedIconPath: 'assets/tabbar/workout-selected.png'
-      },
-      {
-        pagePath: 'pages/plans/index',
-        text: '计划',
-        iconPath: 'assets/tabbar/plan.png',
-        selectedIconPath: 'assets/tabbar/plan-selected.png'
       },
       {
         pagePath: 'pages/exercises/index',

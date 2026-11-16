@@ -1,0 +1,108 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 0 $page-padding;
+  background: $color-bg-page;
+}
+
+.header {
+  flex-shrink: 0;
+  padding: $spacing-lg 0 $spacing-md;
+}
+
+.title {
+  display: block;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);
+  box-sizing: border-box;
+}
+
+.tag {
+  margin: 0 8rpx 8rpx 0;
+}
+
+/* 已完成：和首页的「待完成」同一位置，绿色区分；有背景图时补实底 */
+.doneBadge {
+  flex-shrink: 0;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  background: rgba(9, 9, 13, 0.72);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: #34d399;
+  line-height: 1.6;
+}
+
+:global(.theme-light) .doneBadge {
+  background: rgba(255, 255, 255, 0.9);
+  color: #15803d;
+}
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-sm;
+}
+
+.time {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 卡片右下角删除：小胶囊，有背景图时也能看清 */
+.deleteBtn {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  padding: 4rpx 16rpx;
+  border: 1rpx solid rgba(248, 115, 106, 0.42);
+  border-radius: $radius-round;
+  background: rgba(9, 9, 13, 0.4);
+  transition: background-color $transition-fast;
+
+  &:active {
+    background: rgba(248, 115, 106, 0.24);
+  }
+}
+
+.deleteText {
+  font-size: $font-size-xs;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #f8736a;
+}
+
+:global(.theme-light) .deleteBtn {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+:global(.theme-light) .deleteText {
+  color: #dc2626;
+}
+
+.empty {
+  margin-top: $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}

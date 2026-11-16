@@ -1,4 +1,13 @@
-import type { MuscleGroup, Plan, PlanExercise, PlanSet, Session } from '@/types';
+import type {
+  CardioFieldKey,
+  CardioIntensity,
+  MuscleGroup,
+  Plan,
+  PlanExercise,
+  PlanSet,
+  Session,
+  SessionExercise
+} from '@/types';
 import { uid } from './id';
 
 /**
@@ -24,6 +33,13 @@ const SLOT = "'";
 
 /** 计划名里出现分隔符会把结构冲乱，编码前先替换掉 */
 const UNSAFE = /[~!*'()_%]/g;
+/** 备注是自由文本，只清掉真正的分隔符，括号之类保留 */
+const NOTE_UNSAFE = /[~!*'_%]/g;
+
+/** 分享串里解出来的强度值做一次校验 */
+function isCardioIntensity(value?: string): value is CardioIntensity {
+  return value === 'easy' || value === 'moderate' || value === 'hard';
+}
 
 /** 分享出去的计划内容（动作的 key / set 的 id 在解码时重新生成） */
 export interface SharedPlan {
@@ -47,13 +63,51 @@ function encodeExercise(item: PlanExercise): string {
     })
     .join(ITEM);
 
+  // 有氧器械参数（速度 / 坡度 / 档位 / 个数），键值对用逗号分隔
+  const cardio = Object.entries(item.cardioTarget ?? {})
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => `${key}${KV}${value}`)
+    .join(',');
+
   return [
     item.exerciseId,
     variants,
     sets,
     String(item.restSeconds ?? ''),
-    typeof item.targetDurationMin === 'number' ? String(item.targetDurationMin) : ''
+    typeof item.targetDurationMin === 'number' ? String(item.targetDurationMin) : '',
+    item.supersetId ?? '',
+    (item as PlanExercise).targetIntensity ?? '',
+    cardio,
+    // 第 9 段：自定义备注（老版本解析时会忽略）。备注会撑长分享路径，压到 40 字以内
+    (item.note ?? '')
+      .replace(NOTE_UNSAFE, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 40)
   ].join(SLOT);
+}
+
+/** 有氧器械参数：计划模板直接用 cardioTarget，训练记录从那一组里取 */
+function cardioTargetOf(
+  item: PlanExercise | SessionExercise
+): Partial<Record<CardioFieldKey, number | string>> | undefined {
+  const target = (item as PlanExercise).cardioTarget;
+  if (target && Object.keys(target).length) return target;
+
+  const set =
+    (item as SessionExercise).sets?.find(
+      (entry) => typeof entry.durationMin === 'number'
+    ) ?? (item as SessionExercise).sets?.[0];
+  if (!set) return undefined;
+
+  const picked: Partial<Record<CardioFieldKey, number | string>> = {};
+  (
+    ['speedKmh', 'inclinePct', 'level', 'cadence', 'floors', 'jumps', 'mode'] as CardioFieldKey[]
+  ).forEach((key) => {
+    const value = (set as unknown as Record<string, number | string | undefined>)[key];
+    if (value !== undefined && value !== '' && value !== 0) picked[key] = value;
+  });
+  return Object.keys(picked).length ? picked : undefined;
 }
 
 /**
@@ -69,8 +123,12 @@ export function shareExercisesOf(plan: Plan, record?: Session): PlanExercise[] {
       exerciseId: item.exerciseId,
       variants: item.variants,
       equipmentName: item.equipmentName,
+      note: item.note,
       restSeconds: item.restSeconds,
+      supersetId: item.supersetId,
       targetDurationMin: cardioSet?.durationMin ?? (item as PlanExercise).targetDurationMin,
+      targetIntensity: item.targetIntensity,
+      cardioTarget: cardioTargetOf(item),
       sets: item.sets.map((set) => ({
         id: set.id,
         weight: set.weight,
@@ -97,7 +155,17 @@ export function encodePlan(plan: Plan): string {
 }
 
 function decodeExercise(text: string): PlanExercise | null {
-  const [exerciseId, variantsText, setsText, restText, durationText] = text.split(SLOT);
+  const [
+    exerciseId,
+    variantsText,
+    setsText,
+    restText,
+    durationText,
+    supersetText,
+    intensityText,
+    cardioText,
+    noteText
+  ] = text.split(SLOT);
   if (!exerciseId) return null;
 
   const variants: Record<string, string> = {};
@@ -124,13 +192,28 @@ function decodeExercise(text: string): PlanExercise | null {
   const rest = Number(restText);
   const duration = Number(durationText);
 
+  // 第 8 段：有氧器械参数（老分享串没有这一段）
+  const cardioTarget: Partial<Record<CardioFieldKey, number | string>> = {};
+  (cardioText ? cardioText.split(',') : []).forEach((pair) => {
+    const [key, value] = pair.split(KV);
+    if (!key || value === undefined || value === '') return;
+    const num = Number(value);
+    cardioTarget[key as CardioFieldKey] = Number.isFinite(num) ? num : value;
+  });
+
   return {
     key: uid('pe'),
     exerciseId,
     variants: Object.keys(variants).length ? variants : undefined,
     sets,
     restSeconds: Number.isFinite(rest) ? rest : 0,
-    targetDurationMin: Number.isFinite(duration) && duration > 0 ? duration : undefined
+    targetDurationMin: Number.isFinite(duration) && duration > 0 ? duration : undefined,
+    // 老分享串没有这一段，解出来是 undefined，不影响普通动作
+    supersetId: supersetText || undefined,
+    targetIntensity: isCardioIntensity(intensityText) ? intensityText : undefined,
+    cardioTarget: Object.keys(cardioTarget).length ? cardioTarget : undefined,
+    // 老分享串没有第 9 段，解出来是 undefined
+    note: noteText?.trim() || undefined
   };
 }
 

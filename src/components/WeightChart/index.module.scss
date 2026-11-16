@@ -1,0 +1,197 @@
+@use '@/styles/variables.scss' as *;
+
+/* 卡片容器 */
+.panel {
+  padding: $spacing-md;
+  margin-top: $spacing-md;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-hard-card;
+}
+
+/* 图表标题：指标名 */
+.chartTitle {
+  font-size: $font-size-md;
+  font-weight: 800;
+  color: $color-text-primary;
+}
+
+/* 顶部信息区：指标名 / 目标 / 当前值 / 变化 */
+.head {
+  margin-bottom: $spacing-xs;
+}
+
+.headMain {
+  display: flex;
+  flex-direction: column;
+}
+
+.headTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.targetChip {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 107, 44, 0.14);
+  border: 2rpx solid rgba(255, 107, 44, 0.35);
+  font-size: $font-size-xs;
+  font-weight: 700;
+  color: $color-primary;
+  line-height: 1.4;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  margin-top: 8rpx;
+}
+
+.value {
+  font-size: 64rpx;
+  font-weight: 900;
+  letter-spacing: -1rpx;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-primary;
+}
+
+.valueUnit {
+  margin-left: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.delta {
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.deltaDown {
+  color: $color-success;
+}
+
+.deltaUp {
+  color: $color-warning;
+}
+
+.headTime {
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 时间范围切换 */
+.pills {
+  display: flex;
+  margin: $spacing-sm 0 $spacing-xs;
+}
+
+.pill {
+  margin-right: $spacing-sm;
+  padding: 6rpx 22rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+}
+
+.pillOn {
+  background: $color-primary;
+}
+
+.pillText {
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: $color-text-secondary;
+}
+
+.pillOn .pillText {
+  color: $color-text-inverse;
+  font-weight: 800;
+}
+
+/* 趋势图画布：宽度撑满，高度固定，内部按 DPR 放大绘制 */
+.canvas {
+  display: block;
+  width: 100%;
+  height: 160px;
+  margin-top: $spacing-sm;
+
+  /* H5 端 Taro 会在外层容器里再放一个 canvas，尺寸要一起给 */
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* 三段统计：起始 / 最低 / 累计变化 */
+.kpis {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 2rpx solid $color-divider;
+}
+
+.kpi {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.kpiDivider {
+  width: 2rpx;
+  height: 44rpx;
+  flex-shrink: 0;
+  background: $color-divider;
+}
+
+.kpiValue {
+  font-size: $font-size-md;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-primary;
+}
+
+/* 统计里的涨跌色要盖过默认文字色 */
+.kpiValue.deltaDown {
+  color: $color-success;
+}
+
+.kpiValue.deltaUp {
+  color: $color-warning;
+}
+
+.kpiLabel {
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 记录不足两条时的空状态 */
+.empty {
+  padding: 60rpx $spacing-md 30rpx;
+  text-align: center;
+}
+
+.emptyTitle {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: 800;
+  color: $color-text-secondary;
+}
+
+.emptyDesc {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1.6;
+}

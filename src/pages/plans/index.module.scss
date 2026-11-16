@@ -3,7 +3,7 @@
 .page {
   min-height: 100vh;
   padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
-  background: linear-gradient(180deg, rgba(255, 107, 44, 0.08) 0%, $color-bg-page 240rpx);
+  background: $color-bg-page;
 }
 
 .header {
@@ -12,11 +12,14 @@
   align-items: center;
   justify-content: space-between;
   padding: $spacing-lg 0 $spacing-md;
+  border-bottom: $border-hard solid $color-border;
+  margin-bottom: $spacing-md;
 }
 
 .title {
   font-size: $font-size-xxl;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
+  letter-spacing: -1rpx;
   color: $color-text-primary;
 }
 
@@ -29,21 +32,23 @@
 
 .createBtn {
   height: 72rpx;
-  padding: 0 30rpx;
-  border-radius: $radius-button;
+  padding: 0 24rpx;
+  border-radius: $radius-hard-btn;
   background: $color-primary;
+  box-shadow: 0 6rpx 0 $color-hard-shadow-primary;
   @include flex-center;
-  transition: all $transition-base;
+  transition: transform $transition-fast, box-shadow $transition-fast;
 
   &:active {
-    opacity: 0.88;
-    transform: scale(0.97);
+    transform: translateY(4rpx);
+    box-shadow: 0 2rpx 0 $color-hard-shadow-primary;
   }
 }
 
 .createBtnText {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-semibold;
+  font-size: $font-size-xs;
+  font-weight: 800;
+  letter-spacing: 0.5rpx;
   color: $color-text-inverse;
   line-height: 1;
   white-space: nowrap;
@@ -53,11 +58,11 @@
 .draftBadge {
   flex-shrink: 0;
   margin-left: $spacing-xs;
-  padding: 2rpx 14rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
   background: $color-primary-soft;
   font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
+  font-weight: 800;
   color: $color-primary;
   line-height: 1.6;
 }
@@ -81,20 +86,22 @@
   margin-bottom: $spacing-md;
   padding: $spacing-lg;
   border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
   background: $color-bg-card;
   box-shadow: $shadow-card;
-  transition: all $transition-base;
+  transition: transform $transition-fast, box-shadow $transition-fast;
 
   &:active {
-    transform: scale(0.99);
+    transform: translateY(4rpx);
+    box-shadow: 0 4rpx 0 $color-hard-shadow;
   }
 }
 
 /* 当日计划：高亮边框 + 主题色描边 */
 .cardToday {
-  border: 2rpx solid rgba(255, 107, 44, 0.55);
-  background: linear-gradient(180deg, rgba(255, 107, 44, 0.14) 0%, $color-bg-card 140rpx);
-  box-shadow: 0 0 0 2rpx rgba(255, 107, 44, 0.12), $shadow-card;
+  border-color: $color-primary;
+  background: $color-bg-today;
+  box-shadow: $shadow-hard-card-lg;
 }
 
 .cardTop {
@@ -110,7 +117,9 @@
 
 .dateMain {
   font-size: $font-size-xl;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5rpx;
   color: $color-text-primary;
 }
 
@@ -147,11 +156,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: auto;
   height: 56rpx;
   margin: 0;
   padding: 0 20rpx;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius-xs;
   background: rgba(255, 107, 44, 0.16);
   transition: all $transition-fast;
 
@@ -186,7 +196,7 @@
   flex: 1;
   min-width: 0;
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: 800;
   color: $color-text-primary;
   @include text-ellipsis;
 }
@@ -194,8 +204,8 @@
 .todayBadge {
   flex-shrink: 0;
   margin-left: $spacing-xs;
-  padding: 2rpx 14rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
   background: $color-primary;
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
@@ -206,8 +216,8 @@
 .doneBadge {
   flex-shrink: 0;
   margin-left: $spacing-xs;
-  padding: 2rpx 14rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
   background: rgba(52, 211, 153, 0.16);
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
@@ -219,8 +229,8 @@
 .runningBadge {
   flex-shrink: 0;
   margin-left: $spacing-xs;
-  padding: 2rpx 14rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
   background: rgba(255, 107, 44, 0.18);
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
@@ -232,8 +242,8 @@
 .pendingBadge {
   flex-shrink: 0;
   margin-left: $spacing-xs;
-  padding: 2rpx 14rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
   background: rgba(251, 191, 36, 0.16);
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
@@ -276,7 +286,9 @@
 
 .statValue {
   font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5rpx;
   color: $color-text-primary;
   line-height: 1.2;
 }
@@ -286,6 +298,14 @@
   font-size: $font-size-xs;
   font-weight: $font-weight-normal;
   color: $color-text-tertiary;
+}
+
+/* 预估消耗的 ≈ 标记：和用户自己填的数值区分开 */
+.statEstimate {
+  margin-right: 2rpx;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-normal;
+  color: $color-warning;
 }
 
 .statLabel {
@@ -303,6 +323,7 @@
 
 .emptyWrap {
   margin-top: $spacing-xl;
+  border: $border-hard solid $color-border;
   background: $color-bg-card;
   border-radius: $radius-lg;
   box-shadow: $shadow-card;

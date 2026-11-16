@@ -1,0 +1,135 @@
+// ============================================
+// 主题色板：运行时切换的唯一数据源
+// 深色 = 橙黑（默认），浅色 = 橙白
+// 页面根节点加 .theme-light 即切到橙白；.theme-dark 为显式深色
+// ============================================
+
+// ---- 深色（橙黑）----
+@mixin theme-dark-tokens {
+  --fl-primary: #ff6b2c;
+  --fl-primary-light: #ff8f5c;
+  --fl-primary-dark: #e8551a;
+  --fl-primary-soft: rgba(255, 107, 44, 0.16);
+
+  --fl-success: #34d399;
+  --fl-warning: #fbbf24;
+  --fl-error: #f8736a;
+  --fl-info: #4d8dff;
+
+  --fl-bg-page: #101014;
+  --fl-bg-card: #17171d;
+  --fl-bg-hover: #26262e;
+  --fl-bg-elevated: #23232b;
+  --fl-bg-input: #26262e;
+  --fl-bg-mask: rgba(0, 0, 0, 0.66);
+
+  --fl-text-primary: #ffffff;
+  --fl-text-secondary: #a6a6b2;
+  --fl-text-tertiary: #6f6f7d;
+  --fl-text-disabled: #4a4a55;
+  --fl-text-white: #ffffff;
+  --fl-text-inverse: #101014;
+
+  --fl-border: #2c2c36;
+  --fl-divider: #23232b;
+
+  --fl-hard-shadow: #050508;
+  --fl-hard-shadow-primary: #8a3410;
+  --fl-hard-shadow-today: #7a2f0d; // 选中卡（暖棕底）的硬投影
+  --fl-hard-surface: #17171d;
+
+  --fl-chart-bar-empty: #2c2c36;
+
+  // 语义化的特殊底色（原来写死在页面里）
+  --fl-bg-quote: #000000; // 首页每日一句：深色主题用纯黑更有板感
+  --fl-bg-today: #1d130e; // 今日计划卡：深棕暖调
+  --fl-bg-deep: #0a0a0e; // 比页面更深的容器（弹层/分区）
+  --fl-bg-overlay: #101014; // 页面内的深色块
+
+  // 深色底上的「提亮面」：原来写死的 rgba(255,255,255,.xx)
+  --fl-surface-weak: rgba(255, 255, 255, 0.04);
+  --fl-surface-soft: rgba(255, 255, 255, 0.05);
+  --fl-surface: rgba(255, 255, 255, 0.06);
+  --fl-surface-mid: rgba(255, 255, 255, 0.08);
+  --fl-surface-strong: rgba(255, 255, 255, 0.1);
+  --fl-surface-stronger: rgba(255, 255, 255, 0.12);
+  --fl-surface-max: rgba(255, 255, 255, 0.18);
+
+  // 原生 tabBar / 导航栏用的具体值（JS 里也要用到）
+  --fl-nav-bg: #101014;
+  --fl-tabbar-bg: #16161b;
+  --fl-tabbar-color: #6f6f7d;
+}
+
+// ---- 浅色（橙白）----
+@mixin theme-light-tokens {
+  --fl-primary: #ff6b2c;
+  --fl-primary-light: #ff8f5c;
+  --fl-primary-dark: #e8551a;
+  --fl-primary-soft: rgba(255, 107, 44, 0.12);
+
+  // 浅底上要压深一档，否则彩色字发飘
+  --fl-success: #16a34a;
+  --fl-warning: #d97706;
+  --fl-error: #dc2626;
+  --fl-info: #2563eb;
+
+  --fl-bg-page: #f4f4f6;
+  --fl-bg-card: #ffffff;
+  --fl-bg-hover: #eeeef2;
+  --fl-bg-elevated: #ffffff;
+  --fl-bg-input: #f0f0f4;
+  --fl-bg-mask: rgba(0, 0, 0, 0.45);
+
+  --fl-text-primary: #14141a;
+  --fl-text-secondary: #5c5c6a;
+  --fl-text-tertiary: #9696a3;
+  --fl-text-disabled: #b8b8c4;
+  --fl-text-white: #ffffff;
+  // 橙底上的文字两套主题都用深色，保证与主按钮观感一致
+  --fl-text-inverse: #14141a;
+
+  --fl-border: #e3e3ea;
+  --fl-divider: #eeeef2;
+
+  // 硬投影在浅色下改成浅灰，太黑会显得脏
+  --fl-hard-shadow: #dcdee6;
+  --fl-hard-shadow-primary: #c04d18;
+  --fl-hard-shadow-today: #f0c4ae;
+  --fl-hard-surface: #ffffff;
+
+  --fl-chart-bar-empty: #e3e3ea;
+
+  // 浅色下这三块都回到白/浅灰，橙色只留描边
+  --fl-bg-quote: #ffffff;
+  --fl-bg-today: #fff4ee;
+  --fl-bg-deep: #eeeef2;
+  --fl-bg-overlay: #ffffff;
+
+  // 深色主题的「提亮面」在浅色下反转为「压深面」
+  --fl-surface-weak: rgba(20, 20, 26, 0.03);
+  --fl-surface-soft: rgba(20, 20, 26, 0.035);
+  --fl-surface: rgba(20, 20, 26, 0.045);
+  --fl-surface-mid: rgba(20, 20, 26, 0.055);
+  --fl-surface-strong: rgba(20, 20, 26, 0.07);
+  --fl-surface-stronger: rgba(20, 20, 26, 0.08);
+  --fl-surface-max: rgba(20, 20, 26, 0.12);
+
+  --fl-nav-bg: #f4f4f6;
+  --fl-tabbar-bg: #ffffff;
+  --fl-tabbar-color: #8a8a96;
+}
+
+// 默认深色：挂在小程序 page 和 H5 :root 上，任何页面不写类名也是深色
+page,
+:root {
+  @include theme-dark-tokens;
+}
+
+.theme-dark {
+  @include theme-dark-tokens;
+}
+
+.theme-light {
+  @include theme-light-tokens;
+}

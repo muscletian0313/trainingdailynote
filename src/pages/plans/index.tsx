@@ -7,24 +7,31 @@ import classnames from 'classnames';
 import type { MuscleGroup, Plan, Session } from '@/types';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { useProfileStore } from '@/store/useProfileStore';
 import {
+  displayPlanName,
+  estimateCaloriesBurned,
+  isCardioPlan,
   isPlanFinished,
+  planCardioTargetMin,
   planMuscleTags,
+  sessionCardioDistanceKm,
+  sessionCardioMin,
   sessionTotalSets,
   sessionTotalWeight
 } from '@/utils/workout';
-import { dayLabel, formatVolume, isDateToday, weekdayLabel } from '@/utils/format';
+import { formatVolume, isDateToday } from '@/utils/format';
 import { clearPlanDraft, loadPlanDraft, type PlanDraft } from '@/utils/planDraft';
 import { loadJSON, removeKey, STORAGE_KEYS } from '@/utils/storage';
 import { draftToPlan, encodePlan, shareExercisesOf } from '@/utils/planShare';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
+import { usePageTheme } from '@/hooks/usePageTheme';
 import styles from './index.module.scss';
 
-/** 列表展示范围：最近 7 天 */
-const RECENT_DAYS = 7;
-
+/** 列表展示范围：全部计划（老计划也要能进来看和删） */
 const PlansPage: React.FC = () => {
+  const themeClass = usePageTheme();
   const plans = usePlanStore((state) => state.plans);
   const removePlan = usePlanStore((state) => state.removePlan);
   const sessions = useSessionStore((state) => state.sessions);
@@ -32,6 +39,7 @@ const PlansPage: React.FC = () => {
   const startSession = useSessionStore((state) => state.startSession);
   const discardActive = useSessionStore((state) => state.discardActive);
   const deleteSessionsByPlan = useSessionStore((state) => state.deleteSessionsByPlan);
+  const profile = useProfileStore((state) => state.profile);
 
   /** 新建计划没写完留下的草稿，单独一张卡 */
   const [draft, setDraft] = useState<PlanDraft | null>(() => loadPlanDraft());
@@ -63,39 +71,29 @@ const PlansPage: React.FC = () => {
       const exercises = shareExercisesOf(sharedPlan, lastSessionByPlan.get(sharedPlan.id));
       return {
         title: `分享训练计划：${sharedPlan.name}`,
-        path: `/pages/plan-share/index?d=${encodePlan({ ...sharedPlan, exercises })}`
+        path: `/subpackages/misc/plan-share/index?d=${encodePlan({ ...sharedPlan, exercises })}`
       };
     }
     if (shareDraftRef.current && draft && draft.exercises.length) {
       shareDraftRef.current = false;
       return {
         title: `分享训练计划：${draft.name.trim() || '未命名计划'}`,
-        path: `/pages/plan-share/index?d=${encodePlan(draftToPlan(draft))}`
+        path: `/subpackages/misc/plan-share/index?d=${encodePlan(draftToPlan(draft))}`
       };
     }
     return { title: '来练记，一起记录每次训练', path: '/pages/plans/index' };
   });
 
-  const todayKey = dayjs().format('YYYY-MM-DD');
-  const fromKey = dayjs()
-    .subtract(RECENT_DAYS - 1, 'day')
-    .format('YYYY-MM-DD');
-
-  /** 近 7 天内的计划，按开始日期倒序（最近的在最上） */
-  const recentPlans = useMemo(
+  /** 全部计划：今天开始的排最前，其余按开始日期倒序（老计划也要能进来看和删） */
+  const sortedPlans = useMemo(
     () =>
-      plans
-        .filter((plan) => {
-          if (!plan.startDate) return false;
-          const key = dayjs(plan.startDate).format('YYYY-MM-DD');
-          return key >= fromKey && key <= todayKey;
-        })
-        .sort(
-          (a, b) =>
-            dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf() ||
-            b.createdAt - a.createdAt
-        ),
-    [plans, fromKey, todayKey]
+      [...plans].sort(
+        (a, b) =>
+          Number(isDateToday(b.startDate)) - Number(isDateToday(a.startDate)) ||
+          dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf() ||
+          b.createdAt - a.createdAt
+      ),
+    [plans]
   );
 
   /** 每个计划最近一次训练（sessions 已是时间倒序，取首次命中即为最近一次） */
@@ -220,9 +218,9 @@ const PlansPage: React.FC = () => {
       )
     : [];
 
-  /** 已完成的计划折叠展示（仍只统计近 7 天） */
-  const finishedPlans = recentPlans.filter((plan) => isPlanFinished(sessions, plan.id));
-  const pendingPlans = recentPlans.filter((plan) => !isPlanFinished(sessions, plan.id));
+  /** 已完成的计划折叠展示 */
+  const finishedPlans = sortedPlans.filter((plan) => isPlanFinished(sessions, plan.id));
+  const pendingPlans = sortedPlans.filter((plan) => !isPlanFinished(sessions, plan.id));
 
   /** 列表顺序：待完成 → 草稿 → 已完成；默认展开置顶那一个 */
   const DRAFT_KEY = '__draft__';
@@ -239,9 +237,19 @@ const PlansPage: React.FC = () => {
     const isToday = isDateToday(plan.startDate);
     const finished = isPlanFinished(sessions, plan.id);
     const running = active?.planId === plan.id;
-    const ts = dayjs(plan.startDate).valueOf();
     const last = lastSessionByPlan.get(plan.id);
+    /** 消耗：用户自己填过的优先，没填用预估值（前面加 ≈ 区分），没练过显示 — */
+    const burnFilled = last?.calories && last.calories > 0 ? last.calories : null;
+    const burnKcal = last
+      ? burnFilled ?? (estimateCaloriesBurned(last, profile.weight ?? 0, profile.gender) || null)
+      : null;
     const muscles = planMuscleTags(plan);
+    /** 纯有氧计划：总重量 / 总容量没意义，换成总时长 / 总距离（排版位置不变） */
+    const cardioOnly = isCardioPlan(plan.exercises);
+    /** 总时长：练过按实际时长，没练过按计划目标时长；为 0 显示 — */
+    const cardioMin = last ? sessionCardioMin(last) : planCardioTargetMin(plan.exercises);
+    /** 总距离：只有练过且有距离数据（跑步机自动算 / 划船机手填）才显示 */
+    const cardioKm = last ? sessionCardioDistanceKm(last) : null;
     /** 手风琴：只有当前展开的一张卡显示详情 */
     const expanded = activeOpenKey === plan.id;
     return (
@@ -259,9 +267,6 @@ const PlansPage: React.FC = () => {
         <View className={styles.cardTop}>
           <View className={styles.dateWrap}>
             <Text className={styles.dateMain}>{dayjs(plan.startDate).format('M月D日')}</Text>
-            <Text className={styles.dateSub}>
-              {dayLabel(ts)} {weekdayLabel(ts)}
-            </Text>
           </View>
           <View className={styles.cardTopActions}>
             {plan.exercises.length ? (
@@ -289,7 +294,7 @@ const PlansPage: React.FC = () => {
         </View>
 
         <View className={styles.nameRow}>
-          <Text className={styles.cardName}>{plan.name}</Text>
+          <Text className={styles.cardName}>{displayPlanName(plan)}</Text>
           {finished ? (
             <Text className={styles.doneBadge}>已完成</Text>
           ) : running ? (
@@ -320,26 +325,68 @@ const PlansPage: React.FC = () => {
             <View className={styles.statsRow}>
               <View className={styles.statItem}>
                 <Text className={styles.statValue}>
-                  {last ? formatVolume(sessionTotalWeight(last)) : '—'}
-                  {last ? <Text className={styles.statUnit}>kg</Text> : null}
+                  {cardioOnly ? (
+                    cardioMin ? (
+                      <>
+                        {cardioMin}
+                        <Text className={styles.statUnit}>min</Text>
+                      </>
+                    ) : (
+                      '—'
+                    )
+                  ) : (
+                    <>
+                      {last ? formatVolume(sessionTotalWeight(last)) : '—'}
+                      {last ? <Text className={styles.statUnit}>kg</Text> : null}
+                    </>
+                  )}
                 </Text>
-                <Text className={styles.statLabel}>总重量</Text>
+                <Text className={styles.statLabel}>{cardioOnly ? '总时长' : '总重量'}</Text>
               </View>
               <View className={styles.statDivider} />
               <View className={styles.statItem}>
                 <Text className={styles.statValue}>
-                  {last ? sessionTotalSets(last) : '—'}
-                  {last ? <Text className={styles.statUnit}>组</Text> : null}
+                  {cardioOnly ? (
+                    cardioKm !== null ? (
+                      <>
+                        {cardioKm}
+                        <Text className={styles.statUnit}>km</Text>
+                      </>
+                    ) : (
+                      '—'
+                    )
+                  ) : (
+                    <>
+                      {last ? sessionTotalSets(last) : '—'}
+                      {last ? <Text className={styles.statUnit}>组</Text> : null}
+                    </>
+                  )}
                 </Text>
-                <Text className={styles.statLabel}>总容量</Text>
+                <Text className={styles.statLabel}>{cardioOnly ? '总距离' : '总容量'}</Text>
               </View>
               <View className={styles.statDivider} />
               <View className={styles.statItem}>
                 <Text className={styles.statValue}>
-                  {plan.exercises.length}
+                  {/* 与详情页保持一致：有过训练记录时按那次实际练的动作数 */}
+                  {(last ? last.exercises.length : plan.exercises.length)}
                   <Text className={styles.statUnit}>个</Text>
                 </Text>
                 <Text className={styles.statLabel}>动作数</Text>
+              </View>
+              <View className={styles.statDivider} />
+              <View className={styles.statItem}>
+                <Text className={styles.statValue}>
+                  {burnKcal ? (
+                    <>
+                      {burnFilled ? null : <Text className={styles.statEstimate}>≈</Text>}
+                      {burnKcal}
+                      <Text className={styles.statUnit}>kcal</Text>
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </Text>
+                <Text className={styles.statLabel}>消耗</Text>
               </View>
             </View>
           </>
@@ -349,20 +396,18 @@ const PlansPage: React.FC = () => {
   };
 
   return (
-    <View className={styles.page}>
+    <View className={classnames(styles.page, themeClass)}>
       <View className={styles.header}>
         <View>
           <Text className={styles.title}>训练计划</Text>
-          <Text className={styles.subtitle}>
-            近 {RECENT_DAYS} 天 · {recentPlans.length} 个计划
-          </Text>
+          <Text className={styles.subtitle}>共 {sortedPlans.length} 个计划</Text>
         </View>
         <View className={styles.createBtn} onClick={() => openEdit()}>
           <Text className={styles.createBtnText}>+ 新建计划</Text>
         </View>
       </View>
 
-      {recentPlans.length || draft ? (
+      {sortedPlans.length || draft ? (
         <>
           {pendingPlans.map(renderPlanCard)}
 
@@ -381,9 +426,6 @@ const PlansPage: React.FC = () => {
               <View className={styles.cardTop}>
                 <View className={styles.dateWrap}>
                   <Text className={styles.dateMain}>{draftDate.format('M月D日')}</Text>
-                  <Text className={styles.dateSub}>
-                    {dayLabel(draftDate.valueOf())} {weekdayLabel(draftDate.valueOf())}
-                  </Text>
                 </View>
                 <View className={styles.cardTopActions}>
                   {draft.exercises.length ? (
@@ -469,7 +511,7 @@ const PlansPage: React.FC = () => {
         <View className={styles.emptyWrap}>
           <EmptyState
             glyph="📋"
-            title={`近 ${RECENT_DAYS} 天还没有训练计划`}
+            title="还没练够？那就继续干"
             desc="创建计划可以固定每次训练的动作和组数，训练时一键开始"
             actionText="创建计划"
             onAction={() => openEdit()}

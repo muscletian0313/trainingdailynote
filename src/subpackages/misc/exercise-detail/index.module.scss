@@ -1,0 +1,367 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 220rpx);
+  background: $color-bg-page;
+}
+
+/* 顶部动作卡：动作名 + 部位 / 器械 / 记录次数 */
+.header {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.headMain {
+  min-width: 0;
+}
+
+.name {
+  display: block;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-xs;
+}
+
+.equipment {
+  margin-left: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.count {
+  margin-left: auto;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 动作示范：两帧图 + RepDB 名称 / 器械 / 肌群 */
+.demoCard {
+  display: flex;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.demoStage {
+  position: relative;
+  flex-shrink: 0;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: #e6f2fa;
+}
+
+/* 两帧叠在同一位置，用透明度交叉淡化 */
+.demoFrame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.35s ease;
+}
+
+.demoFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 云端图还没下完时的占位 */
+.demoLoading {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  color: #8aa4b8;
+  font-size: $font-size-xs;
+  line-height: 260rpx;
+  text-align: center;
+}
+
+.demoFrameTag {
+  position: absolute;
+  left: 10rpx;
+  bottom: 10rpx;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-size: 20rpx;
+  line-height: 1.5;
+}
+
+.demoInfo {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+  display: flex;
+  flex-direction: column;
+}
+
+.demoLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.demoName {
+  margin-top: 2rpx;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.demoEn {
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+}
+
+.demoChips {
+  display: flex;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+}
+
+.demoChip {
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  background: $color-bg-hover;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.demoMuscles {
+  display: flex;
+  align-items: flex-start;
+  margin-top: $spacing-xs;
+}
+
+.demoMuscleLabel {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1.5;
+}
+
+.demoMusclePrimary {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  line-height: 1.5;
+}
+
+.demoSecondary {
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1.5;
+}
+
+.demoCredit {
+  margin-top: auto;
+  padding-top: $spacing-xs;
+  font-size: 18rpx;
+  color: $color-text-tertiary;
+  opacity: 0.7;
+}
+
+/* 动作要领：编号 + 一句一步 */
+.cueCard {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.cueTitle {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.cueRow {
+  display: flex;
+  align-items: flex-start;
+  margin-top: $spacing-sm;
+}
+
+.cueIndex {
+  flex-shrink: 0;
+  width: 34rpx;
+  height: 34rpx;
+  margin-top: 4rpx;
+  border-radius: $radius-xs;
+  background: $color-primary-soft;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  line-height: 34rpx;
+  text-align: center;
+}
+
+.cueText {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-sm;
+  line-height: 1.65;
+  color: $color-text-secondary;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 一次训练一张卡：命名 / 日期 / 容量 / 具体做组 */
+.recordCard {
+  margin-top: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+}
+
+.recordTop {
+  display: flex;
+  align-items: center;
+}
+
+.recordName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+/* 练完后的感觉：颜色跟随感觉等级 */
+.recordFeel {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  border: 2rpx solid transparent;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.recordDate {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.recordFoot {
+  display: flex;
+  align-items: baseline;
+  margin-top: $spacing-md;
+}
+
+.volumeLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.volumeValue {
+  margin-left: $spacing-xs;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  font-variant-numeric: tabular-nums;
+}
+
+.setCount {
+  margin-left: auto;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 2rpx solid $color-divider;
+}
+
+.setChip {
+  padding: 6rpx 12rpx;
+  border-radius: $radius-xs;
+  background: $color-bg-hover;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  margin-top: 140rpx;
+  @include flex-center;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.closeBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $page-padding calc(env(safe-area-inset-bottom) + #{$spacing-md});
+  background: $color-bg-page;
+  border-top: 2rpx solid $color-divider;
+  @include flex-center;
+}
+
+.closeBtn {
+  min-width: 260rpx;
+  height: $button-height-md;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-round;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  @include flex-center;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.closeText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}

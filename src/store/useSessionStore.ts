@@ -70,6 +70,10 @@ interface SessionState {
   ) => void;
   /** 更新动作配置（目标组数 / 休息时间） */
   patchExerciseInActive: (key: string, patch: Partial<SessionExercise>) => void;
+  /** 把选中的动作合并成超级组（整理成连续排列） */
+  groupSupersetInActive: (keys: string[]) => void;
+  /** 解散某个动作所在的超级组 */
+  ungroupSupersetInActive: (key: string) => void;
   /** 添加一组 */
   addSetToActive: (key: string) => void;
   /** 在最后一行下面追加递减组（重量/次数沿用上一行） */
@@ -105,10 +109,25 @@ function createSets(count: number, weight: number, reps: number): WorkoutSet[] {
 
 /**
  * 有氧动作只记一条数据（时长 / 距离 / 卡路里 / 配速等），不分多组。
- * 这里先留空，等练完（或结束训练时）自己填真实数据。
+ * 计划里设过目标时长就先带入，练完自己改真实数据。
  */
-function createCardioSets(): WorkoutSet[] {
-  return [{ id: uid('set'), weight: 0, reps: 0, done: true }];
+function createCardioSets(
+  durationMin?: number,
+  target?: Partial<Record<string, number | string>>
+): WorkoutSet[] {
+  const set: WorkoutSet = {
+    id: uid('set'),
+    weight: 0,
+    reps: 0,
+    done: true,
+    ...(durationMin ? { durationMin } : {})
+  };
+  // 计划里配的速度 / 坡度 / 档位 / 个数一并带过来，训练时按这个预填
+  Object.entries(target ?? {}).forEach(([key, value]) => {
+    if (key === 'durationMin' || value === undefined || value === '') return;
+    (set as unknown as Record<string, unknown>)[key] = value;
+  });
+  return [set];
 }
 
 /** 该动作是否为有氧类 */
@@ -203,9 +222,12 @@ export const useSessionStore = create<SessionState>((set, get) => {
             exerciseId: planExercise.exerciseId,
             variants: planExercise.variants,
             equipmentName: planExercise.equipmentName,
+            note: planExercise.note,
             targetSets: 1,
             restSeconds: planExercise.restSeconds || DEFAULT_REST,
-            sets: createCardioSets()
+            supersetId: planExercise.supersetId,
+            targetIntensity: planExercise.targetIntensity,
+            sets: createCardioSets(planExercise.targetDurationMin, planExercise.cardioTarget)
           };
         }
         const last = findLastPerformance(sessions, planExercise.exerciseId);
@@ -226,8 +248,10 @@ export const useSessionStore = create<SessionState>((set, get) => {
           exerciseId: planExercise.exerciseId,
           variants: planExercise.variants,
           equipmentName: planExercise.equipmentName,
+          note: planExercise.note,
           targetSets: sets.length,
           restSeconds: planExercise.restSeconds || DEFAULT_REST,
+          supersetId: planExercise.supersetId,
           sets
         };
       });
@@ -340,6 +364,40 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     patchExerciseInActive: (key, patch) => {
       patchActiveExercise(key, (exercise) => ({ ...exercise, ...patch }));
+    },
+
+    groupSupersetInActive: (keys) => {
+      const active = get().active;
+      if (!active || keys.length < 2) return;
+      const supersetId = uid('ss');
+      const firstIndex = active.exercises.findIndex((item) => keys.includes(item.key));
+      if (firstIndex < 0) return;
+      // 选中的动作归到第一个选中项的位置，顺序保持不变
+      const picked = active.exercises
+        .filter((item) => keys.includes(item.key))
+        .map((item) => ({ ...item, supersetId }));
+      const exercises: SessionExercise[] = [];
+      active.exercises.forEach((item, index) => {
+        if (index === firstIndex) exercises.push(...picked);
+        if (!keys.includes(item.key)) exercises.push(item);
+      });
+      console.info('[Session] 合并超级组', supersetId, keys.length, '个动作');
+      persistActive({ ...active, exercises });
+    },
+
+    ungroupSupersetInActive: (key) => {
+      const active = get().active;
+      if (!active) return;
+      const target = active.exercises.find((item) => item.key === key);
+      if (!target?.supersetId) return;
+      const supersetId = target.supersetId;
+      persistActive({
+        ...active,
+        exercises: active.exercises.map((item) =>
+          item.supersetId === supersetId ? { ...item, supersetId: undefined } : item
+        )
+      });
+      console.info('[Session] 解散超级组', supersetId);
     },
 
     replaceExerciseInActive: (key, exerciseId, variants, equipmentName) => {

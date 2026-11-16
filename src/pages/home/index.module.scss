@@ -3,19 +3,23 @@
 .page {
   min-height: 100vh;
   padding: 0 $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
-  background: linear-gradient(180deg, rgba(255, 107, 44, 0.1) 0%, $color-bg-page 320rpx);
+  background: $color-bg-page;
 }
 
 .header {
   padding: $spacing-lg 0 $spacing-md;
+  /* 标题区用一条硬分割线收口，比渐变背景更利落 */
+  border-bottom: $border-hard solid $color-border;
+  margin-bottom: $spacing-md;
 }
 
 .greeting {
   display: block;
   font-size: $font-size-xxl;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
   color: $color-text-primary;
   line-height: $line-height-tight;
+  letter-spacing: -1rpx;
 }
 
 .date {
@@ -25,14 +29,19 @@
   color: $color-text-tertiary;
 }
 
-/* 进行中的训练 */
+/* 进行中的训练：和训练中页面顶部卡片保持同一结构 */
 .activeCard {
-  position: relative;
-  padding: $spacing-lg;
-  border-radius: $radius-lg;
-  background: linear-gradient(135deg, rgba(255, 107, 44, 0.24) 0%, rgba(255, 107, 44, 0.06) 100%);
-  border: 2rpx solid rgba(255, 107, 44, 0.4);
   margin-bottom: $spacing-md;
+  padding: $spacing-lg;
+  border-radius: $radius-hard-card;
+  background: rgba(255, 107, 44, 0.1);
+  border: $border-hard-strong solid $color-primary;
+  box-shadow: $shadow-hard-card-lg;
+  transition: opacity $transition-fast;
+
+  &:active {
+    opacity: 0.94;
+  }
 }
 
 .activeTop {
@@ -41,27 +50,37 @@
   justify-content: space-between;
 }
 
-.activeBadge {
-  display: flex;
-  align-items: center;
-  height: 40rpx;
-  padding: 0 16rpx;
-  border-radius: $radius-xs;
-  background: $color-primary;
-}
-
-.activeBadgeText {
-  font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
-  color: $color-text-inverse;
-}
-
 .activeName {
-  margin-top: $spacing-sm;
+  flex: 1;
+  min-width: 0;
   font-size: $font-size-xl;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
+  letter-spacing: -1rpx;
   color: $color-text-primary;
   @include text-ellipsis;
+}
+
+/* 暂停 / 继续：和计划名称同一行，靠右对齐 */
+.activePauseBtn {
+  flex-shrink: 0;
+  height: 52rpx;
+  margin-left: $spacing-sm;
+  padding: 0 $spacing-md;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-button;
+  background: $color-bg-hover;
+  @include flex-center;
+}
+
+.activePauseBtnActive {
+  border-color: $color-primary;
+  background: rgba(255, 107, 44, 0.16);
+}
+
+.activePauseText {
+  font-size: $font-size-xs;
+  line-height: 1;
+  color: $color-text-secondary;
 }
 
 .activeMeta {
@@ -71,123 +90,101 @@
   color: $color-text-secondary;
 }
 
-.activeBtn {
+.activeProgressTrack {
   margin-top: $spacing-md;
-  height: $button-height-md;
-  border-radius: $radius-button;
-  background: $color-primary;
-  @include flex-center;
-
-  &:active {
-    opacity: 0.88;
-  }
-}
-
-.activeBtnText {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  color: $color-text-inverse;
-}
-
-/* 已完成的计划：卡片按钮转绿色完成态 */
-.planDoneBtn {
-  background: rgba(52, 211, 153, 0.18);
-}
-
-.planDoneBtnText {
-  color: $color-success;
-}
-
-/* 进行中的训练：暂停态徽章转黄 */
-.activeBadgePaused {
-  background: rgba(251, 191, 36, 0.18);
-
-  .activeBadgeText {
-    color: $color-warning;
-  }
-}
-
-/* 进行中卡片底部的操作按钮组：继续训练 / 暂停 / 结束训练 */
-.activeActions {
-  display: flex;
-  align-items: center;
-  margin-top: $spacing-md;
-}
-
-.activeAction {
-  flex: 1;
-  height: $button-height-md;
-  margin-left: $spacing-sm;
-  border-radius: $radius-button;
+  height: 10rpx;
+  border-radius: 2rpx;
   background: $color-bg-hover;
-  @include flex-center;
-  transition: all $transition-fast;
-
-  &:first-child {
-    margin-left: 0;
-  }
-
-  &:active {
-    opacity: 0.88;
-  }
+  overflow: hidden;
 }
 
-.activeActionPrimary {
-  flex: 1.4;
+.activeProgressFill {
+  height: 100%;
+  border-radius: 2rpx;
   background: $color-primary;
+  transition: width $transition-base;
 }
 
-.activeActionText {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+/* 总重量 / 总容量 / 总动作数：已完成 / 计划预设 */
+.activeStats {
+  display: flex;
+  margin-top: $spacing-md;
+}
+
+.activeStat {
+  flex: 1;
+  min-width: 0;
+}
+
+.activeStatLabel {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.activeStatValue {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xl;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1rpx;
   color: $color-text-primary;
 }
 
-.activeActionPrimaryText {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  color: $color-text-inverse;
+.activeStatAccent {
+  color: $color-primary;
 }
 
-/* 激励文案卡片 */
+.activeStatUnit {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  letter-spacing: 0;
+  color: $color-text-tertiary;
+}
+
+/* 激励文案卡片：纯黑底，不加任何强调色 */
 .quoteCard {
   position: relative;
   padding: $spacing-lg;
   margin-bottom: $spacing-md;
-  border-radius: $radius-lg;
-  background: linear-gradient(135deg, rgba(255, 107, 44, 0.16) 0%, $color-bg-card 62%);
-  box-shadow: $shadow-card;
+  border-radius: $radius-hard-card;
+  border: $border-hard solid $color-border;
+  background: $color-bg-quote;
+  box-shadow: $shadow-hard-card;
   overflow: hidden;
 }
 
 .quoteText {
   display: block;
   font-size: 30rpx;
-  font-weight: $font-weight-semibold;
-  line-height: 1.55;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: 0;
   color: $color-text-primary;
 }
 
 /* 主按钮 */
 .startBtn {
   height: $button-height-lg;
-  border-radius: $radius-button;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-hard-btn;
+  background: $color-primary;
+  box-shadow: $shadow-hard-btn;
   @include flex-center;
-  transition: all $transition-base;
+  transition: transform $transition-fast, box-shadow $transition-fast;
   margin-bottom: $spacing-xl;
 
   &:active {
-    opacity: 0.9;
-    transform: scale(0.99);
+    transform: translateY(6rpx);
+    box-shadow: 0 4rpx 0 $color-hard-shadow-primary;
   }
 }
 
 .startBtnText {
   font-size: $font-size-xl;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
   color: $color-text-inverse;
-  letter-spacing: 2rpx;
+  letter-spacing: 6rpx;
 }
 
 /* 区块标题 */
@@ -200,166 +197,397 @@
 
 .sectionTitle {
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: 800;
+  letter-spacing: 1rpx;
   color: $color-text-primary;
 }
 
-.sectionAction {
-  font-size: $font-size-sm;
-  color: $color-text-tertiary;
-}
-
-/* 计划横向滚动 */
-.planScroll {
-  @include scroll-x-container;
-  margin: 0 (-$page-padding);
-  padding: 0 $page-padding;
-  margin-bottom: $spacing-lg;
-}
-
-.planCard {
-  @include scroll-x-item(300rpx);
-  margin-right: $spacing-md;
-  padding: $spacing-md;
-  /* 透明描边占位：让今日卡片的橙色描边不挤占内容宽度，保证所有卡片内容区一致 */
-  border: 2rpx solid transparent;
-  border-radius: $radius-lg;
-  background: $color-bg-card;
-  box-shadow: $shadow-card;
-  transition: all $transition-base;
+/* 区块右侧创建入口：文案较长，压缩左右内边距 */
+.createBtn {
+  height: 56rpx;
+  padding: 0 16rpx;
+  border-radius: $radius-hard-btn;
+  background: rgba(255, 107, 44, 0.16);
+  border: $border-hard solid $color-primary;
+  @include flex-center;
+  transition: background $transition-fast;
 
   &:active {
-    transform: scale(0.98);
+    background: rgba(255, 107, 44, 0.3);
+  }
+}
+
+.createBtnText {
+  font-size: $font-size-xs;
+  font-weight: 800;
+  color: $color-primary;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 计划卡片：与计划页同一套排版，直接展示四指标 */
+.planCard {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: $spacing-md;
+  padding: $spacing-lg;
+  border: $border-hard solid $color-border;
+  border-radius: $radius-hard-card;
+  background: $color-hard-surface;
+  box-shadow: $shadow-hard-card;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:active {
+    transform: translateY(4rpx);
+    box-shadow: 0 4rpx 0 $color-hard-shadow;
+  }
+}
+
+/* 肌群器械实拍图：铺满整卡，文字层压在遮罩之上 */
+.cardImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 深色主题：整体压暗打底 + 左侧加重，右侧 2 成留白露出器械 */
+.cardScrim {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+      97deg,
+      rgba(9, 9, 13, 0.96) 0%,
+      rgba(9, 9, 13, 0.9) 34%,
+      rgba(9, 9, 13, 0.54) 56%,
+      rgba(9, 9, 13, 0.12) 78%,
+      rgba(9, 9, 13, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(9, 9, 13, 0.42) 0%,
+      rgba(9, 9, 13, 0.04) 22%,
+      rgba(9, 9, 13, 0.08) 58%,
+      rgba(9, 9, 13, 0.55) 100%
+    );
+}
+
+/* 浅色主题：反过来用白色提亮左侧，压深色字 */
+:global(.theme-light) .cardScrim {
+  background: linear-gradient(
+      97deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.85) 34%,
+      rgba(255, 255, 255, 0.48) 58%,
+      rgba(255, 255, 255, 0.1) 80%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.02) 24%,
+      rgba(255, 255, 255, 0.15) 62%,
+      rgba(255, 255, 255, 0.8) 100%
+    );
+}
+
+/* 卡片内容层：必须盖在图片和遮罩之上 */
+.planCardBody {
+  position: relative;
+  z-index: 1;
+}
+
+/* 有图的卡片：统计区隔线和弱化文字改用半透明，徽标补实底避免被图吃掉 */
+.planCardWithImage {
+  .planDate {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .statsRow {
+    border-top-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .statLabel {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .statDivider {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .pendingBadge {
+    background: rgba(9, 9, 13, 0.72);
+    color: #fbbf24;
+  }
+
+  .runningBadge {
+    background: rgba(9, 9, 13, 0.72);
+  }
+}
+
+:global(.theme-light) .planCardWithImage {
+  .planDate {
+    color: rgba(20, 20, 26, 0.62);
+  }
+
+  .statsRow {
+    border-top-color: rgba(20, 20, 26, 0.14);
+  }
+
+  .statLabel {
+    color: rgba(20, 20, 26, 0.66);
+  }
+
+  .statDivider {
+    background: rgba(20, 20, 26, 0.14);
+  }
+
+  .pendingBadge {
+    background: rgba(255, 255, 255, 0.88);
+    color: #b45309;
+  }
+
+  .runningBadge {
+    background: rgba(255, 255, 255, 0.9);
   }
 }
 
 /* 当日计划：高亮边框 + 主题色描边 */
 .planCardToday {
-  border-color: rgba(255, 107, 44, 0.55);
-  background: linear-gradient(180deg, rgba(255, 107, 44, 0.16) 0%, $color-bg-card 120rpx);
-  box-shadow: 0 0 0 2rpx rgba(255, 107, 44, 0.12), $shadow-card;
+  border-color: $color-primary;
+  background: $color-bg-today;
+  box-shadow: $shadow-hard-card-lg;
 }
 
-.planCardNameRow {
+/* 卡片顶部：开始日期 + 进行中标记 */
+.planTop {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+}
+
+.planDate {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-tertiary;
+}
+
+.runningBadge {
+  flex-shrink: 0;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
+  background: rgba(255, 107, 44, 0.18);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  line-height: 1.6;
+}
+
+.planNameRow {
+  display: flex;
+  align-items: center;
+  margin-top: 10rpx;
 }
 
 .planCardName {
   flex: 1;
   min-width: 0;
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
+  font-size: $font-size-lg;
+  font-weight: 800;
   color: $color-text-primary;
   @include text-ellipsis;
 }
 
-.planTodayBadge {
+/* 待完成：已创建、还没练（放日期行右上角，和日期同一行） */
+.pendingBadge {
   flex-shrink: 0;
-  margin-left: $spacing-xs;
-  padding: 2rpx 12rpx;
-  border-radius: $radius-round;
-  background: $color-primary;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
+  background: rgba(251, 191, 36, 0.16);
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
-  color: $color-text-inverse;
+  color: $color-warning;
   line-height: 1.6;
 }
 
-.planCardCount {
-  display: block;
-  margin-top: 8rpx;
+/* 今日已练：当天已经完成过这个计划（卡片带器械背景图，用实底保证可读） */
+.doneBadge {
+  flex-shrink: 0;
+  padding: 2rpx 10rpx;
+  border: 1rpx solid rgba(52, 211, 153, 0.55);
+  border-radius: $radius-hard-tag;
+  background: rgba(8, 32, 24, 0.82);
   font-size: $font-size-xs;
-  color: $color-text-tertiary;
-  /* 单行省略：文案长短不同也不会让卡片高度参差不齐 */
-  @include text-ellipsis;
+  font-weight: $font-weight-semibold;
+  color: #6ee7b7;
+  line-height: 1.6;
+}
+
+:global(.theme-light) .doneBadge {
+  border-color: rgba(22, 163, 74, 0.35);
+  background: rgba(236, 253, 245, 0.94);
+  color: #15803d;
 }
 
 .planCardTags {
   display: flex;
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
+  align-items: center;
   margin-top: 16rpx;
-  height: 40rpx;
 }
 
 .planTag {
   margin-right: 8rpx;
+  margin-bottom: 8rpx;
 }
 
-/* 最近训练 */
-.recentList {
-  background: $color-bg-card;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-card;
-  overflow: hidden;
+.noMuscle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
 }
 
-.recentItem {
+/* 总重量 / 总容量 / 动作数 / 消耗 */
+.statsRow {
   display: flex;
   align-items: center;
-  padding: $spacing-md $spacing-lg;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 2rpx solid $color-divider;
+}
+
+.statItem {
+  flex: 1;
+  min-width: 0;
+  @include flex-center;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: $font-size-lg;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5rpx;
+  color: $color-text-primary;
+  line-height: 1.2;
+}
+
+.statUnit {
+  margin-left: 4rpx;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
+}
+
+/* 预估消耗的 ≈ 标记：和用户自己填的数值区分开 */
+.statEstimate {
+  margin-right: 2rpx;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-normal;
+  color: $color-warning;
+}
+
+.statLabel {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statDivider {
+  width: 2rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+  background: $color-divider;
+}
+
+/* 今日计划卡底部的开练按钮 */
+.planStartBtn {
+  margin-top: $spacing-md;
+  height: $button-height-md;
+  border-radius: $radius-hard-btn;
+  background: $color-primary;
+  @include flex-center;
+  transition: opacity $transition-fast;
 
   &:active {
-    background: $color-bg-hover;
+    opacity: 0.88;
   }
 }
 
-.recentItemBorder {
-  border-bottom: 2rpx solid $color-divider;
-}
-
-.recentDot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: $radius-round;
-  background: $color-primary;
-  flex-shrink: 0;
-  margin-right: $spacing-md;
-}
-
-.recentMain {
-  flex: 1;
-  min-width: 0;
-}
-
-.recentName {
-  display: block;
+.planStartBtnText {
   font-size: $font-size-md;
-  font-weight: $font-weight-medium;
-  color: $color-text-primary;
-  @include text-ellipsis;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+  color: $color-text-inverse;
 }
 
-.recentMeta {
-  display: block;
-  margin-top: 6rpx;
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
+.emptyWrap {
+  border: $border-hard solid $color-border;
+  background: $color-hard-surface;
+  border-radius: $radius-hard-card;
+  box-shadow: $shadow-hard-card;
 }
 
-.recentRight {
-  flex-shrink: 0;
-  margin-left: $spacing-md;
+/* 「没有计划」空卡片：壁画铺满 + 左侧遮罩 + 文案按钮 */
+.emptyCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 320rpx;
+}
+
+/* 只在左侧压出可读区，中间壁画主体尽量透出来 */
+.emptyScrim {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    97deg,
+    rgba(9, 9, 13, 0.9) 0%,
+    rgba(9, 9, 13, 0.76) 30%,
+    rgba(9, 9, 13, 0.26) 58%,
+    rgba(9, 9, 13, 0.04) 100%
+  );
+}
+
+/* 浅色主题：白罩提亮，左侧加重保文字 */
+:global(.theme-light) .emptyScrim {
+  background: linear-gradient(
+    97deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.84) 30%,
+    rgba(255, 255, 255, 0.34) 58%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+}
+
+.emptyBody {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
+  padding: 36rpx 32rpx;
 }
 
-.recentVolume {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  color: $color-primary;
+/* 深色主题下 text-primary 是白色、浅色主题下是深色，两套都压得住 */
+.emptyTitle {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: $color-text-primary;
 }
 
-.recentVolumeUnit {
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-  margin-left: 4rpx;
-}
-
-.recentArrow {
-  margin-top: 6rpx;
+.emptyDesc {
+  margin-top: 10rpx;
   font-size: $font-size-sm;
-  color: $color-text-disabled;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+:global(.theme-light) .emptyDesc {
+  color: $color-text-secondary;
 }

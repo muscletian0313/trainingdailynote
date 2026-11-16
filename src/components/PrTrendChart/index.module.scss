@@ -1,0 +1,71 @@
+@use '@/styles/variables.scss' as *;
+
+.wrap {
+  margin-bottom: $spacing-md;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4rpx;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+/* 区间涨幅：涨绿跌红，和训练报告口径一致 */
+.gain {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: $color-success;
+}
+
+.chartBox {
+  position: relative;
+}
+
+/* 日期点击层：透明铺在图上，按数据点等分 */
+.hitLayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 140px;
+  display: flex;
+  flex-direction: row;
+}
+
+.hitCol {
+  flex: 1;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 140px;
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.empty {
+  height: 140px;
+  @include flex-center;
+}
+
+.emptyText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

@@ -1,40 +1,57 @@
 // ============================================
 // 主题配色变量（深色运动风 Dark Athletic）
+// 这里只做「名字 → CSS 变量」的映射，实际色值在 tokens.scss
+// 两套主题共用这套变量名，页面样式无需区分主题
 // ============================================
 
 // 品牌主题色：力量橙
-$color-primary: #ff6b2c;
-$color-primary-light: #ff8f5c;
-$color-primary-dark: #e8551a;
-$color-primary-soft: rgba(255, 107, 44, 0.16);
+$color-primary: var(--fl-primary);
+$color-primary-light: var(--fl-primary-light);
+$color-primary-dark: var(--fl-primary-dark);
+$color-primary-soft: var(--fl-primary-soft);
 
 // 功能色
-$color-success: #34d399;
-$color-warning: #fbbf24;
-$color-error: #f8736a;
-$color-info: #4d8dff;
+$color-success: var(--fl-success);
+$color-warning: var(--fl-warning);
+$color-error: var(--fl-error);
+$color-info: var(--fl-info);
 
 // 背景色
-$color-bg-page: #101014;
-$color-bg-card: #1b1b21;
-$color-bg-hover: #26262e;
-$color-bg-elevated: #23232b;
-$color-bg-input: #26262e;
-$color-bg-mask: rgba(0, 0, 0, 0.66);
+$color-bg-page: var(--fl-bg-page);
+$color-bg-card: var(--fl-bg-card);
+$color-bg-hover: var(--fl-bg-hover);
+$color-bg-elevated: var(--fl-bg-elevated);
+$color-bg-input: var(--fl-bg-input);
+$color-bg-mask: var(--fl-bg-mask);
 
 // 文本色
-$color-text-primary: #ffffff;
-$color-text-secondary: #a6a6b2;
-$color-text-tertiary: #6f6f7d;
-$color-text-disabled: #4a4a55;
-$color-text-white: #ffffff;
-$color-text-inverse: #101014;
+$color-text-primary: var(--fl-text-primary);
+$color-text-secondary: var(--fl-text-secondary);
+$color-text-tertiary: var(--fl-text-tertiary);
+$color-text-disabled: var(--fl-text-disabled);
+$color-text-white: var(--fl-text-white);
+$color-text-inverse: var(--fl-text-inverse);
+
+// 特殊底色
+$color-bg-quote: var(--fl-bg-quote);
+$color-bg-today: var(--fl-bg-today);
+$color-bg-deep: var(--fl-bg-deep);
+$color-bg-overlay: var(--fl-bg-overlay);
 
 // 边框色
-$color-border: #2c2c36;
-$color-divider: #23232b;
+$color-border: var(--fl-border);
+$color-divider: var(--fl-divider);
 
-// 肌群标签色
+// 深色底上的提亮面（浅色主题会自动反转为压深面）
+$color-surface-weak: var(--fl-surface-weak);
+$color-surface-soft: var(--fl-surface-soft);
+$color-surface: var(--fl-surface);
+$color-surface-mid: var(--fl-surface-mid);
+$color-surface-strong: var(--fl-surface-strong);
+$color-surface-stronger: var(--fl-surface-stronger);
+$color-surface-max: var(--fl-surface-max);
+
+// 肌群标签色：两套主题都保持高饱和，保证辨识度
 $color-muscle-chest: #f43f5e;
 $color-muscle-back: #4d8dff;
 $color-muscle-legs: #34d399;
@@ -46,5 +63,7 @@ $color-muscle-cardio: #f472b6;
 $color-muscle-other: #94a3b8;
 
 // 图表色
-$color-chart-bar: #ff6b2c;
-$color-chart-bar-empty: #2c2c36;
+$color-chart-bar: var(--fl-primary);
+$color-chart-bar-empty: var(--fl-chart-bar-empty);
+// 营养指标：钠（不随主题变）
+$color-macro-sodium: #a78bfa;

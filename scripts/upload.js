@@ -18,7 +18,8 @@ const ROOT = path.resolve(__dirname, '..');
 const APPID = 'wx039c3f34891faf11';
 const PROJECT_PATH = path.join(ROOT, 'dist');
 const PRIVATE_KEY = path.join(ROOT, '.auth', `private.${APPID}.key`);
-const QR_PATH = path.join(ROOT, 'preview-qrcode.png');
+// 微信返回的二维码是 JPEG，扩展名必须是 .jpg，否则 IDE 预览按 PNG 解码会报错
+const QR_PATH = path.join(ROOT, 'preview-qrcode.jpg');
 
 /** package.json 可能被编辑器写成带 BOM，这里先清掉再解析 */
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8').replace(/^\uFEFF/, ''));
@@ -39,7 +40,8 @@ const desc = process.argv[3] || `练记 ${version}`;
       project,
       version,
       desc,
-      setting: { es6: true, minify: true },
+      // 三个压缩开关都打开：包体一直在 2MB 边缘，WXML / WXSS 压缩能省出几十 KB
+      setting: { es6: true, minify: true, minifyWXML: true, minifyWXSS: true },
       onProgressUpdate: () => {}
     });
     console.log('UPLOAD DONE', version);

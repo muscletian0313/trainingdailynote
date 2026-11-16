@@ -25,9 +25,15 @@ function normalizeExercises(exercises: StoredExercise[]): PlanExercise[] {
       exerciseId: item.exerciseId,
       restSeconds: item.restSeconds,
       targetDurationMin: item.targetDurationMin,
-      // 变式和器械名称要原样保留，否则重启后会丢失
+      // 有氧强度与器械参数（速度 / 坡度 / 档位 / 个数）也要保留
+      targetIntensity: item.targetIntensity,
+      cardioTarget: item.cardioTarget,
+      // 变式、器械名称和备注要原样保留，否则重启后会丢失
       variants: item.variants,
-      equipmentName: item.equipmentName
+      equipmentName: item.equipmentName,
+      note: item.note,
+      // 超级组编号也要保留，否则重启后超级组就散了
+      supersetId: item.supersetId
     };
     if (Array.isArray(item.sets) && item.sets.length) {
       return { ...base, sets: item.sets };

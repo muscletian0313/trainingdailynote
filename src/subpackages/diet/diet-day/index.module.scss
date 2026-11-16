@@ -1,0 +1,425 @@
+@use '@/styles/variables.scss' as *;
+
+/* 页面框架（与单餐页一致） */
+.page {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  background: $color-bg-page;
+}
+
+.pageHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top) + #{$spacing-sm}) $page-padding $spacing-sm;
+}
+
+.pageBack {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 52rpx;
+  text-align: center;
+  font-size: 40rpx;
+  color: $color-text-primary;
+}
+
+.pageTitle {
+  flex: 1;
+  text-align: center;
+  font-size: $font-size-lg;
+  font-weight: 800;
+  letter-spacing: 1rpx;
+  color: $color-text-primary;
+}
+
+.pageHeadSpace {
+  width: 56rpx;
+  flex-shrink: 0;
+}
+
+.pageBody {
+  flex: 1;
+  min-height: 0;
+  padding: 0 $page-padding;
+}
+
+/* —— 饮食详情卡（复用 stats 的类名，这里重写一遍避免跨模块耦合） —— */
+.section {
+  margin-top: $spacing-md;
+}
+
+.dietCard {
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-hard-card;
+}
+
+.dietTop {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.dietSide {
+  width: 140rpx;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.dietSideLabel {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.dietSideValue {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.dietSideUnit {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 双半圆圆环 */
+.ring {
+  position: relative;
+  width: 220rpx;
+  height: 220rpx;
+  flex-shrink: 0;
+}
+
+.ringHalf {
+  position: absolute;
+  top: 0;
+  width: 110rpx;
+  height: 220rpx;
+  overflow: hidden;
+}
+
+.ringHalfRight {
+  right: 0;
+}
+
+.ringHalfLeft {
+  left: 0;
+}
+
+.ringFillRight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  background: conic-gradient($color-primary 0deg 360deg, transparent 0deg);
+  transform-origin: right center;
+  transform: rotate(180deg);
+}
+
+.ringFillLeft {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  background: conic-gradient($color-info 0deg 360deg, transparent 0deg);
+  transform-origin: left center;
+  transform: rotate(180deg);
+}
+
+.ringHole {
+  position: absolute;
+  inset: 24rpx;
+  border-radius: 50%;
+  background: $color-bg-elevated;
+  @include flex-center;
+  flex-direction: column;
+}
+
+.ringLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.ringValue {
+  font-size: 44rpx;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1rpx;
+  color: $color-text-primary;
+}
+
+.ringSub {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 五项营养 */
+.macroRow {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-md;
+}
+
+.macroCol {
+  width: 50%;
+  padding: $spacing-xs 0;
+  box-sizing: border-box;
+}
+
+.macroCol:nth-child(odd) {
+  padding-right: $spacing-sm;
+}
+
+.macroLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.macroTrack {
+  margin-top: 4rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: $color-bg-hover;
+  overflow: hidden;
+}
+
+.macroFill {
+  height: 100%;
+  border-radius: 4rpx;
+  transition: width $transition-fast;
+}
+
+.macroValue {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.macroTarget {
+  color: $color-text-tertiary;
+}
+
+.macroUnit {
+  color: $color-text-tertiary;
+}
+
+/* 三餐 + 加餐 */
+.mealList {
+  margin-top: $spacing-md;
+}
+
+.mealBlock {
+  margin-bottom: $spacing-sm;
+  padding: 0 $spacing-md;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-elevated;
+  box-shadow: $shadow-hard-card;
+}
+
+.mealBlockHead {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+}
+
+.mealBlockName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.mealBlockRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.mealBlockKcal {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.mealBlockArrow {
+  font-size: $font-size-lg;
+  color: $color-text-disabled;
+}
+
+.mealFoodRow {
+  display: flex;
+  align-items: center;
+  padding: $spacing-xs 0;
+  border-top: 1px solid $color-divider;
+}
+
+.mealFoodImg,
+.mealFoodIcon {
+  width: 64rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  overflow: hidden;
+}
+
+.mealFoodIcon {
+  @include flex-center;
+}
+
+.mealFoodIconImg {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.mealFoodMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+}
+
+.mealFoodName {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.mealFoodGrams {
+  display: block;
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.mealFoodKcal {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-error;
+}
+
+.mealFoodArrow {
+  flex-shrink: 0;
+  margin-left: 8rpx;
+  font-size: $font-size-md;
+  color: $color-text-disabled;
+}
+
+/* 折叠箭头 */
+.mealBlockArrowOpen {
+  transform: rotate(90deg);
+  transition: transform $transition-fast;
+}
+
+/* 加餐折叠块 */
+.snackBlock {
+  margin-top: $spacing-sm;
+  padding: 0 $spacing-md;
+  border-radius: $radius-lg;
+  background: $color-bg-elevated;
+}
+
+.snackItem {
+  margin-top: $spacing-sm;
+  padding-left: $spacing-md;
+  border-left: 2rpx solid $color-surface-mid;
+}
+
+.snackItemHead {
+  display: flex;
+  align-items: center;
+  padding: $spacing-xs 0;
+}
+
+.snackItemName {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.snackItemRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.snackItemKcal {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.snackItemArrow {
+  font-size: $font-size-md;
+  color: $color-text-disabled;
+}
+
+.snackFoodRow {
+  display: flex;
+  align-items: center;
+  padding: 6rpx 0;
+}
+
+.snackFoodImg,
+.snackFoodIcon {
+  width: 48rpx;
+  height: 48rpx;
+  flex-shrink: 0;
+  border-radius: $radius-xs;
+  background: $color-bg-hover;
+  overflow: hidden;
+}
+
+.snackFoodIcon {
+  @include flex-center;
+}
+
+.snackFoodIconImg {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.snackFoodMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-xs;
+}
+
+.snackFoodName {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.snackFoodGrams {
+  display: block;
+  margin-top: 2rpx;
+  font-size: 18rpx;
+  color: $color-text-tertiary;
+}
+
+.snackFoodKcal {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

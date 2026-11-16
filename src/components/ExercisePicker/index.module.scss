@@ -252,7 +252,7 @@
 .confirm {
   height: $button-height-lg;
   border-radius: $radius-button;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  background: $color-primary;
   @include flex-center;
   transition: all $transition-base;
 

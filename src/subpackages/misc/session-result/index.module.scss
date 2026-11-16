@@ -1,0 +1,395 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-md $page-padding calc(env(safe-area-inset-bottom) + 48rpx);
+  box-sizing: border-box;
+  background:
+    radial-gradient(ellipse at 22% 0%, rgba(255, 107, 44, 0.24) 0%, rgba(255, 107, 44, 0) 62%),
+    $color-bg-page;
+}
+
+:global(.theme-light) .page {
+  background:
+    radial-gradient(ellipse at 22% 0%, rgba(255, 107, 44, 0.16) 0%, rgba(255, 107, 44, 0) 58%),
+    $color-bg-page;
+}
+
+.emptyWrap {
+  margin-top: $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+/* ===== 训练报告（结束训练全屏页） ===== */
+
+/* 顶部：评分环 + 一句话评价 */
+.reportTop {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-sm;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: linear-gradient(160deg, #1d1d25 0%, #15151b 62%);
+  border: 2rpx solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20rpx 52rpx rgba(0, 0, 0, 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.06);
+}
+
+:global(.theme-light) .reportTop {
+  background: linear-gradient(160deg, #ffffff 0%, #fbfbfd 62%);
+  border-color: $color-border;
+  box-shadow: 0 12rpx 28rpx rgba(20, 20, 26, 0.06);
+}
+
+.scoreRing {
+  flex-shrink: 0;
+  width: 168rpx;
+  height: 168rpx;
+  padding: 10rpx;
+  box-sizing: border-box;
+  border-radius: 50%;
+  box-shadow: 0 0 32rpx rgba(255, 107, 44, 0.24);
+}
+
+.scoreRingInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #141419;
+  box-shadow: inset 0 4rpx 24rpx rgba(255, 107, 44, 0.22);
+}
+
+:global(.theme-light) .scoreRingInner {
+  background: #ffffff;
+  box-shadow: inset 0 4rpx 18rpx rgba(255, 107, 44, 0.12);
+}
+
+.scoreRingNum {
+  font-size: 46rpx;
+  font-weight: 900;
+  line-height: 50rpx;
+  letter-spacing: -1rpx;
+  color: $color-text-primary;
+}
+
+.scoreRingUnit {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.reportTopMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+}
+
+.reportMsg {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: 800;
+  line-height: 1.55;
+  letter-spacing: 0.5rpx;
+  color: $color-text-primary;
+}
+
+.reportTags {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-sm;
+}
+
+.reportTag {
+  margin-right: 10rpx;
+  margin-bottom: 10rpx;
+  padding: 2rpx 14rpx;
+  border-radius: $radius-sm;
+  background: $color-surface-soft;
+  border: 2rpx solid $color-border;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+/* 三块内容卡共用方案 A 的渐变卡面 */
+.compareCard,
+.reviewCard,
+.burnCard {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: linear-gradient(160deg, #1d1d25 0%, #15151b 62%);
+  border: 2rpx solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20rpx 52rpx rgba(0, 0, 0, 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.06);
+}
+
+:global(.theme-light) .compareCard,
+:global(.theme-light) .reviewCard,
+:global(.theme-light) .burnCard {
+  background: linear-gradient(160deg, #ffffff 0%, #fbfbfd 62%);
+  border-color: $color-border;
+  box-shadow: 0 12rpx 28rpx rgba(20, 20, 26, 0.06);
+}
+
+.compareHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.compareTitle {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.compareWhen {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.compareRow {
+  display: flex;
+}
+
+.compareCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.compareCell + .compareCell {
+  border-left: 2rpx solid $color-divider;
+}
+
+.compareLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.compareValue {
+  margin-top: 6rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+  letter-spacing: -1rpx;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-primary;
+}
+
+.compareDelta {
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  color: $color-text-tertiary;
+}
+
+.compareUp {
+  color: $color-success;
+}
+
+.compareDown {
+  color: $color-error;
+}
+
+/* 动作复盘 */
+.reviewTitle {
+  display: block;
+  margin-bottom: $spacing-xs;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+/* 消耗热量：估算 → 可改 → 完成即保存 */
+.burnHead {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.burnIcon {
+  margin-right: 8rpx;
+  font-size: $font-size-sm;
+  line-height: 1;
+}
+
+.burnLabel {
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.burnUnit {
+  flex-shrink: 0;
+  margin-left: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.burnShowBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx $spacing-md;
+  border-radius: $radius-md;
+  background: $color-surface-weak;
+  border: 2rpx solid $color-border;
+}
+
+.burnShowText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.burnShowNum {
+  font-size: 34rpx;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: $color-primary-light;
+}
+
+:global(.theme-light) .burnShowNum {
+  color: $color-primary;
+}
+
+.burnShowUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.burnEdit {
+  flex-shrink: 0;
+  padding-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.burnEditBox {
+  display: flex;
+  align-items: center;
+  padding: 12rpx $spacing-md;
+  border-radius: $radius-md;
+  background: $color-surface-weak;
+  border: 2rpx solid rgba(255, 107, 44, 0.5);
+}
+
+.burnEditInput {
+  flex: 1;
+  min-width: 0;
+  height: 56rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: $color-text-primary;
+}
+
+.burnDone {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+/* 页脚提示：当日计划去日历里看 */
+.dayPlanHint {
+  display: block;
+  margin-top: $spacing-sm;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 自我评价 */
+.resultTitle {
+  display: block;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+/* 自我评价标题：字号字体和「训练心得」一致，只是上下间距小一点 */
+.selfTitle {
+  margin-top: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.noteInput {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 160rpx;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  border: 2rpx solid $color-surface-mid;
+  background: $color-bg-input;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $color-text-primary;
+}
+
+/* 按钮：跟着内容，不贴屏幕底部 */
+.noteActions {
+  display: flex;
+  margin-top: $spacing-lg;
+
+  .notePrimaryBtn {
+    margin-top: 0;
+  }
+}
+
+.noteGhostBtn {
+  flex: 1;
+  height: 92rpx;
+  margin-right: $spacing-sm;
+  border-radius: $radius-button;
+  background: rgba(255, 255, 255, 0.045);
+  border: 2rpx solid rgba(255, 255, 255, 0.13);
+  transition: background-color $transition-fast;
+  @include flex-center;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.09);
+    opacity: 0.92;
+  }
+}
+
+:global(.theme-light) .noteGhostBtn {
+  background: $color-bg-card;
+  border-color: $color-border;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.noteGhostBtnText {
+  font-size: $font-size-md;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.notePrimaryBtn {
+  flex: 1;
+  height: 92rpx;
+  margin-top: $spacing-lg;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, #ff9a68 0%, #ff6b2c 48%, #e8551a 100%);
+  box-shadow: 0 10rpx 28rpx rgba(255, 107, 44, 0.3), inset 0 2rpx 0 rgba(255, 255, 255, 0.4);
+  transition: transform $transition-fast, box-shadow $transition-fast;
+  @include flex-center;
+
+  &:active {
+    transform: translateY(4rpx);
+  }
+}
+
+.notePrimaryBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}

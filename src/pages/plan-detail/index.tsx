@@ -1,8 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, Image, Button, Textarea } from '@tarojs/components';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useMemo, useState } from 'react';
+import { View, Text, Image, Button } from '@tarojs/components';
 import { useRouter, useShareAppMessage } from '@tarojs/taro';
 import dayjs from 'dayjs';
-import { DEFAULT_CARDIO_MIN, getFeelOption } from '@/constants';
+import {
+  DEFAULT_CARDIO_MIN,
+  cardioFieldsOf,
+  getCardioIntensityLabel,
+  getFeelOption,
+  treadmillDistanceKm
+} from '@/constants';
 import { formatSetWeight, withAlpha } from '@/utils/format';
 import { navigateBack, navigateTo, showModal, showToast, switchTab } from '@/utils/taro';
 import { saveJSON, STORAGE_KEYS } from '@/utils/storage';
@@ -15,19 +21,91 @@ import { variantBadges } from '@/data/exerciseVariants';
 import { decodePlan, encodePlan, shareExercisesOf, toLocalPlan } from '@/utils/planShare';
 import MuscleTag from '@/components/MuscleTag';
 import EmptyState from '@/components/EmptyState';
-import ScrollLock from '@/components/ScrollLock';
+import SessionExerciseReview from '@/components/SessionExerciseReview';
 import {
+  displayPlanName,
+  exerciseReports,
   feelMessage,
   feelScoreOutOf100,
+  formatVolume,
   isPlanFinished,
   isTimedExercise,
   planMuscleTags,
-  setLabels
+  sessionComparison,
+  setLabels,
+  supersetLetters
 } from '@/utils/workout';
 import { MUSCLE_ART } from '@/assets/muscles/art';
+import type { PlanExercise, SessionExercise } from '@/types';
+import { usePageTheme } from '@/hooks/usePageTheme';
 import styles from './index.module.scss';
 
+/**
+ * 有氧动作的时长：
+ * 计划模板读 targetDurationMin；已完成的计划读那一次训练记录里填的实际时长。
+ */
+function cardioMinutesOf(
+  item: PlanExercise | SessionExercise,
+  fallback?: number
+): number {
+  const target = (item as { targetDurationMin?: number }).targetDurationMin;
+  if (typeof target === 'number') return target;
+  const hit = item.sets.find(
+    (set) => typeof (set as { durationMin?: number }).durationMin === 'number'
+  );
+  const actual = (hit as { durationMin?: number } | undefined)?.durationMin;
+  return actual ?? fallback ?? DEFAULT_CARDIO_MIN;
+}
+
+/**
+ * 有氧的器械参数（速度 / 坡度 / 距离 / 档位 / 个数）：
+ * 计划模板读 cardioTarget，训练记录读那一组，老数据里的手填字段也兜底展示。
+ */
+function cardioDetailTags(item: PlanExercise | SessionExercise): string[] {
+  const name = getExerciseById(item.exerciseId)?.name ?? '';
+  if (!name) return [];
+  const isPlan = 'cardioTarget' in item;
+  const raw = (isPlan
+    ? item.cardioTarget
+    : (item as SessionExercise).sets?.[0]) as
+    | Record<string, string | number | undefined>
+    | undefined;
+  if (!raw) return [];
+
+  const tags: string[] = [];
+  cardioFieldsOf(name)
+    .filter((field) => field.key !== 'durationMin')
+    .forEach((field) => {
+      const value = raw[field.key];
+      if (value === undefined || value === '' || value === 0) return;
+      if (field.kind === 'segment') {
+        const hit = field.options?.find((option) => option.value === value);
+        if (hit) tags.push(hit.label);
+        return;
+      }
+      tags.push(`${value}${field.unit}`);
+    });
+
+  // 跑步机：按速度 × 时长补上距离（新记录已存，老记录没有）
+  if (name === '跑步机') {
+    const minutes =
+      (item as PlanExercise).targetDurationMin ??
+      (item as SessionExercise).sets?.[0]?.durationMin;
+    const distance = treadmillDistanceKm(minutes, Number(raw.speedKmh) || undefined);
+    if (distance) tags.push(`${distance} 公里`);
+  }
+
+  // 老数据：手写的配速 / 坡度 / 阻力
+  (['pace', 'incline', 'resistance'] as const).forEach((key) => {
+    const value = raw[key];
+    if (typeof value === 'string' && value.trim()) tags.push(value.trim());
+  });
+
+  return tags;
+}
+
 const PlanDetailPage: React.FC = () => {
+  const themeClass = usePageTheme();
   const router = useRouter();
   const planId = router.params?.id || '';
   /** 好友分享进来的计划：内容在链接里，不落库，用详情页原样展示 */
@@ -56,12 +134,7 @@ const PlanDetailPage: React.FC = () => {
   const sessions = useSessionStore((state) => state.sessions);
   const startSession = useSessionStore((state) => state.startSession);
   const discardActive = useSessionStore((state) => state.discardActive);
-  const setSessionNote = useSessionStore((state) => state.setSessionNote);
   const profile = useProfileStore((state) => state.profile);
-  /** 结束训练后跳进来：这场训练的系统评价 + 自我评价入口 */
-  const justFinishedId = router.params?.justFinished;
-  const [selfOpen, setSelfOpen] = useState(false);
-  const [noteDraft, setNoteDraft] = useState('');
 
   /** 点最上方的部位 / 名称区域 → 直接进计划编辑页 */
   const openPlanEdit = () => {
@@ -79,9 +152,9 @@ const PlanDetailPage: React.FC = () => {
 
   /** 分享给好友：计划被打包进路径参数，对方点开即可在详情页查看并保存 */
   useShareAppMessage(() => {
-    // 分享完成后回计划页，并让列表回到「展开顶部计划」
+    // 分享完成后回首页（计划列表已并入首页）
     saveJSON(STORAGE_KEYS.planResetExpand, true);
-    setTimeout(() => switchTab({ url: '/pages/plans/index' }), 600);
+    setTimeout(() => switchTab({ url: '/pages/home/index' }), 600);
 
     // 从分享链接点进来的，原样再转给下一个好友
     if (sharedRaw) {
@@ -166,7 +239,7 @@ const PlanDetailPage: React.FC = () => {
 
   if (!plan) {
     return (
-      <View className={styles.page}>
+      <View className={classnames(styles.page, themeClass)}>
         <View className={styles.emptyWrap}>
           <EmptyState
             glyph="🔍"
@@ -193,26 +266,39 @@ const PlanDetailPage: React.FC = () => {
    */
   const listExercises = planRecord ? planRecord.exercises : plan.exercises;
   const totalSets = listExercises.reduce((sum, item) => sum + item.sets.length, 0);
+  /** 超级组编号 → A/B/C… */
+  const supersetMap = useMemo(
+    () => supersetLetters(listExercises as { supersetId?: string }[]),
+    [listExercises]
+  );
+  /**
+   * 有氧模板时长：已完成计划展示实际记录，老记录里没存时长时用模板值兜底。
+   */
+  const cardioTemplateMinutes = new Map<string, number>();
+  plan.exercises.forEach((entry) => {
+    if (typeof entry.targetDurationMin === 'number') {
+      cardioTemplateMinutes.set(entry.exerciseId, entry.targetDurationMin);
+    }
+  });
   const planFeelScore = planRecord ? feelScoreOutOf100(planRecord) : null;
 
-  /** 刚结束的那场训练（只有「结束训练」跳进来的路径才有） */
-  const justFinishedSession = justFinishedId
-    ? sessions.find((item) => item.id === justFinishedId && item.planId === plan.id)
-    : undefined;
   /** 要展示的系统评价分数 */
-  const displayScore = justFinishedSession
-    ? feelScoreOutOf100(justFinishedSession)
-    : planFeelScore;
-  /** 刚结束用弹层展示，页面底部这块只在平时查看时出现 */
-  const showNoteBox = !justFinishedSession && profile.noteEnabled && planFeelScore !== null;
+  const displayScore = planFeelScore;
+  /** 训练报告：计划详情最底部一直下拉就能看到这次实际练了什么 */
+  const showReport = profile.noteEnabled && planRecord !== undefined;
   /** 已经保存过的自我评价 */
-  const savedNote = (justFinishedSession ?? planRecord)?.selfNote;
+  const savedNote = planRecord?.selfNote;
 
-  /** 保存自我评价并回主页 */
-  const saveNoteAndHome = () => {
-    if (justFinishedSession) setSessionNote(justFinishedSession.id, noteDraft);
-    switchTab({ url: '/pages/home/index' });
-  };
+  /** 和上一次同类训练的对比（容量 / 组数 / 时长 / 评分） */
+  const planComparison = planRecord ? sessionComparison(planRecord, sessions) : null;
+  /** 动作复盘里要挂的 PR 徽标 */
+  const prBadges: Record<string, string> = {};
+  if (planRecord) {
+    exerciseReports(planRecord, sessions).forEach((row) => {
+      if (row.isPr && row.prGain) prBadges[row.key] = `PR +${row.prGain}kg`;
+    });
+  }
+
   /** 每个动作在最近一次训练里的红绿灯（按动作 id 取） */
   const feelByExercise = new Map<string, number>();
   planRecord?.exercises.forEach((item) => {
@@ -225,13 +311,11 @@ const PlanDetailPage: React.FC = () => {
   const secondary = muscleTags.slice(1);
 
   return (
-    <View className={styles.page}>
-      {/* 结果弹层打开时锁住页面滚动 */}
-      <ScrollLock lock={!!justFinishedSession} />
+    <View className={classnames(styles.page, themeClass)}>
       <View className={styles.head}>
         <View className={styles.headBody} onClick={openPlanEdit}>
           <View className={styles.headNameRow}>
-            <Text className={styles.headName}>{plan.name}</Text>
+            <Text className={styles.headName}>{displayPlanName(plan)}</Text>
             {plan.exercises.length ? (
               <Button
                 className={styles.shareBtn}
@@ -271,12 +355,15 @@ const PlanDetailPage: React.FC = () => {
           {listExercises.map((item, index) => {
             const info = getExerciseById(item.exerciseId);
             const badges = variantBadges(info ? info.name : '已下架', item.variants);
+            /** 有氧的器械参数：速度 / 坡度 / 距离 / 档位 / 个数 */
+            const cardioTags = info?.muscle === 'cardio' ? cardioDetailTags(item) : [];
             /** 组编号：普通组 1、2；递减组 2-1 递减 / 2-2 递减 */
             const setLabelsOfItem = setLabels(item.sets);
             const timed = isTimedExercise(item.exerciseId);
             const feel = profile.noteEnabled
               ? getFeelOption(feelByExercise.get(item.exerciseId))
               : undefined;
+            const superset = item.supersetId ? supersetMap[item.supersetId] : '';
             return (
               <View
                 key={item.key}
@@ -292,8 +379,9 @@ const PlanDetailPage: React.FC = () => {
                   </View>
                   <View className={styles.itemMain}>
                     <View className={styles.itemNameRow}>
-                      <Text className={styles.itemName}>
+                      <Text className={styles.itemName} numberOfLines={2}>
                         {info ? info.name : '已下架'}
+                        {item.note ?? ''}
                         {item.equipmentName ? `（${item.equipmentName}）` : ''}
                       </Text>
                     </View>
@@ -314,6 +402,9 @@ const PlanDetailPage: React.FC = () => {
                     </View>
                   </View>
                   <View className={styles.itemSide}>
+                    {superset ? (
+                      <Text className={styles.itemSupersetTag}>超级组 {superset}</Text>
+                    ) : null}
                     {info ? (
                       <MuscleTag
                         {...exerciseMuscleTag(info, item.variants)}
@@ -340,15 +431,31 @@ const PlanDetailPage: React.FC = () => {
                 {/* 每组一个框，和「指定计划」页的组行保持一致的排布 */}
                 <View className={styles.setList}>
                   {info?.muscle === 'cardio' ? (
-                    <View className={styles.setRow}>
-                      <Text className={styles.setIndex}>1</Text>
-                      <View className={styles.setWeightField}>
-                        <Text className={styles.setValue}>
-                          {item.targetDurationMin ?? DEFAULT_CARDIO_MIN}
-                        </Text>
-                        <Text className={styles.setUnit}>分钟</Text>
+                    <>
+                      <View className={styles.setRow}>
+                        <Text className={styles.setIndex}>1</Text>
+                        <View className={styles.setWeightField}>
+                          <Text className={styles.setValue}>
+                            {cardioMinutesOf(item, cardioTemplateMinutes.get(item.exerciseId))}
+                          </Text>
+                          <Text className={styles.setUnit}>分钟</Text>
+                        </View>
+                        {item.targetIntensity ? (
+                          <Text className={styles.setIntensity}>
+                            {getCardioIntensityLabel(item.targetIntensity)}
+                          </Text>
+                        ) : null}
                       </View>
-                    </View>
+                      {cardioTags.length ? (
+                        <View className={styles.cardioTagRow}>
+                          {cardioTags.map((tag) => (
+                            <Text key={tag} className={styles.setCardioTag}>
+                              {tag}
+                            </Text>
+                          ))}
+                        </View>
+                      ) : null}
+                    </>
                   ) : item.sets.length ? (
                     item.sets.map((set, setIndex) => (
                       <View
@@ -394,24 +501,44 @@ const PlanDetailPage: React.FC = () => {
         </View>
       )}
 
-      {/* 训练心得：平时查看时展示在页面最下方（刚结束走弹层） */}
-      {showNoteBox ? (
+      {/* 训练报告：接在动作安排后面，一直下拉就能看到这次实际练的每一组 */}
+      {showReport && planRecord ? (
         <>
           <View className={styles.sectionHeader}>
-            <Text className={styles.sectionTitle}>训练心得</Text>
+            <Text className={styles.sectionTitle}>训练报告</Text>
+            <Text className={styles.sectionExtra}>
+              {dayjs(planRecord.startedAt).format('M月D日 HH:mm')}
+            </Text>
           </View>
-          <View className={styles.noteBoxActive}>
-            {displayScore !== null ? (
-              <View className={styles.noteScoreRow}>
-                <Text className={styles.noteScore}>{displayScore}</Text>
-                <Text className={styles.noteScoreUnit}>/ 100 分</Text>
-              </View>
-            ) : null}
-            <Text className={styles.noteMessage}>
+          <View className={styles.reportCard}>
+            <View className={styles.reportScoreRow}>
+              <Text className={styles.reportScore}>{displayScore ?? '—'}</Text>
+              <Text className={styles.reportScoreUnit}>/ 100 分</Text>
+            </View>
+            <Text className={styles.reportMessage}>
               {displayScore !== null
                 ? feelMessage(displayScore)
                 : '训练完成，干得漂亮！保持这个节奏，继续加油 💪'}
             </Text>
+
+            {planComparison?.prev ? (
+              <View className={styles.reportGrid}>
+                {[
+                  { label: '总容量', text: formatVolume(planComparison.volume.now) },
+                  { label: '完成组', text: `${planComparison.sets.now}` },
+                  { label: '时长', text: `${planComparison.minutes.now}分` },
+                  { label: '评分', text: `${planComparison.score.now}` }
+                ].map((cell) => (
+                  <View key={cell.label} className={styles.reportCell}>
+                    <Text className={styles.reportCellLabel}>{cell.label}</Text>
+                    <Text className={styles.reportCellValue}>{cell.text}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            <SessionExerciseReview session={planRecord} badges={prBadges} />
+
             {savedNote ? (
               <>
                 <Text className={classnames(styles.resultTitle, styles.selfTitle)}>
@@ -424,9 +551,8 @@ const PlanDetailPage: React.FC = () => {
         </>
       ) : null}
 
-      {justFinishedSession ? null : (
-        <View className={styles.bottomBar}>
-          {shared ? (
+      <View className={styles.bottomBar}>
+        {shared ? (
             <>
               <View
                 className={classnames(styles.bottomBtn, styles.bottomBtnGhost)}
@@ -486,64 +612,6 @@ const PlanDetailPage: React.FC = () => {
             </>
           )}
         </View>
-      )}
-
-      {/* 结束训练后的系统评价弹层：两个按钮贴着框体底部 */}
-      {justFinishedSession ? (
-        <View className={styles.resultMask}>
-          <View className={styles.resultCard}>
-            <Text className={styles.resultTitle}>训练心得</Text>
-            {displayScore !== null ? (
-              <View className={styles.noteScoreRow}>
-                <Text className={styles.noteScore}>{displayScore}</Text>
-                <Text className={styles.noteScoreUnit}>/ 100 分</Text>
-              </View>
-            ) : null}
-            <Text className={styles.noteMessage}>
-              {displayScore !== null
-                ? feelMessage(displayScore)
-                : '训练完成，干得漂亮！保持这个节奏，继续加油 💪'}
-            </Text>
-
-            {selfOpen ? (
-              <>
-                <Text className={classnames(styles.resultTitle, styles.selfTitle)}>
-                  自我评价
-                </Text>
-                <Textarea
-                  className={styles.noteInput}
-                  value={noteDraft}
-                  maxlength={200}
-                  placeholder="写点今天的感受，例如状态、哪里没做好…"
-                  placeholderStyle="color:#4a4a55"
-                  onInput={(event) => setNoteDraft(event.detail.value)}
-                />
-                <View className={styles.notePrimaryBtn} onClick={saveNoteAndHome}>
-                  <Text className={styles.notePrimaryBtnText}>保存并回到主页</Text>
-                </View>
-              </>
-            ) : (
-              <View className={styles.noteActions}>
-                <View
-                  className={styles.noteGhostBtn}
-                  onClick={() => {
-                    setNoteDraft(justFinishedSession.selfNote ?? '');
-                    setSelfOpen(true);
-                  }}
-                >
-                  <Text className={styles.noteGhostBtnText}>自我评价</Text>
-                </View>
-                <View
-                  className={styles.notePrimaryBtn}
-                  onClick={() => switchTab({ url: '/pages/home/index' })}
-                >
-                  <Text className={styles.notePrimaryBtnText}>回到主页</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      ) : null}
     </View>
   );
 };

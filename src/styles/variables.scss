@@ -24,9 +24,9 @@ $radius-xs: 4rpx; // 小元素：标签、徽章
 $radius-sm: 8rpx; // 卡片内小元素
 $radius-md: 12rpx; // 常规卡片
 $radius-lg: 16rpx; // 大卡片
-$radius-xl: 20rpx; // 特大卡片
-$radius-button: 48rpx; // 按钮专用（全圆角，符合主流小程序）
-$radius-round: 999rpx; // 完全圆形
+$radius-xl: 16rpx; // 特大卡片（已收口，与 lg 同级，避免过软）
+$radius-button: 12rpx; // 按钮专用（硬边风格，不再用胶囊）
+$radius-round: 999rpx; // 完全圆形 / 胶囊（仅头像、圆点等真正的圆形）
 
 // 按钮高度（新增，随字号一起放大 20%）
 $button-height-sm: 76rpx; // 小按钮（次要操作）
@@ -34,10 +34,28 @@ $button-height-md: 96rpx; // 常规按钮（主流标准）
 $button-height-lg: 116rpx; // 大按钮（主要操作、底部固定）
 
 // 阴影（语义化）
-$shadow-card: 0 2rpx 12rpx rgba(0, 0, 0, 0.08); // 卡片阴影
-$shadow-card-hover: 0 4rpx 20rpx rgba(0, 0, 0, 0.12); // 卡片悬浮
-$shadow-float: 0 4rpx 16rpx rgba(0, 0, 0, 0.1); // 浮层阴影（如筛选栏、底部操作栏）
+// 卡片统一用「底部硬投影」，不再用大范围柔光：远看是一条厚重底座，力量感更强
+$shadow-card: 0 8rpx 0 var(--fl-hard-shadow);
+$shadow-card-hover: 0 12rpx 0 var(--fl-hard-shadow);
+$shadow-float: 0 4rpx 0 rgba(0, 0, 0, 0.6); // 浮层阴影（如筛选栏、底部操作栏）
 $shadow-popup: 0 8rpx 32rpx rgba(0, 0, 0, 0.15); // 弹窗阴影
+
+// ============================================
+// 硬边风格（力量感）：厚描边 + 底部硬投影
+// 与柔和阴影二选一，新改的页面优先用这套
+// ============================================
+$color-hard-shadow: var(--fl-hard-shadow); // 卡片底部硬投影
+$color-hard-shadow-primary: var(--fl-hard-shadow-primary); // 主按钮底部硬投影
+$color-hard-shadow-today: var(--fl-hard-shadow-today); // 暖棕选中卡的硬投影
+$color-hard-surface: var(--fl-hard-surface); // 硬边卡片底色（比常规卡片略深，压得住）
+$border-hard: 2rpx; // 常规硬边描边
+$border-hard-strong: 4rpx; // 强调卡片描边
+$radius-hard-card: 16rpx; // 硬边卡片圆角
+$radius-hard-btn: 12rpx; // 硬边按钮圆角
+$radius-hard-tag: 4rpx; // 硬边标签圆角
+$shadow-hard-card: 0 8rpx 0 $color-hard-shadow;
+$shadow-hard-card-lg: 0 12rpx 0 $color-hard-shadow;
+$shadow-hard-btn: 0 10rpx 0 $color-hard-shadow-primary;
 
 // 字体大小（整体比 750 基准放大 8%，小字更易读）
 $font-size-xs: 23rpx;

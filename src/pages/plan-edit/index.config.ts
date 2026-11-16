@@ -1,7 +1,8 @@
 export default definePageConfig({
   // 页面容器背景色：避免切页瞬间容器默认浅色导致闪白
   backgroundColorContent: '#101014FF',
-  navigationBarTitleText: '新建计划',
+  // 新建 / 复制 / 再次编辑都走这个页面，标题统一叫「编辑计划」
+  navigationBarTitleText: '编辑计划',
   enablePullDownRefresh: false,
   // 浮层打开时用 PageMeta 锁住页面滚动
   enablePageMeta: true

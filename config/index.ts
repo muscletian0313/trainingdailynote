@@ -21,8 +21,24 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     defineConstants: {},
     copy: {
       // 音效等静态资源直接拷进产物（to 相对项目根目录）
+      // 食物图只在饮食分包里用，拷进分包目录，不占主包体积
       patterns: [
-        { from: 'src/assets/audio', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/audio` }
+        { from: 'src/assets/audio', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/audio` },
+        { from: 'src/assets/foods', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/foods` },
+        { from: 'src/assets/muscle', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/muscle` },
+        {
+          from: 'src/assets/foods-photo',
+          to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/subpackages/diet/assets/foods-photo`
+        },
+        // 动作示范图：小程序走云存储按需下载，只有 H5 预览才随包带图
+        ...(process.env.TARO_ENV === 'h5'
+          ? [
+              {
+                from: 'src/assets/exercise-demo',
+                to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/subpackages/misc/assets/exercise-demo`
+              }
+            ]
+          : [])
       ],
       options: {},
     },

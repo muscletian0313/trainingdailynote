@@ -17,7 +17,8 @@
 
 .title {
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: 800;
+  letter-spacing: 0.5rpx;
   color: $color-text-secondary;
   margin-bottom: $spacing-xs;
 }
@@ -33,20 +34,22 @@
 .action {
   height: $button-height-md;
   padding: 0 48rpx;
-  border-radius: $radius-button;
+  border-radius: $radius-hard-btn;
   background: $color-primary;
+  box-shadow: 0 8rpx 0 $color-hard-shadow-primary;
   @include flex-center;
-  transition: all $transition-base;
+  transition: transform $transition-fast, box-shadow $transition-fast;
 
   &:active {
-    opacity: 0.88;
-    transform: scale(0.98);
+    transform: translateY(4rpx);
+    box-shadow: 0 4rpx 0 $color-hard-shadow-primary;
   }
 }
 
 .actionText {
   font-size: $font-size-md;
-  font-weight: $font-weight-medium;
+  font-weight: 800;
+  letter-spacing: 1rpx;
   color: $color-text-inverse;
   white-space: nowrap;
 }

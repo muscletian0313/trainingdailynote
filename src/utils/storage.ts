@@ -13,8 +13,20 @@ export const STORAGE_KEYS = {
   bodyRecords: 'fitlog.bodyRecords',
   /** 体重 & 维度：目标体重（kg） */
   bodyTarget: 'fitlog.bodyTarget',
+  /** 体重 & 维度：体重单位 公斤/斤 */
+  bodyUnit: 'fitlog.bodyUnit',
+  /** 体重 & 维度：人体图上被关掉的围度项 */
+  bodyHiddenMarks: 'fitlog.bodyHiddenMarks',
+  /** 饮食：一天的记录（按日期存） */
+  dietDays: 'fitlog.dietDays',
+  /** 饮食：用户自定义食物 */
+  dietCustomFoods: 'fitlog.dietCustomFoods',
+  /** 饮食：用户自己设的营养目标（碳水/蛋白/脂肪） */
+  dietTarget: 'fitlog.dietTarget',
   /** 计划页下次显示时回到「默认展开顶部计划」的一次性标记 */
-  planResetExpand: 'fitlog.planResetExpand'
+  planResetExpand: 'fitlog.planResetExpand',
+  /** 主题：橙黑 / 橙白 */
+  theme: 'fitlog.theme'
 };
 
 /** 读取 JSON 数据，失败时返回兜底值 */

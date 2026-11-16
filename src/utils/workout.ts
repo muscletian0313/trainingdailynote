@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import type {
   ExerciseVariants,
+  Gender,
   MuscleGroup,
   Plan,
   PlanExercise,
@@ -8,7 +9,8 @@ import type {
   SessionExercise,
   WorkoutSet
 } from '@/types';
-import { getExerciseById } from '@/store/useExerciseStore';
+import { exerciseMuscleTag, getExerciseById } from '@/store/useExerciseStore';
+import { treadmillDistanceKm } from '@/constants';
 import { pad2 } from './format';
 import { uid } from './id';
 
@@ -24,7 +26,9 @@ export function planFromSession(session: Session): Plan {
       exerciseId: item.exerciseId,
       variants: item.variants,
       equipmentName: item.equipmentName,
+      note: item.note,
       restSeconds: item.restSeconds,
+      supersetId: item.supersetId,
       targetDurationMin: cardioSet?.durationMin,
       sets: item.sets.map((set) => ({
         id: uid('ps'),
@@ -44,6 +48,21 @@ export function planFromSession(session: Session): Plan {
     createdAt: now,
     updatedAt: now
   };
+}
+
+/**
+ * 展示用的计划名：自由训练的计划名里已经带日期（自由训练 · 11月9日），
+ * 而列表和详情页本身就会显示日期，这里把重复的日期去掉。
+ */
+export function displayPlanName(plan: Pick<Plan, 'name' | 'startDate'>): string {
+  const match = /^自由训练\s*·\s*(\d{1,2})月(\d{1,2})日$/.exec(plan.name.trim());
+  if (!match) return plan.name;
+  if (!plan.startDate) return '自由训练';
+  const day = dayjs(plan.startDate);
+  if (day.month() + 1 === Number(match[1]) && day.date() === Number(match[2])) {
+    return '自由训练';
+  }
+  return plan.name;
 }
 
 /** 单组容量（已完成才计入）；辅助类动作的重量记负数，取绝对值算 */
@@ -159,6 +178,44 @@ export function sessionCardioMin(session: Session): number {
   );
 }
 
+/** 计划是否纯有氧：所有动作都是有氧（力量口径的总重量 / 组数对它没意义） */
+export function isCardioPlan(exercises: { exerciseId: string }[]): boolean {
+  return (
+    exercises.length > 0 &&
+    exercises.every((item) => getExerciseById(item.exerciseId)?.muscle === 'cardio')
+  );
+}
+
+/**
+ * 有氧总距离（公里）：划船机等手填 distanceKm，跑步机按 速度 × 时长 自动算；
+ * 爬楼机 / 跳绳这类没有距离概念的不计。没有任何距离数据时返回 null（显示 — 比 0 诚实）。
+ */
+export function sessionCardioDistanceKm(session: Session): number | null {
+  let total = 0;
+  let has = false;
+  cardioExercises(session).forEach((item) => {
+    const name = getExerciseById(item.exerciseId)?.name ?? '';
+    item.sets.forEach((set) => {
+      let km: number | null = null;
+      if (typeof set.distanceKm === 'number' && set.distanceKm > 0) {
+        km = set.distanceKm;
+      } else if (name === '跑步机') {
+        km = treadmillDistanceKm(set.durationMin, set.speedKmh);
+      }
+      if (km && km > 0) {
+        total += km;
+        has = true;
+      }
+    });
+  });
+  return has ? Math.round(total * 100) / 100 : null;
+}
+
+/** 计划的有氧目标时长合计（分钟）：还没练过时卡片上回退显示 */
+export function planCardioTargetMin(exercises: PlanExercise[]): number {
+  return exercises.reduce((sum, item) => sum + (item.targetDurationMin ?? 0), 0);
+}
+
 /** 该动作是否已经做完：力量动作看是否全部勾完；有氧动作看是否填了时长 */
 export function isExerciseFinished(exercise: SessionExercise): boolean {
   const isCardio = getExerciseById(exercise.exerciseId)?.muscle === 'cardio';
@@ -211,7 +268,7 @@ export interface SessionRating {
   message: string;
 }
 
-/** 难度分：轻松 15 / 适中 25 / 困难 35（没选感受按适中算） */
+/** 难度分：轻松 15 / 适中 25 / 力竭 35（没选感受按适中算） */
 function feelPoints(feel?: number): number {
   if (typeof feel !== 'number') return 25;
   if (feel >= 4) return 15;
@@ -301,6 +358,18 @@ export interface PerformanceRecord {
   cardioMin?: number;
   /** 该次该动作的主观感受（1-5），没选过则为空 */
   feel?: number;
+}
+
+/**
+ * 历史日训用的练法指纹：变式 key 排序后拼成字符串。
+ * 只有指纹 + 器械名完全一致，才认为是「同一个动作」的历史。
+ */
+export function variantFingerprint(variants?: ExerciseVariants): string {
+  return Object.entries(variants ?? {})
+    .filter(([, value]) => Boolean(value))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}:${value}`)
+    .join('|');
 }
 
 /** 取某动作最近 N 次的训练记录（默认 4 次） */
@@ -431,6 +500,18 @@ export function sessionDateKey(session: Session, plan?: Plan): string {
   return dayjs(session.startedAt).format('YYYY-MM-DD');
 }
 
+/** 超级组编号 → A/B/C…：按动作顺序，同一个 supersetId 共用一个字母 */
+export function supersetLetters<T extends { supersetId?: string }>(
+  exercises: T[]
+): Record<string, string> {
+  const letters: Record<string, string> = {};
+  exercises.forEach((item) => {
+    if (!item.supersetId || letters[item.supersetId]) return;
+    letters[item.supersetId] = String.fromCharCode(65 + Object.keys(letters).length);
+  });
+  return letters;
+}
+
 export function groupSessionsByDate(
   sessions: Session[],
   plans: Plan[] = []
@@ -445,8 +526,26 @@ export function groupSessionsByDate(
   return map;
 }
 
+/**
+ * PR 分组键：动作 + 变式 + 器械名。
+ * 任一不同都算不同的 PR（窄距卧推 vs 平板卧推、器械划船（鹦鹉螺）vs 器械划船）。
+ */
+export function prKeyOf(
+  exerciseId: string,
+  variants?: ExerciseVariants,
+  equipmentName?: string
+): string {
+  return `${exerciseId}::${variantFingerprint(variants)}::${(equipmentName ?? '').trim()}`;
+}
+
 export interface PrItem {
+  /** 分组键（动作 + 变式 + 器械名） */
+  key: string;
   exerciseId: string;
+  variants?: ExerciseVariants;
+  equipmentName?: string;
+  /** 按变式修正后的实际主练肌群（杠铃卧推窄距 = 三头） */
+  muscle: MuscleGroup;
   /** 最佳单组重量 */
   weight: number;
   /** 最佳单组次数 */
@@ -465,20 +564,27 @@ export function estimateOneRm(weight: number, reps: number): number {
   return Math.round(weight * (1 + reps / 30));
 }
 
-/** 计算每个动作的个人最佳（PR）：最佳单组 + 预估 1RM，按预估 1RM 倒序 */
+/** 计算每个动作的个人最佳（PR）：同动作同变式同器械名才合并，按预估 1RM 倒序 */
 export function computePrs(sessions: Session[]): PrItem[] {
   const map = new Map<string, PrItem>();
   sessions.forEach((session) => {
     session.exercises.forEach((exercise) => {
       // 计时类动作（平板支撑）没有 1RM 的概念，跳过
       if (isTimedExercise(exercise.exerciseId)) return;
+      const info = getExerciseById(exercise.exerciseId);
+      const muscle = info ? exerciseMuscleTag(info, exercise.variants).muscle : 'other';
+      const key = prKeyOf(exercise.exerciseId, exercise.variants, exercise.equipmentName);
       exercise.sets.forEach((set) => {
         if (!set.done || set.weight <= 0) return;
         const oneRm = estimateOneRm(set.weight, set.reps);
-        const current = map.get(exercise.exerciseId);
+        const current = map.get(key);
         if (!current) {
-          map.set(exercise.exerciseId, {
+          map.set(key, {
+            key,
             exerciseId: exercise.exerciseId,
+            variants: exercise.variants,
+            equipmentName: exercise.equipmentName,
+            muscle,
             weight: set.weight,
             reps: set.reps,
             oneRm,
@@ -490,8 +596,8 @@ export function computePrs(sessions: Session[]): PrItem[] {
         const betterSet =
           set.weight > current.weight || (set.weight === current.weight && set.reps > current.reps);
         const betterOneRm = oneRm > current.oneRm;
-        map.set(exercise.exerciseId, {
-          exerciseId: exercise.exerciseId,
+        map.set(key, {
+          ...current,
           weight: betterSet ? set.weight : current.weight,
           reps: betterSet ? set.reps : current.reps,
           oneRm: Math.max(current.oneRm, oneRm),
@@ -502,6 +608,264 @@ export function computePrs(sessions: Session[]): PrItem[] {
     });
   });
   return Array.from(map.values()).sort((a, b) => b.oneRm - a.oneRm);
+}
+
+/** PR 趋势图上的一个点：某天该动作的最高预估 1RM */
+export interface OneRmPoint {
+  date: string;
+  oneRm: number;
+  weight: number;
+  reps: number;
+  /** 这天的训练记录，点图表时用来打开当天详情 */
+  sessionId: string;
+}
+
+/** 某个动作的 1RM 趋势：同动作同变式同器械名才合并，按天取最高的一次，时间从早到晚 */
+export function oneRmTrend(
+  sessions: Session[],
+  exerciseId: string,
+  variants?: ExerciseVariants,
+  equipmentName?: string
+): OneRmPoint[] {
+  if (isTimedExercise(exerciseId)) return [];
+  const target = prKeyOf(exerciseId, variants, equipmentName);
+  const byDate = new Map<string, OneRmPoint>();
+  sessions.forEach((session) => {
+    session.exercises.forEach((exercise) => {
+      if (prKeyOf(exercise.exerciseId, exercise.variants, exercise.equipmentName) !== target) {
+        return;
+      }
+      exercise.sets.forEach((set) => {
+        if (!set.done || set.weight <= 0) return;
+        const oneRm = estimateOneRm(set.weight, set.reps);
+        const date = dayjs(session.startedAt).format('YYYY-MM-DD');
+        const current = byDate.get(date);
+        if (!current || oneRm > current.oneRm) {
+          byDate.set(date, { date, oneRm, weight: set.weight, reps: set.reps, sessionId: session.id });
+        }
+      });
+    });
+  });
+  return Array.from(byDate.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+/** 训练报告里的一项对比：本次 / 上次 / 差值 */
+export interface CompareMetric {
+  now: number;
+  /** 没有上次可比时为 null */
+  prev: number | null;
+  /** 本次 − 上次 */
+  delta: number | null;
+  /** 变化百分比（上次为 0 或没有上次时为 null） */
+  ratio: number | null;
+}
+
+export interface SessionComparison {
+  prev: Session | null;
+  /** 上次是靠什么匹配到的：同一个计划 / 计划名相同 */
+  matchedBy: 'plan' | 'name' | null;
+  /** 距上次多少天 */
+  daysAgo: number | null;
+  volume: CompareMetric;
+  sets: CompareMetric;
+  minutes: CompareMetric;
+  score: CompareMetric;
+}
+
+function buildMetric(now: number, prev: number | null): CompareMetric {
+  if (prev === null) return { now, prev: null, delta: null, ratio: null };
+  const delta = now - prev;
+  return { now, prev, delta, ratio: prev > 0 ? Math.round((delta / prev) * 100) : null };
+}
+
+/** 找上一次同类训练：优先同一个计划，其次计划名完全相同的那次 */
+export function findPreviousSession(
+  current: Session,
+  history: Session[]
+): { prev: Session | null; matchedBy: 'plan' | 'name' | null } {
+  const others = history
+    .filter((item) => item.id !== current.id && item.status === 'finished')
+    .sort((a, b) => b.startedAt - a.startedAt);
+  if (current.planId) {
+    const samePlan = others.find((item) => item.planId === current.planId);
+    if (samePlan) return { prev: samePlan, matchedBy: 'plan' };
+  }
+  const name = current.name.trim();
+  if (name) {
+    const sameName = others.find((item) => item.name.trim() === name);
+    if (sameName) return { prev: sameName, matchedBy: 'name' };
+  }
+  return { prev: null, matchedBy: null };
+}
+
+/** 整场训练的对比：容量 / 完成组数 / 时长 / 评分 */
+export function sessionComparison(current: Session, history: Session[]): SessionComparison {
+  const { prev, matchedBy } = findPreviousSession(current, history);
+  const minutesNow = Math.round(sessionDurationSec(current) / 60);
+  return {
+    prev,
+    matchedBy,
+    daysAgo: prev
+      ? Math.max(0, Math.round((current.startedAt - prev.startedAt) / 86400000))
+      : null,
+    volume: buildMetric(sessionVolume(current), prev ? sessionVolume(prev) : null),
+    sets: buildMetric(sessionDoneSets(current), prev ? sessionDoneSets(prev) : null),
+    minutes: buildMetric(
+      minutesNow,
+      prev ? Math.round(sessionDurationSec(prev) / 60) : null
+    ),
+    score: buildMetric(
+      feelScoreOutOf100(current) ?? 0,
+      prev ? feelScoreOutOf100(prev) : null
+    )
+  };
+}
+
+/** 训练报告里的单动作一行 */
+export interface ExerciseReport {
+  key: string;
+  exerciseId: string;
+  /** 计时动作（平板支撑）：比较秒数，不算容量 */
+  timed: boolean;
+  feel?: number;
+  setsNow: number;
+  setsPrev: number | null;
+  volumeNow: number;
+  volumePrev: number | null;
+  /** 容量变化百分比 */
+  volumeRatio: number | null;
+  bestNow: Performance | null;
+  bestPrev: Performance | null;
+  /** 本次刷新了同动作同变式的历史最好成绩 */
+  isPr: boolean;
+  /** 刷新时比历史最好重多少 kg */
+  prGain: number | null;
+  /** 历史里第一次练这个动作 */
+  firstTime: boolean;
+}
+
+/** 组里的最大负荷（自重动作已含自重，辅助类取绝对值） */
+function bestSetOf(sets: { weight: number; addedWeight?: number; reps: number }[]): Performance | null {
+  if (!sets.length) return null;
+  return sets.reduce((best, set) => {
+    const load = Math.abs(set.weight ?? 0);
+    const bestLoad = Math.abs(best.weight ?? 0);
+    if (load > bestLoad) return { weight: set.weight, addedWeight: set.addedWeight, reps: set.reps };
+    if (load === bestLoad && set.reps > best.reps) {
+      return { weight: set.weight, addedWeight: set.addedWeight, reps: set.reps };
+    }
+    return best;
+  });
+}
+
+/**
+ * 动作复盘：每个动作对比「同动作 + 同变式」的上一次。
+ * 变式不同（上斜 vs 平板）不参与对比，避免出现假的暴涨暴跌。
+ */
+export function exerciseReports(current: Session, history: Session[]): ExerciseReport[] {
+  const past = history.filter((item) => item.id !== current.id && item.status === 'finished');
+  return current.exercises.map((item) => {
+    const timed = isTimedExercise(item.exerciseId);
+    const done = item.sets.filter((set) => set.done);
+    const volumeNow = timed
+      ? 0
+      : done.reduce((sum, set) => sum + Math.abs(set.weight ?? 0) * set.reps, 0);
+    const bestNow = timed ? null : bestSetOf(done);
+
+    // 最近一次「同变式」的表现
+    const last = recentPerformancesByVariants(past, item.exerciseId, item.variants, 1)[0];
+    const volumePrev = last
+      ? timed
+        ? 0
+        : last.sets.reduce((sum, set) => sum + Math.abs(set.weight ?? 0) * set.reps, 0)
+      : null;
+    const bestPrev = timed ? null : last ? bestSetOf(last.sets) : null;
+
+    // 历史同变式最好成绩（比 PR 用）
+    let prGain: number | null = null;
+    let isPr = false;
+    if (bestNow && !timed && !isAssistExercise(item.exerciseId)) {
+      const bestHistory = recentPerformancesByVariants(past, item.exerciseId, item.variants, 50)
+        .map((record) => bestSetOf(record.sets))
+        .filter((entry): entry is Performance => !!entry)
+        .reduce<Performance | null>((best, entry) => {
+          if (!best) return entry;
+          return Math.abs(entry.weight) > Math.abs(best.weight) ? entry : best;
+        }, null);
+      if (bestHistory && Math.abs(bestNow.weight) > Math.abs(bestHistory.weight)) {
+        isPr = true;
+        prGain = Math.round((Math.abs(bestNow.weight) - Math.abs(bestHistory.weight)) * 10) / 10;
+      }
+    }
+
+    return {
+      key: item.key,
+      exerciseId: item.exerciseId,
+      timed,
+      feel: item.feel,
+      setsNow: done.length,
+      setsPrev: last ? last.sets.length : null,
+      volumeNow,
+      volumePrev,
+      volumeRatio:
+        volumePrev !== null && volumePrev > 0
+          ? Math.round(((volumeNow - volumePrev) / volumePrev) * 100)
+          : null,
+      bestNow,
+      bestPrev,
+      isPr,
+      prGain,
+      firstTime: !last
+    };
+  });
+}
+
+/** 容量显示：超过 1 吨用 t，否则用 kg */
+export function formatVolume(kg: number): string {
+  if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
+  return `${Math.round(kg)}kg`;
+}
+
+/**
+ * 估算消耗热量（kcal）。口径尽量贴近实际训练，避免偏低：
+ * - 力量：整场平均 MET 取 4.5~7.5，按训练密度（每分钟完成的组数）分档，
+ *   练得越密强度越高；原来一律 5 MET，休闲练法够用、紧凑练法明显偏低
+ * - 有氧：按目标强度取 6 / 8 / 11 MET（原来统一 7，跑步机、爬楼机这类偏低）
+ * - 再乘 EPOC 系数（力量 1.1 / 有氧 1.05），把运动后的额外消耗算进去
+ * - 没填体重时按性别给默认值（男 72kg / 女 58kg），不再一律 65
+ *
+ * 结果只是建议值，用户可以手动改。
+ */
+export function estimateCaloriesBurned(
+  session: Session,
+  bodyWeightKg: number,
+  gender: Gender = 'male'
+): number {
+  const totalMin = sessionDurationSec(session) / 60;
+  if (totalMin <= 0) return 0;
+  const weight = bodyWeightKg > 0 ? bodyWeightKg : gender === 'female' ? 58 : 72;
+
+  // 力量部分：扣掉有氧时长，按「每分钟完成组数」判断训练密度
+  const cardioMinCount = Math.min(totalMin, sessionCardioMin(session));
+  const strengthMin = Math.max(0, totalMin - cardioMinCount);
+  const strengthDone = strengthSets(session).done;
+  const density = strengthMin > 0 ? strengthDone / strengthMin : 0;
+  const strengthMet =
+    density >= 0.4 ? 7.5 : density >= 0.25 ? 6 : density >= 0.15 ? 5 : 4.5;
+  const strengthKcal = ((strengthMet * weight * strengthMin) / 60) * 1.1;
+
+  // 有氧部分：逐个动作按目标强度算，避免统一按 7 MET 压低
+  const cardioKcal = cardioExercises(session).reduce((sum, exercise) => {
+    const minutes = exercise.sets.reduce((acc, set) => acc + (set.durationMin ?? 0), 0);
+    if (minutes <= 0) return sum;
+    const met =
+      exercise.targetIntensity === 'easy' ? 6 : exercise.targetIntensity === 'hard' ? 11 : 8;
+    return sum + ((met * weight * minutes) / 60) * 1.05;
+  }, 0);
+
+  const total = strengthKcal + cardioKcal;
+  if (total <= 0) return 0;
+  return Math.round(total / 10) * 10;
 }
 
 /**

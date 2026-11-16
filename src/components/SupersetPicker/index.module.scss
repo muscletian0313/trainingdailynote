@@ -1,0 +1,163 @@
+@use '@/styles/variables.scss' as *;
+
+.mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.62);
+  display: flex;
+  align-items: flex-end;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 76vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: $spacing-lg $spacing-lg 0;
+  border-radius: $radius-lg $radius-lg 0 0;
+  background: $color-bg-card;
+  animation: supersetSlideUp 0.22s ease-out;
+}
+
+@keyframes supersetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.hint {
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  margin-top: $spacing-md;
+  max-height: 48vh;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  border-radius: $radius-md;
+  border: 2rpx solid $color-border;
+  background: $color-bg-input;
+}
+
+.rowPicked {
+  border-color: $color-primary;
+}
+
+/* 已经属于别的超级组：灰掉不可选 */
+.rowDisabled {
+  opacity: 0.42;
+  border-style: dashed;
+}
+
+.groupTag {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  border: 1rpx solid $color-border;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  white-space: nowrap;
+}
+
+.check {
+  width: 44rpx;
+  height: 44rpx;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  border: 2rpx solid $color-border;
+  @include flex-center;
+}
+
+.checkOn {
+  border-color: $color-primary;
+  background: $color-primary;
+
+  .checkText {
+    color: $color-text-white;
+  }
+}
+
+.checkText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.order {
+  flex-shrink: 0;
+  width: 48rpx;
+  margin-left: $spacing-sm;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md 0 env(safe-area-inset-bottom);
+}
+
+.cancel {
+  height: 80rpx;
+  padding: 0 28rpx;
+  margin-right: $spacing-sm;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-border;
+  @include flex-center;
+}
+
+.cancelText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.confirm {
+  flex: 1;
+  height: 80rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+}
+
+.confirmDisabled {
+  opacity: 0.4;
+}
+
+.confirmText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}

@@ -18,6 +18,8 @@ interface SetRowProps {
   onPatch: (patch: Partial<WorkoutSet>) => void;
   onToggle: () => void;
   onRemove: () => void;
+  /** 输入结束（失焦）：用于「键盘收起后再显示应用到后续组」 */
+  onEditEnd?: () => void;
 }
 
 const SetRow: React.FC<SetRowProps> = ({
@@ -28,7 +30,8 @@ const SetRow: React.FC<SetRowProps> = ({
   timed = false,
   onPatch,
   onToggle,
-  onRemove
+  onRemove,
+  onEditEnd
 }) => {
   const bodyWeight = useProfileStore((state) => state.profile.weight ?? 0);
 
@@ -82,6 +85,7 @@ const SetRow: React.FC<SetRowProps> = ({
           placeholder="0"
           placeholderStyle="color:#4a4a55"
           onInput={(event) => handleWeight(event.detail.value)}
+          onBlur={onEditEnd}
         />
         <Text className={styles.unit}>kg</Text>
       </View>
@@ -96,6 +100,7 @@ const SetRow: React.FC<SetRowProps> = ({
           placeholder={timed ? '60' : '0'}
           placeholderStyle="color:#4a4a55"
           onInput={(event) => handleReps(event.detail.value)}
+          onBlur={onEditEnd}
         />
         {timed ? <Text className={styles.unit}>秒</Text> : null}
       </View>

@@ -1,0 +1,664 @@
+@use '@/styles/variables.scss' as *;
+
+/* ============ 全屏选食物页（图3，独立页面） ============ */
+.page {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: $color-bg-page;
+}
+
+.pickPanel {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + #{$spacing-lg}) $page-padding
+    calc(env(safe-area-inset-bottom) + 24rpx);
+  background: $color-bg-elevated;
+  box-sizing: border-box;
+}
+
+.pickHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.pickBack {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 52rpx;
+  text-align: center;
+  font-size: 40rpx;
+  color: $color-text-primary;
+}
+
+.pickTitle {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.pickCustom {
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  color: $color-primary;
+}
+
+.searchWrap {
+  margin-top: $spacing-md;
+  flex-shrink: 0;
+}
+
+.search {
+  height: 76rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-button;
+  border: $border-hard solid $color-border;
+  background: $color-bg-input;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+/* 快捷操作 */
+.quickRow {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.quickBtn {
+  flex: 1;
+  height: 64rpx;
+  border-radius: $radius-hard-tag;
+  background: $color-bg-card;
+  border: $border-hard solid $color-border;
+  @include flex-center;
+}
+
+.quickText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+/* 左侧分类 + 右侧食物列表 */
+.pickBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  margin-top: $spacing-sm;
+}
+
+.rail {
+  width: 148rpx;
+  flex-shrink: 0;
+}
+
+.railItem {
+  height: 76rpx;
+  padding: 0 $spacing-sm;
+  border-radius: $radius-md;
+  @include flex-center;
+}
+
+.railActive {
+  background: $color-bg-card;
+}
+
+.railText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.railTextActive {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.foodPane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: $spacing-sm;
+}
+
+.paneHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.paneTitle {
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.paneCount {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-tertiary;
+}
+
+.foodList {
+  flex: 1;
+  min-height: 0;
+}
+
+.foodRow {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-bottom: 1px solid $color-divider;
+}
+
+.foodImg {
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  margin-right: $spacing-sm;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+}
+
+.foodIcon {
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  margin-right: $spacing-sm;
+  border-radius: $radius-md;
+  background: $color-bg-card;
+  @include flex-center;
+}
+
+.foodIconImg {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.foodMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.foodName {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: 700;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.foodKcal {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  font-variant-numeric: tabular-nums;
+  color: $color-error;
+}
+
+.foodAdd {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  border-radius: $radius-sm;
+  border: $border-hard solid $color-border;
+  @include flex-center;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.foodAddText {
+  font-size: $font-size-md;
+  color: $color-primary;
+  line-height: 1;
+}
+
+.emptyTip {
+  padding: $spacing-xl 0;
+  @include flex-center;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 列表分批加载：滚到底继续 */
+.loadMore {
+  padding: $spacing-md 0;
+  @include flex-center;
+}
+
+.loadMoreText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 底部：已选数量 + 完成 */
+.pickFooter {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm 0 calc(env(safe-area-inset-bottom) + #{$spacing-sm});
+}
+
+.pickFooterText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.pickDone {
+  height: 80rpx;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+}
+
+.pickDoneText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}
+
+/* 食物详情：克数 + 五项营养 */
+.detailMask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+  @include flex-center;
+}
+
+.detailCard {
+  width: 640rpx;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  border: $border-hard solid $color-border;
+  background: $color-bg-card;
+  box-shadow: $shadow-popup;
+}
+
+.detailHead {
+  display: flex;
+  align-items: center;
+}
+
+.detailImg {
+  width: 112rpx;
+  height: 112rpx;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+}
+
+.detailIcon {
+  width: 112rpx;
+  height: 112rpx;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+  @include flex-center;
+}
+
+.detailIconImg {
+  width: 76rpx;
+  height: 76rpx;
+}
+
+.detailHeadMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.detailName {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.detailKcal {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.detailClose {
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.nutrientGrid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-md;
+  padding: $spacing-sm 0;
+  border-top: 1px solid $color-divider;
+  border-bottom: 1px solid $color-divider;
+}
+
+.nutrient {
+  width: 33.33%;
+  padding: $spacing-xs 0;
+}
+
+.nutrientTop {
+  display: flex;
+  align-items: center;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 8rpx;
+  border-radius: $radius-round;
+}
+
+.dotCarb {
+  background: $color-success;
+}
+
+.dotProtein {
+  background: $color-error;
+}
+
+.dotFat {
+  background: $color-warning;
+}
+
+.dotFiber {
+  background: $color-info;
+}
+
+.dotSodium {
+  background: $color-macro-sodium;
+}
+
+.nutrientLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.nutrientValue {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.gramsRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}
+
+.gramsLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.gramsBox {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 88rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+}
+
+.gramsInput {
+  flex: 1;
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.gramsUnit {
+  margin-left: 8rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.gramsPreset {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  border-radius: $radius-button;
+  background: $color-primary-soft;
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.detailActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.detailCancel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.detailSave {
+  height: 76rpx;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+}
+
+.detailSaveText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}
+
+/* 自定义食物表单 */
+.customMask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-end;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.customCard {
+  width: 100%;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-lg $page-padding calc(env(safe-area-inset-bottom) + 24rpx);
+  border-radius: $radius-lg $radius-lg 0 0;
+  border-top: $border-hard solid $color-border;
+  background: $color-bg-elevated;
+  box-sizing: border-box;
+}
+
+/* 表单内容区：键盘弹起时靠内部滚动把输入框露出来 */
+.customBody {
+  flex: 1;
+  min-height: 0;
+  margin-top: $spacing-md;
+}
+
+.customTitle {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: 800;
+  letter-spacing: 1rpx;
+  color: $color-text-primary;
+}
+
+.customHint {
+  display: block;
+  margin-top: 4rpx;
+  margin-bottom: $spacing-md;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.customInput {
+  height: 72rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.customChips {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-sm;
+}
+
+.customChip {
+  height: 52rpx;
+  padding: 0 18rpx;
+  margin: 0 $spacing-xs $spacing-xs 0;
+  border-radius: $radius-button;
+  background: $color-bg-input;
+  @include flex-center;
+}
+
+.customChipActive {
+  background: $color-primary;
+}
+
+.customChipText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.customChipTextActive {
+  color: $color-text-inverse;
+  font-weight: $font-weight-semibold;
+}
+
+.customGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.customField {
+  width: calc(50% - #{$spacing-sm} / 2);
+}
+
+.customLabel {
+  display: block;
+  margin-bottom: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}
+
+.customInputSm {
+  width: 140rpx;
+  height: 64rpx;
+  padding: 0 $spacing-sm;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.photoBtn {
+  margin-left: auto;
+  height: 64rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  border: 1px solid $color-border;
+  @include flex-center;
+}
+
+.photoText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.preview {
+  width: 120rpx;
+  height: 120rpx;
+  margin-top: $spacing-sm;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+}
+
+.customActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.customCancel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.customSave {
+  height: 72rpx;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+}
+
+.customSaveText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
+}

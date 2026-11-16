@@ -1,0 +1,158 @@
+@use '@/styles/variables.scss' as *;
+
+/* 全屏页：从上方滑下盖住整屏，键盘从下方弹出也不影响页面任何元素位移 */
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + #{$spacing-lg}) $page-padding
+    calc(env(safe-area-inset-bottom) + 24rpx);
+  background: $color-bg-elevated;
+  animation: slideDown 0.24s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.close {
+  padding: 0 8rpx;
+  font-size: $font-size-lg;
+  color: $color-text-tertiary;
+}
+
+.hint {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 全屏有空间，三个输入竖排更方便填 */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+.field {
+  width: 100%;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.fieldBox {
+  display: flex;
+  align-items: center;
+  margin-top: 8rpx;
+  padding: 0 $spacing-md;
+  height: 88rpx;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+}
+
+.fieldInput {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.fieldUnit {
+  margin-left: 6rpx;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: $spacing-xl;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-card;
+}
+
+.summaryLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.summaryValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.summaryUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.fixedTip {
+  display: block;
+  margin-top: $spacing-md;
+  font-size: $font-size-xs;
+  line-height: $line-height-loose;
+  color: $color-text-tertiary;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+.cancel {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.save {
+  flex: 2;
+  height: 88rpx;
+  border-radius: $radius-button;
+  background: $color-primary;
+  @include flex-center;
+}
+
+.saveText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}

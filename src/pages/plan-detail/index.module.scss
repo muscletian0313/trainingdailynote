@@ -12,8 +12,9 @@
   margin-top: $spacing-md;
   padding: $spacing-lg;
   border-radius: $radius-lg;
-  background: linear-gradient(135deg, rgba(255, 107, 44, 0.2) 0%, rgba(255, 107, 44, 0.05) 100%);
-  border: 2rpx solid rgba(255, 107, 44, 0.28);
+  background: rgba(255, 107, 44, 0.08);
+  border: $border-hard-strong solid $color-primary;
+  box-shadow: $shadow-hard-card-lg;
 }
 
 /* 头部左侧文案区 */
@@ -36,10 +37,10 @@
   width: 200rpx;
   height: 200rpx;
   margin-top: $spacing-xs;
-  border-radius: 24rpx;
-  background: #0a0a0e;
-  border: 2rpx solid rgba(255, 107, 44, 0.35);
-  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.35);
+  border-radius: $radius-hard-card;
+  background: $color-bg-deep;
+  border: $border-hard solid rgba(255, 107, 44, 0.45);
+  box-shadow: 0 6rpx 0 $color-hard-shadow;
   overflow: hidden;
 }
 
@@ -56,9 +57,11 @@
 }
 
 .headName {
+  flex: 1;
   min-width: 0;
   font-size: $font-size-xxl;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
+  letter-spacing: -1rpx;
   color: $color-text-primary;
   @include text-ellipsis;
 }
@@ -108,11 +111,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: auto;
   height: 56rpx;
   margin: 0 0 0 $spacing-sm;
   padding: 0 20rpx;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius-xs;
   background: rgba(255, 107, 44, 0.16);
   transition: all $transition-fast;
 
@@ -185,31 +189,34 @@
   height: 68rpx;
   border-radius: $radius-button;
   @include flex-center;
-  transition: all $transition-base;
+  transition: transform $transition-fast, box-shadow $transition-fast;
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(3rpx);
   }
 }
 
 .headActionGhost {
   margin-right: $spacing-sm;
+  border: $border-hard solid $color-border;
   background: $color-bg-hover;
 }
 
 .headActionGhostText {
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-weight: 700;
   color: $color-text-primary;
 }
 
 .headActionPrimary {
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  background: $color-primary;
+  box-shadow: 0 6rpx 0 $color-hard-shadow-primary;
 }
 
 .headActionPrimaryText {
   font-size: $font-size-sm;
-  font-weight: $font-weight-bold;
+  font-weight: 800;
+  letter-spacing: 1rpx;
   color: $color-text-inverse;
 }
 
@@ -222,7 +229,8 @@
 
 .sectionTitle {
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: 800;
+  letter-spacing: 1rpx;
   color: $color-text-primary;
 }
 
@@ -232,6 +240,7 @@
 }
 
 .list {
+  border: $border-hard solid $color-border;
   background: $color-bg-card;
   border-radius: $radius-lg;
   box-shadow: $shadow-card;
@@ -291,10 +300,25 @@
   flex: 1;
   min-width: 0;
   font-size: $font-size-md;
-  font-weight: $font-weight-medium;
+  font-weight: 700;
   line-height: 1.3;
   color: $color-text-primary;
   word-break: break-all;
+}
+
+/* 超级组标签：右对齐挂在训练部位上方 */
+.itemSupersetTag {
+  flex-shrink: 0;
+  margin-bottom: 8rpx;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-hard-tag;
+  background: rgba(255, 107, 44, 0.14);
+  border: $border-hard solid rgba(255, 107, 44, 0.55);
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  color: $color-primary;
+  white-space: nowrap;
 }
 
 .itemNameTag {
@@ -336,8 +360,8 @@
 
 .itemTag {
   margin: 0 8rpx 6rpx 0;
-  padding: 2rpx 12rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
   background: rgba(255, 107, 44, 0.12);
   font-size: $font-size-sm;
   color: $color-primary;
@@ -346,8 +370,8 @@
 
 .itemTagLocked {
   margin: 0 8rpx 6rpx 0;
-  padding: 2rpx 12rpx;
-  border-radius: $radius-round;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
   background: $color-bg-hover;
   font-size: $font-size-sm;
   color: $color-text-tertiary;
@@ -386,6 +410,7 @@
   flex-shrink: 0;
   text-align: center;
   font-size: 22rpx;
+  font-weight: 700;
   color: $color-text-tertiary;
 }
 
@@ -420,7 +445,9 @@
 
 .setValue {
   font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5rpx;
   color: $color-text-primary;
 }
 
@@ -438,6 +465,39 @@
   text-align: center;
   font-size: $font-size-sm;
   color: $color-text-tertiary;
+}
+
+/* 有氧强度目标：轻松 / 适中 / 高强度 */
+.setIntensity {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  padding: 0 $spacing-sm;
+  height: 52rpx;
+  border-radius: $radius-sm;
+  border: 2rpx solid $color-primary;
+  background: $color-primary-soft;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  line-height: 48rpx;
+}
+
+/* 有氧的器械参数：速度 / 坡度 / 距离 / 档位 / 个数 */
+.cardioTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10rpx;
+  padding-left: 116rpx;
+}
+
+.setCardioTag {
+  margin-right: 10rpx;
+  margin-bottom: 8rpx;
+  padding: 2rpx 12rpx;
+  border-radius: $radius-sm;
+  background: $color-surface-soft;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
 }
 
 .setEmpty {
@@ -469,38 +529,67 @@
   line-height: 1;
 }
 
-/* 训练心得：只有练完拿到评分后才展示 */
-.noteBoxActive {
+/* 训练报告：计划详情最底部，一直下拉就能看这次实际练了什么 */
+.reportCard {
   padding: $spacing-lg;
   border: 2rpx solid rgba(255, 107, 44, 0.35);
   border-radius: $radius-lg;
   background: rgba(255, 107, 44, 0.06);
 }
 
-.noteScoreRow {
+.reportScoreRow {
   display: flex;
   align-items: baseline;
 }
 
-.noteScore {
+.reportScore {
   font-size: 72rpx;
   font-weight: $font-weight-bold;
   line-height: 1;
   color: $color-primary;
 }
 
-.noteScoreUnit {
+.reportScoreUnit {
   margin-left: 8rpx;
   font-size: $font-size-sm;
   color: $color-text-tertiary;
 }
 
-.noteMessage {
+.reportMessage {
   display: block;
   margin-top: $spacing-sm;
   font-size: $font-size-sm;
   line-height: $line-height-normal;
   color: $color-text-secondary;
+}
+
+/* 较上次：容量 / 组数 / 时长 / 评分 */
+.reportGrid {
+  display: flex;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 2rpx solid $color-divider;
+}
+
+.reportCell {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.reportCellLabel {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.reportCellValue {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $font-size-md;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-primary;
 }
 
 /* 结束训练后：自我评价输入框 */
@@ -511,11 +600,54 @@
   margin-top: $spacing-md;
   padding: $spacing-md;
   border-radius: $radius-md;
-  border: 2rpx solid rgba(255, 255, 255, 0.08);
+  border: 2rpx solid $color-surface-mid;
   background: $color-bg-input;
   font-size: $font-size-sm;
   line-height: $line-height-normal;
   color: $color-text-primary;
+}
+
+/* 消耗热量（选填）：一行标签 + 输入框 */
+.burnField {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+}
+
+.burnLabel {
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.burnBox {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  margin-left: $spacing-md;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  border: 2rpx solid $color-surface-mid;
+  background: $color-bg-input;
+  box-sizing: border-box;
+}
+
+.burnInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  text-align: right;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.burnUnit {
+  flex-shrink: 0;
+  margin-left: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
 }
 
 /* 已保存的自我评价内容 */
@@ -560,7 +692,7 @@
   height: 92rpx;
   margin-top: $spacing-lg;
   border-radius: $radius-button;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  background: $color-primary;
   @include flex-center;
 
   &:active {
@@ -597,6 +729,8 @@
   border: 2rpx solid rgba(255, 107, 44, 0.35);
   background: $color-bg-card;
   box-shadow: $shadow-card;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .resultTitle {
@@ -638,32 +772,35 @@
   box-sizing: border-box;
   border-radius: $radius-button;
   @include flex-center;
-  transition: all $transition-base;
+  transition: transform $transition-fast, box-shadow $transition-fast;
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(4rpx);
   }
 }
 
 .bottomBtnGhost {
+  border: $border-hard solid $color-border;
   background: $color-bg-hover;
   margin-right: $spacing-sm;
 }
 
 .bottomBtnPrimary {
   flex: 1;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  background: $color-primary;
+  box-shadow: $shadow-hard-btn;
 }
 
 .bottomBtnTextGhost {
   font-size: $font-size-md;
-  font-weight: $font-weight-medium;
+  font-weight: 700;
   color: $color-text-primary;
 }
 
 .bottomBtnTextPrimary {
   font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
+  font-weight: 900;
+  letter-spacing: 3rpx;
   color: $color-text-inverse;
 }
 
@@ -676,4 +813,330 @@
   &::after {
     border: none;
   }
+}
+
+/* ===== 训练报告（结束训练弹层） ===== */
+
+/* 顶部：评分环 + 一句话评价 */
+.reportTop {
+  display: flex;
+  align-items: center;
+}
+
+.scoreRing {
+  flex-shrink: 0;
+  width: 168rpx;
+  height: 168rpx;
+  padding: 10rpx;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+.scoreRingInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: $color-bg-card;
+}
+
+.scoreRingNum {
+  font-size: 46rpx;
+  font-weight: 900;
+  line-height: 50rpx;
+  color: $color-primary;
+}
+
+.scoreRingUnit {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.reportTopMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-md;
+}
+
+.reportMsg {
+  display: block;
+  font-size: $font-size-sm;
+  line-height: 1.55;
+  color: $color-text-secondary;
+}
+
+.reportTags {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: $spacing-sm;
+}
+
+.reportTag {
+  margin-right: 10rpx;
+  margin-bottom: 10rpx;
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+  background: $color-surface;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+/* 较上次：容量 / 组数 / 时长 / 评分 */
+.compareCard {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  border: 2rpx solid $color-surface;
+}
+
+.compareHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.compareTitle {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.compareWhen {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.compareRow {
+  display: flex;
+}
+
+.compareCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.compareCell + .compareCell {
+  border-left: 2rpx solid $color-surface;
+}
+
+.compareLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.compareValue {
+  margin-top: 6rpx;
+  font-size: $font-size-md;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.compareDelta {
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.compareUp {
+  color: $color-success;
+}
+
+.compareDown {
+  color: $color-error;
+}
+
+/* 动作复盘 */
+.reviewCard {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  border: 2rpx solid $color-surface;
+}
+
+.reviewTitle {
+  display: block;
+  margin-bottom: $spacing-xs;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.reviewRow {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+}
+
+.reviewRow + .reviewRow {
+  border-top: 2rpx solid $color-surface-soft;
+}
+
+.reviewDot {
+  flex-shrink: 0;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+}
+
+.reviewMain {
+  flex: 1;
+  min-width: 0;
+  margin-left: $spacing-sm;
+}
+
+.reviewNameRow {
+  display: flex;
+  align-items: center;
+}
+
+.reviewName {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.reviewPr {
+  margin-left: 10rpx;
+  padding: 0 8rpx;
+  border-radius: $radius-sm;
+  background: rgba(52, 211, 153, 0.16);
+  font-size: 19rpx;
+  line-height: 30rpx;
+  color: $color-success;
+}
+
+.reviewMeta {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.reviewSide {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  text-align: right;
+}
+
+.reviewVol {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-primary;
+}
+
+.reviewDelta {
+  display: block;
+  margin-top: 2rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.reviewMore {
+  display: block;
+  padding-top: $spacing-sm;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+/* 消耗热量：估算 → 可改 → 确认 */
+.burnCard {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-input;
+  border: 2rpx solid $color-surface;
+}
+
+.burnHead {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.burnIcon {
+  margin-right: 8rpx;
+  font-size: $font-size-sm;
+  line-height: 1;
+}
+
+.burnShowBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx $spacing-md;
+  border-radius: $radius-md;
+  background: $color-surface-weak;
+  border: 2rpx solid $color-surface-mid;
+}
+
+.burnShowText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.burnShowNum {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: $color-primary;
+}
+
+.burnShowUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.burnEdit {
+  flex-shrink: 0;
+  padding-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.burnEditBox {
+  display: flex;
+  align-items: center;
+  padding: 12rpx $spacing-md;
+  border-radius: $radius-md;
+  background: $color-surface-weak;
+  border: 2rpx solid rgba(255, 107, 44, 0.5);
+}
+
+.burnEditInput {
+  flex: 1;
+  min-width: 0;
+  height: 56rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: $color-text-primary;
+}
+
+.burnDone {
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.burnConfirm {
+  margin-top: $spacing-sm;
+  padding: 20rpx 0;
+  border-radius: $radius-md;
+  text-align: center;
+  background: rgba(255, 107, 44, 0.12);
+  border: 2rpx solid rgba(255, 107, 44, 0.5);
+}
+
+.burnConfirmText {
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-primary;
 }
