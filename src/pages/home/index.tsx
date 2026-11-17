@@ -314,7 +314,7 @@ const HomePage: React.FC = () => {
                 </>
               )}
             </Text>
-            <Text className={styles.statLabel}>{cardioOnly ? '总距离' : '总容量'}</Text>
+            <Text className={styles.statLabel}>{cardioOnly ? '总距离' : '总组数'}</Text>
           </View>
           <View className={styles.statDivider} />
           <View className={styles.statItem}>
@@ -424,12 +424,12 @@ const HomePage: React.FC = () => {
               </Text>
             </View>
             <View className={styles.activeStat}>
-              <Text className={styles.activeStatLabel}>总容量</Text>
+              <Text className={styles.activeStatLabel}>总组数</Text>
               <Text className={classnames(styles.activeStatValue, styles.activeStatAccent)}>
-                {activeVolumePair.done}
+                {activeDoneSets}
                 <Text className={styles.activeStatUnit}>
-                  /{activeVolumePair.plan}
-                  {activeVolumePair.unit}
+                  /{activeTotalSets}
+                  <Text className={styles.activeStatUnit}>组</Text>
                 </Text>
               </Text>
             </View>

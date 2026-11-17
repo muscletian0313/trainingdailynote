@@ -362,7 +362,7 @@ const PlansPage: React.FC = () => {
                     </>
                   )}
                 </Text>
-                <Text className={styles.statLabel}>{cardioOnly ? '总距离' : '总容量'}</Text>
+                <Text className={styles.statLabel}>{cardioOnly ? '总距离' : '总组数'}</Text>
               </View>
               <View className={styles.statDivider} />
               <View className={styles.statItem}>
@@ -482,7 +482,7 @@ const PlansPage: React.FC = () => {
                     <View className={styles.statDivider} />
                     <View className={styles.statItem}>
                       <Text className={styles.statValue}>—</Text>
-                      <Text className={styles.statLabel}>总容量</Text>
+                      <Text className={styles.statLabel}>总组数</Text>
                     </View>
                     <View className={styles.statDivider} />
                     <View className={styles.statItem}>

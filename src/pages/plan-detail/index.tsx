@@ -524,7 +524,7 @@ const PlanDetailPage: React.FC = () => {
             {planComparison?.prev ? (
               <View className={styles.reportGrid}>
                 {[
-                  { label: '总容量', text: formatVolume(planComparison.volume.now) },
+                  { label: '总重量', text: formatVolume(planComparison.weight.now) },
                   { label: '完成组', text: `${planComparison.sets.now}` },
                   { label: '时长', text: `${planComparison.minutes.now}分` },
                   { label: '评分', text: `${planComparison.score.now}` }

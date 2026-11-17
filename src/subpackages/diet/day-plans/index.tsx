@@ -206,7 +206,7 @@ const DayPlansPage: React.FC = () => {
                         )}
                       </Text>
                       <Text className={homeStyles.statLabel}>
-                        {cardioOnly ? '总距离' : '总容量'}
+                        {cardioOnly ? '总距离' : '总组数'}
                       </Text>
                     </View>
                     <View className={homeStyles.statDivider} />

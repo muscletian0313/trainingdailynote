@@ -178,7 +178,7 @@ const SessionResultPage: React.FC = () => {
           {comparison.prev ? (
             <View className={styles.compareRow}>
               {[
-                { label: '总容量', text: formatVolume(comparison.volume.now), delta: compareDelta(comparison.volume, '', true) },
+                { label: '总重量', text: formatVolume(comparison.weight.now), delta: compareDelta(comparison.weight, '', true) },
                 { label: '完成组', text: `${comparison.sets.now}`, delta: compareDelta(comparison.sets, '组') },
                 { label: '时长', text: `${comparison.minutes.now}分`, delta: compareDelta(comparison.minutes, '分') },
                 { label: '评分', text: `${comparison.score.now}`, delta: compareDelta(comparison.score, '分') }

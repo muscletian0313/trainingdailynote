@@ -743,12 +743,12 @@ const SessionPage: React.FC = () => {
                 </Text>
               </View>
               <View className={styles.summaryStat}>
-                <Text className={styles.summaryStatLabel}>总容量</Text>
+                <Text className={styles.summaryStatLabel}>总组数</Text>
                 <Text className={classnames(styles.summaryStatValue, styles.summaryStatAccent)}>
-                  {volumePair.done}
+                  {doneSets}
                   <Text className={styles.summaryStatUnit}>
-                    /{volumePair.plan}
-                    {volumePair.unit}
+                    /{totalSets}
+                    组
                   </Text>
                 </Text>
               </View>
