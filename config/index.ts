@@ -21,11 +21,15 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     defineConstants: {},
     copy: {
       // 音效等静态资源直接拷进产物（to 相对项目根目录）
-      // 食物实拍图 / 示范图走云开发静态托管，不再随包打包
+      // 动作示范图随 misc 分包走，不依赖网络；食物图走云开发静态托管
       patterns: [
         { from: 'src/assets/audio', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/audio` },
         { from: 'src/assets/foods', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/foods` },
-        { from: 'src/assets/muscle', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/muscle` }
+        { from: 'src/assets/muscle', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/muscle` },
+        {
+          from: 'src/assets/exercise-demo',
+          to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/subpackages/misc/assets/exercise-demo`
+        }
       ],
       options: {},
     },

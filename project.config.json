@@ -21,6 +21,10 @@
     "ignoreUploadUnusedFiles": false
   },
   "compileType": "miniprogram",
+  "packOptions": {
+    "include": [{ "type": "folder", "value": "subpackages/misc/assets" }],
+    "ignore": []
+  },
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {},
   "condition": {}
