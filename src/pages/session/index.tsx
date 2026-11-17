@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Input, ScrollView, Textarea } from '@tarojs/components';
-import Taro, { pageScrollTo } from '@tarojs/taro';
+import Taro, { pageScrollTo, useReady } from '@tarojs/taro';
 import {
   navigateBack,
   navigateTo,
@@ -258,6 +258,12 @@ const SessionPage: React.FC = () => {
     const index = list.findIndex((item) => !(isExerciseFinished(item) && item.feel !== undefined));
     return index === -1 ? list[list.length - 1].key : list[index].key;
   }, [active, focusKey]);
+
+  /** 进入训练页：直接滚动到「最近要完成的那个动作」，不用手动往下翻 */
+  useReady(() => {
+    if (!currentKey) return;
+    setTimeout(() => pageScrollTo({ selector: `#ex-${currentKey}`, duration: 250 }), 200);
+  });
 
   /** 超级组编号 → A/B/C…（按动作顺序） */
   const supersetMap = useMemo(
