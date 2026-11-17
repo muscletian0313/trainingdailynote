@@ -544,7 +544,8 @@ const SessionPage: React.FC = () => {
     patchExerciseInActive(key, { feel: value });
     setFocusKey(null);
     // 选完状态再问一句有没有特殊备注：有就写，没有点「没有」直接跳过
-    if (process.env.TARO_ENV !== 'weapp') return;
+    // 「我的 - 训练动作特殊备注」开关关闭时不弹
+    if (process.env.TARO_ENV !== 'weapp' || !profile.feelNotePromptEnabled) return;
     const current = active?.exercises.find((item) => item.key === key);
     showPromptModal({
       title: '有特殊备注吗？',

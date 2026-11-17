@@ -391,6 +391,19 @@ const MinePage: React.FC = () => {
             />
           </View>
         </View>
+        <View className={styles.row}>
+          <View>
+            <Text className={styles.rowLabel}>训练动作特殊备注</Text>
+            <Text className={styles.rowSub}>选完动作感受后弹窗询问是否补充备注</Text>
+          </View>
+          <View className={styles.rowValue}>
+            <Switch
+              checked={profile.feelNotePromptEnabled}
+              color="#ff6b2c"
+              onChange={(event) => updateProfile({ feelNotePromptEnabled: event.detail.value })}
+            />
+          </View>
+        </View>
       </View>
 
       <Text className={styles.sectionLabel}>数据管理</Text>

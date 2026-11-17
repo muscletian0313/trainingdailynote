@@ -11,7 +11,8 @@ export const DEFAULT_PROFILE: UserProfile = {
   restEnabled: true,
   restSoundId: 'bell',
   restVibrate: false,
-  noteEnabled: true
+  noteEnabled: true,
+  feelNotePromptEnabled: true
 };
 
 /**

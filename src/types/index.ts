@@ -213,6 +213,8 @@ export interface UserProfile {
   restVibrate: boolean;
   /** 是否在计划详情页展示「训练报告」区域 */
   noteEnabled: boolean;
+  /** 选完动作感受后，是否弹窗询问训练动作特殊备注 */
+  feelNotePromptEnabled: boolean;
   /** 完成新手问卷的时间戳（存在即表示已引导过） */
   onboardedAt?: number;
   /** 性别（用于热量估算与体重默认值） */
