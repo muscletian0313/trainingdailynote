@@ -202,7 +202,15 @@ const ExerciseDetailPage: React.FC = () => {
                 className={styles.demoFrame}
                 style={{ opacity: !hasTwoFrames || !peakFrame ? 1 : 0 }}
               >
-                <Image className={styles.demoFill} src={demoImages.start} mode="aspectFit" />
+                <Image
+                  className={styles.demoFill}
+                  src={demoImages.start}
+                  mode="aspectFit"
+                  onError={() => {
+                    setDemoFailed(true);
+                    setDemoImages((prev) => ({ ...prev, start: '' }));
+                  }}
+                />
               </View>
             ) : (
               <Text className={styles.demoLoading}>
@@ -211,7 +219,12 @@ const ExerciseDetailPage: React.FC = () => {
             )}
             {hasTwoFrames ? (
               <View className={styles.demoFrame} style={{ opacity: peakFrame ? 1 : 0 }}>
-                <Image className={styles.demoFill} src={demoImages.peak} mode="aspectFit" />
+                <Image
+                  className={styles.demoFill}
+                  src={demoImages.peak}
+                  mode="aspectFit"
+                  onError={() => setDemoImages((prev) => ({ ...prev, peak: '' }))}
+                />
               </View>
             ) : null}
             <Text className={styles.demoFrameTag}>

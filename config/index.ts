@@ -30,15 +30,11 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
           from: 'src/assets/foods-photo',
           to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/subpackages/diet/assets/foods-photo`
         },
-        // 动作示范图：小程序走云存储按需下载，只有 H5 预览才随包带图
-        ...(process.env.TARO_ENV === 'h5'
-          ? [
-              {
-                from: 'src/assets/exercise-demo',
-                to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/subpackages/misc/assets/exercise-demo`
-              }
-            ]
-          : [])
+        // 动作示范图跟着 misc 分包走：云存储改权限需要付费套餐，包内直读零成本
+        {
+          from: 'src/assets/exercise-demo',
+          to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/subpackages/misc/assets/exercise-demo`
+        }
       ],
       options: {},
     },
