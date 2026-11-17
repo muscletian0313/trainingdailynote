@@ -90,3 +90,38 @@ export function vibrate(): void {
     console.warn('[Taro] 震动失败:', error);
   }
 }
+
+/**
+ * 带输入框的弹窗，返回用户输入的文字；点取消或输入为空都返回 null。
+ * 微信小程序从基础库 2.17.1 起支持 editable，Taro 的类型定义里还没补，
+ * 这里统一收敛掉这层断言；H5 不支持输入框，调用方应先判断平台。
+ */
+export function showPromptModal(options: {
+  title: string;
+  placeholder: string;
+  value?: string;
+  confirmText?: string;
+  cancelText?: string;
+}): Promise<string | null> {
+  return new Promise((resolve) => {
+    const modalOption = {
+      title: options.title,
+      content: options.value ?? '',
+      confirmText: options.confirmText ?? '保存',
+      cancelText: options.cancelText ?? '没有',
+      editable: true,
+      placeholderText: options.placeholder,
+      success: (res: { confirm: boolean; content?: string }) => {
+        if (!res.confirm) {
+          resolve(null);
+          return;
+        }
+        const text = (res.content ?? '').trim();
+        resolve(text || null);
+      },
+      fail: () => resolve(null)
+    } as unknown as Parameters<typeof Taro.showModal>[0];
+
+    Taro.showModal(modalOption).catch(() => resolve(null));
+  });
+}

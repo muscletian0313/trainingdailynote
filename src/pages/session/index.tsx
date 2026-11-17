@@ -8,6 +8,7 @@ import {
   redirectTo,
   showActionSheet,
   showModal,
+  showPromptModal,
   showToast,
   switchTab,
   vibrate
@@ -542,6 +543,16 @@ const SessionPage: React.FC = () => {
   const handleFeel = (key: string, value: number) => {
     patchExerciseInActive(key, { feel: value });
     setFocusKey(null);
+    // 选完状态再问一句有没有特殊备注：有就写，没有点「没有」直接跳过
+    if (process.env.TARO_ENV !== 'weapp') return;
+    const current = active?.exercises.find((item) => item.key === key);
+    showPromptModal({
+      title: '有特殊备注吗？',
+      placeholder: '例如第三组第7个动作变形，肘没夹住',
+      value: current?.feelNote ?? ''
+    }).then((text) => {
+      if (text) patchExerciseInActive(key, { feelNote: text });
+    });
   };
 
   /** 有氧动作名（不是有氧动作就返回空串）：结束时用来判断要不要提醒补数据 */
