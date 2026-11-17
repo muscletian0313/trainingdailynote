@@ -41,7 +41,14 @@ const desc = process.argv[3] || `练记 ${version}`;
       version,
       desc,
       // 三个压缩开关都打开：包体一直在 2MB 边缘，WXML / WXSS 压缩能省出几十 KB
-      setting: { es6: true, minify: true, minifyWXML: true, minifyWXSS: true },
+      // ignoreUploadUnusedFiles 必须关掉，否则 Demo 图 / 食物缩略图这类字符串路径资源会被剔除
+      setting: {
+        es6: true,
+        minify: true,
+        minifyWXML: true,
+        minifyWXSS: true,
+        ignoreUploadUnusedFiles: false
+      },
       onProgressUpdate: () => {}
     });
     console.log('UPLOAD DONE', version);

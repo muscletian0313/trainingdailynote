@@ -1,15 +1,12 @@
 /**
  * 图片资源地址。
  *
- * 说明：原本计划把器械图、食物图放微信云开发的云存储，
- * 但云存储的「所有用户可读」属于付费能力（需 199 元/月套餐），
- * 免费体验期无法开启，普通用户会读不到图，因此改回打包内置：
- * - 器械图随主包（首页计划卡要用）
- * - 食物图随饮食分包（只有饮食页展示，不占主包）
+ * - 器械图、食物分类图标体积小，随包内置
+ * - 食物实拍图、缩略图、动作示范图放云开发「静态网站托管」：
+ *   静态托管默认公开可读，不像云存储那样需要付费改权限，也不占包体积
  */
+export const STATIC_BASE = 'https://rixunji-fight-d8gfo915aee0b48d1-1531127310.tcloudbaseapp.com';
+
 export function cloudFile(name: string): string {
-  if (name.startsWith('foods-photo/')) {
-    return `/subpackages/diet/assets/${name}`;
-  }
   return `/assets/${name}`;
 }

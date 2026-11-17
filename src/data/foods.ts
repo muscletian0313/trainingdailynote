@@ -1,5 +1,5 @@
 import type { FoodCategory, FoodItem } from '@/types';
-import { cloudFile } from '@/utils/cloudAsset';
+import { STATIC_BASE } from '@/utils/cloudAsset';
 
 /** [名称, 分类, 热量, 蛋白, 碳水, 脂肪, 膳食纤维, 钠(mg), 一份克数?]，营养均按每 100g */
 type RawFood = [
@@ -630,17 +630,16 @@ export const PRESET_FOODS: FoodItem[] = RAW.map(
 export function foodPhoto(food: FoodItem): string | null {
   if (food.isCustom) return null;
   if (!food.id.startsWith('fd-')) return null;
-  return cloudFile(`foods-photo/${food.id}.jpg`);
+  return `${STATIC_BASE}/fitlog/foods-photo/${food.id}.jpg`;
 }
 
 /**
- * 食物缩略图：日历页在主包里，访问不到饮食分包的图片，
- * 所以主包另带一套 96px 缩略图（同名关系，体积约为原图 1/3）。
+ * 食物缩略图：96px 版本，日历页列表用，比原图小得多，加载更快。
  */
 export function foodPhotoThumb(food: FoodItem): string | null {
   if (food.isCustom) return null;
   if (!food.id.startsWith('fd-')) return null;
-  return `/assets/foods-thumb/${food.id}.webp`;
+  return `${STATIC_BASE}/fitlog/foods-thumb/${food.id}.jpg`;
 }
 
 /** 分类兜底图标（Emoji 图，自定义食物没拍照时用） */

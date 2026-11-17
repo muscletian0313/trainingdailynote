@@ -1,10 +1,10 @@
 /**
- * 动作示范图：随 misc 分包发布，和小程序页面同包，直接读包内路径。
- * 云存储改了权限才能对外读，免费套餐不支持，所以不走云端。
+ * 动作示范图：放在云开发静态网站托管，按 https 直链加载，不占包体积。
  */
 import Taro from '@tarojs/taro';
+import { STATIC_BASE } from '@/utils/cloudAsset';
 
-const DEMO_DIR = '/subpackages/misc/assets/exercise-demo/';
+const DEMO_DIR = `${STATIC_BASE}/fitlog/exercise-demo/`;
 const LEGACY_CACHE_KEY = 'fitlog_demo_img_cache_v1';
 
 /** 取示范图地址；空文件名返回空串 */

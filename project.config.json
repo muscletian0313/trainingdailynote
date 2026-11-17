@@ -17,7 +17,8 @@
     "coverView": true,
     "showShadowRootInWxmlPanel": false,
     "scopeDataCheck": false,
-    "useCompilerModule": false
+    "useCompilerModule": false,
+    "ignoreUploadUnusedFiles": false
   },
   "compileType": "miniprogram",
   "simulatorType": "wechat",
