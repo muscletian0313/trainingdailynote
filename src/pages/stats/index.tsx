@@ -19,7 +19,7 @@ import BodyDataView from '@/components/BodyDataView';
 import PrTrendChart from '@/components/PrTrendChart';
 import DietTargetSheet from '@/components/DietTargetSheet';
 import ScrollLock from '@/components/ScrollLock';
-import { findFood, foodIcon } from '@/data/foods';
+import { findFood, foodIcon, foodPhotoThumb } from '@/data/foods';
 import {
   dayTotals,
   mealTotals,
@@ -399,7 +399,7 @@ const StatsPage: React.FC = () => {
 
                       {entries.map((entry) => {
                         const food = findFood(entry.foodId ?? '', customFoods);
-                        const photo = food?.image || null;
+                        const photo = food ? food.image || foodPhotoThumb(food) : null;
                         return (
                           <View
                             key={entry.id}
@@ -497,7 +497,7 @@ const StatsPage: React.FC = () => {
                             </View>
                             {entries.map((entry) => {
                               const food = findFood(entry.foodId ?? '', customFoods);
-                              const photo = food?.image || null;
+                              const photo = food ? food.image || foodPhotoThumb(food) : null;
                               return (
                                 <View
                                   key={entry.id}

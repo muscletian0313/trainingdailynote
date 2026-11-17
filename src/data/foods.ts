@@ -633,6 +633,16 @@ export function foodPhoto(food: FoodItem): string | null {
   return cloudFile(`foods-photo/${food.id}.jpg`);
 }
 
+/**
+ * 食物缩略图：日历页在主包里，访问不到饮食分包的图片，
+ * 所以主包另带一套 96px 缩略图（同名关系，体积约为原图 1/3）。
+ */
+export function foodPhotoThumb(food: FoodItem): string | null {
+  if (food.isCustom) return null;
+  if (!food.id.startsWith('fd-')) return null;
+  return `/assets/foods-thumb/${food.id}.webp`;
+}
+
 /** 分类兜底图标（Emoji 图，自定义食物没拍照时用） */
 const CATEGORY_ICON: Record<FoodCategory, string> = {
   staple: '1f35a',

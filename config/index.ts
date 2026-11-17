@@ -25,6 +25,11 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
       patterns: [
         { from: 'src/assets/audio', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/audio` },
         { from: 'src/assets/foods', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/foods` },
+        // 食物缩略图随主包：日历页在主包，不能引用饮食分包的图片
+        {
+          from: 'src/assets/foods-thumb',
+          to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/foods-thumb`
+        },
         { from: 'src/assets/muscle', to: `${process.env.TARO_OUTPUT_DIR || 'dist'}/assets/muscle` },
         {
           from: 'src/assets/foods-photo',
